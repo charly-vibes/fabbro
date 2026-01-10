@@ -1,0 +1,32 @@
+# AGENTS.md - Fabbro Development Workflow
+
+This document outlines the development philosophy and process for building `fabbro`. It is designed to ensure high-quality, maintainable code through a structured, test-driven methodology.
+
+## Core Philosophy
+
+1.  **Local First**: `fabbro` is a tool for individual developers on their local machine. The architecture must prioritize simplicity, reliability, and offline-first functionality. There are no server components.
+2.  **Tidy First**: We adhere to the "Tidy First" principle. Before adding new functionality, we take the time for small refactorings to make the new code easier to write. A clean workspace is a productive workspace.
+3.  **Spec-Driven Development (SDD)**: All new functionality begins with a specification. We use Gherkin (`.feature` files) to describe how a feature should behave from the user's perspective. These specs are human-readable, serve as living documentation, and form the foundation of our test suite.
+4.  **Test-Driven Development (TDD)**: The specs are implemented as automated tests *before* the feature code is written. The development cycle is "Red, Green, Refactor":
+    *   **Red**: Write a failing test that implements a single scenario from the spec.
+    *   **Green**: Write the simplest possible production code to make the test pass.
+    *   **Refactor**: Clean up the production and test code while keeping the test green.
+
+## Agent/Developer Workflow
+
+All contributions to `fabbro` must follow this process:
+
+1.  **Create/Update a Spec File**: In the `specs/` directory, create or modify a `.feature` file that describes the desired functionality. Use clear, user-centric Gherkin syntax.
+    *   *Example*: `specs/01_initialization.feature`
+
+2.  **Implement the Failing Test**: Write the test code that executes the scenario defined in the spec. Run the test suite and confirm that it fails for the expected reason.
+
+3.  **Write Production Code**: Implement the feature, focusing only on what is necessary to make the failing test pass.
+
+4.  **Run Tests**: Run the test suite again and confirm that all tests now pass.
+
+5.  **Refactor**: With passing tests as a safety net, refactor the code for clarity, efficiency, and adherence to style guidelines. Re-run tests to ensure nothing was broken.
+
+6.  **Repeat**: Continue this cycle for all scenarios in the spec file. Once all scenarios for a feature are implemented, the feature is considered complete.
+
+This structured approach ensures that `fabbro` is built on a solid foundation of clear specifications and comprehensive tests, making it robust and easy to maintain.
