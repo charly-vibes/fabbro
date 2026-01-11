@@ -128,11 +128,11 @@ require (
 ### Success Criteria
 
 #### Automated:
-- [ ] `go test ./...` passes (write one test)
+- [x] `go test ./...` passes (write one test)
 
 #### Manual:
-- [ ] `go run ./cmd/fabbro init` creates `.fabbro/sessions/`
-- [ ] Running again prints "already initialized"
+- [x] `go run ./cmd/fabbro init` creates `.fabbro/sessions/`
+- [x] Running again prints "already initialized"
 
 ---
 
