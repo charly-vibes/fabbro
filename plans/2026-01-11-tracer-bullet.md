@@ -257,8 +257,8 @@ func Parse(content string) ([]Annotation, string, error)
 ### Success Criteria
 
 #### Automated:
-- [ ] Test: `{>> hello <<}` extracts annotation with text "hello"
-- [ ] Test: multiple annotations on different lines
+- [x] Test: `{>> hello <<}` extracts annotation with text "hello"
+- [x] Test: multiple annotations on different lines
 
 #### Manual:
 - [ ] Can parse the session file created by TUI
