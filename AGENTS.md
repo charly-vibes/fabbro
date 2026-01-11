@@ -9,6 +9,7 @@ fabbro/
 ├── specs/           # Gherkin .feature files (living documentation)
 ├── research/        # Research documents (YYYY-MM-DD-topic.md)
 ├── plans/           # Implementation plans (YYYY-MM-DD-description.md)
+├── handoffs/        # Session handoff documents for context transfer
 ├── debates/         # Design debates and decision records
 ├── .agents/commands/  # Agent workflow commands
 └── .claude/commands/  # Claude Code slash commands (symlinked)
@@ -21,6 +22,9 @@ Commands are available as slash commands in Claude Code:
 - `/create_plan` - Create implementation plans → outputs to `plans/`
 - `/implement_plan` - Execute approved plans following TDD
 - `/research_codebase` - Document codebase as-is → outputs to `research/`
+- `/commit` - Create git commits with user approval
+- `/create_handoff` - Create handoff document → outputs to `handoffs/`
+- `/resume_handoff` - Resume work from a handoff document
 
 ## Core Philosophy
 
