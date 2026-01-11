@@ -319,8 +319,8 @@ func TestTracerBullet(t *testing.T) {
 ### Success Criteria
 
 #### Automated:
-- [ ] Integration test passes
-- [ ] `go build ./cmd/fabbro` produces working binary
+- [x] Integration test passes
+- [x] `go build ./cmd/fabbro` produces working binary
 
 #### Manual:
 - [ ] Full flow works: init → review → annotate → apply --json
