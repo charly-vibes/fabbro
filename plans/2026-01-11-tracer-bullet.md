@@ -220,7 +220,7 @@ Comment: _                                    [Enter]
 ### Success Criteria
 
 #### Automated:
-- [ ] `go test ./...` passes
+- [x] `go test ./...` passes
 
 #### Manual:
 - [ ] TUI displays content with line numbers
