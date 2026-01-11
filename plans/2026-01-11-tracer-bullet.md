@@ -290,11 +290,11 @@ func Parse(content string) ([]Annotation, string, error)
 ### Success Criteria
 
 #### Automated:
-- [ ] `go test ./...` passes
+- [x] `go test ./...` passes
 
 #### Manual:
-- [ ] `fabbro apply abc123 --json` outputs valid JSON
-- [ ] Annotations appear in output
+- [x] `fabbro apply abc123 --json` outputs valid JSON
+- [x] Annotations appear in output
 
 ---
 
