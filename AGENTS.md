@@ -29,8 +29,17 @@ Commands are available as slash commands in Claude Code:
 ## Core Philosophy
 
 1.  **Local First**: `fabbro` is a tool for individual developers on their local machine. The architecture must prioritize simplicity, reliability, and offline-first functionality. There are no server components.
-2.  **Tidy First**: We adhere to the "Tidy First" principle. Before adding new functionality, we take the time for small refactorings to make the new code easier to write. A clean workspace is a productive workspace.
+
+2.  **Tidy First**: We follow Kent Beck's "Tidy First?" approach rigorously:
+    - **Before adding new code**, look for small structural improvements (tidyings)
+    - Tidyings are tiny, safe refactorings: rename, extract, inline, reorder
+    - Each tidying is a separate commit (prefixed with `refactor:`)
+    - Tidyings make the subsequent behavior change easier to write and review
+    - If you can't tidy first, note it and proceed—but prefer tidying
+    - A clean workspace is a productive workspace
+
 3.  **Spec-Driven Development (SDD)**: All new functionality begins with a specification. We use Gherkin (`.feature` files) to describe how a feature should behave from the user's perspective. These specs are human-readable, serve as living documentation, and form the foundation of our test suite.
+
 4.  **Test-Driven Development (TDD)**: The specs are implemented as automated tests *before* the feature code is written. The development cycle is "Red, Green, Refactor":
     *   **Red**: Write a failing test that implements a single scenario from the spec.
     *   **Green**: Write the simplest possible production code to make the test pass.
@@ -54,6 +63,59 @@ All contributions to `fabbro` must follow this process:
 6.  **Repeat**: Continue this cycle for all scenarios in the spec file. Once all scenarios for a feature are implemented, the feature is considered complete.
 
 This structured approach ensures that `fabbro` is built on a solid foundation of clear specifications and comprehensive tests, making it robust and easy to maintain.
+
+## Conventional Commits
+
+All commits MUST follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
+
+```
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+### Commit Types
+
+| Type | Description |
+|------|-------------|
+| `feat:` | New feature for the user |
+| `fix:` | Bug fix |
+| `refactor:` | Code restructuring (Tidy First commits) |
+| `test:` | Adding or updating tests |
+| `docs:` | Documentation changes |
+| `chore:` | Build, CI, tooling changes |
+| `style:` | Formatting, whitespace (no code change) |
+
+### Examples
+
+```bash
+# Tidy First refactoring (always separate commits)
+refactor: extract FEM parser into dedicated package
+refactor: rename Session to ReviewSession for clarity
+
+# Feature implementation
+feat(tui): add Helix-style SPC command palette
+feat(cli): implement fabbro init command
+
+# Bug fixes
+fix(fem): handle unclosed annotation markers gracefully
+
+# Tests
+test(init): add scenarios for idempotent initialization
+
+# Documentation
+docs: add FEM syntax reference to README
+```
+
+### Rules
+
+1. **Tidyings get `refactor:` prefix** - Always separate from feature commits
+2. **One logical change per commit** - Atomic, focused commits
+3. **Imperative mood** - "Add feature" not "Added feature"
+4. **No period at end** of subject line
+5. **72 character limit** on subject line
 
 ## Landing the Plane (Session Completion)
 
