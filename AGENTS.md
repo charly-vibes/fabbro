@@ -2,6 +2,26 @@
 
 This document outlines the development philosophy and process for building `fabbro`. It is designed to ensure high-quality, maintainable code through a structured, test-driven methodology.
 
+## Project Structure
+
+```
+fabbro/
+├── specs/           # Gherkin .feature files (living documentation)
+├── research/        # Research documents (YYYY-MM-DD-topic.md)
+├── plans/           # Implementation plans (YYYY-MM-DD-description.md)
+├── debates/         # Design debates and decision records
+├── .agents/commands/  # Agent workflow commands
+└── .claude/commands/  # Claude Code slash commands (symlinked)
+```
+
+## Available Commands
+
+Commands are available as slash commands in Claude Code:
+
+- `/create_plan` - Create implementation plans → outputs to `plans/`
+- `/implement_plan` - Execute approved plans following TDD
+- `/research_codebase` - Document codebase as-is → outputs to `research/`
+
 ## Core Philosophy
 
 1.  **Local First**: `fabbro` is a tool for individual developers on their local machine. The architecture must prioritize simplicity, reliability, and offline-first functionality. There are no server components.
