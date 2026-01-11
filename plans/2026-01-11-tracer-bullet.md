@@ -99,11 +99,11 @@ require (
 ### Success Criteria
 
 #### Automated:
-- [ ] `go mod tidy` succeeds
-- [ ] `go build ./...` succeeds
+- [x] `go mod tidy` succeeds
+- [x] `go build ./...` succeeds
 
 #### Manual:
-- [ ] Directory structure matches plan
+- [x] Directory structure matches plan
 
 ---
 
