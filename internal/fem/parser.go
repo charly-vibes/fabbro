@@ -6,9 +6,9 @@ import (
 )
 
 type Annotation struct {
-	Type string
-	Text string
-	Line int
+	Type string `json:"type"`
+	Text string `json:"text"`
+	Line int    `json:"line"`
 }
 
 var commentPattern = regexp.MustCompile(`\{>>\s*(.*?)\s*<<\}`)
