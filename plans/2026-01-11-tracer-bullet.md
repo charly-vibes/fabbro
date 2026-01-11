@@ -163,11 +163,11 @@ Original content here...
 ### Success Criteria
 
 #### Automated:
-- [ ] `go test ./...` passes
+- [x] `go test ./...` passes
 
 #### Manual:
-- [ ] `echo "test" | go run ./cmd/fabbro review --stdin` creates session file
-- [ ] Session file exists in `.fabbro/sessions/`
+- [x] `echo "test" | go run ./cmd/fabbro review --stdin` creates session file
+- [x] Session file exists in `.fabbro/sessions/`
 
 ---
 
