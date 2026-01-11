@@ -144,6 +144,85 @@ docs: add FEM syntax reference to README
 - If push fails, resolve and retry until it succeeds
 
 
-# Task tracking
+# Task Tracking with Beads
 
-Use 'bd' for task tracking
+Use `bd` for task tracking. Issues persist across sessions and sync with git.
+
+## Essential Commands
+
+```bash
+bd ready                    # Show unblocked work
+bd list                     # All issues
+bd show <id>                # Issue details with dependencies
+bd update <id> --status=in_progress  # Claim work
+bd close <id>               # Mark complete
+bd sync                     # Sync with git remote
+```
+
+## Subagent Coordination
+
+When implementing plans with multiple phases, use the Amp `Task` tool to spawn subagents:
+
+### Sequential Phases (with dependencies)
+For phases that depend on each other (Phase 2 depends on Phase 1):
+- Work sequentially in the main agent
+- Complete and close each beads issue before starting the next
+- Use `bd ready` to see what's unblocked
+
+### Parallel Work (independent tasks)
+For independent work within a phase:
+- Spawn parallel subagents using Amp's `Task` tool
+- Each subagent should work on a distinct file/component
+- Never have multiple subagents edit the same file
+
+### Subagent Best Practices
+
+1. **Include full context** in the Task prompt:
+   - Reference the plan file path
+   - Specify which phase/section to implement
+   - Include the beads issue ID to update
+   - Specify success criteria from the plan
+
+2. **Example subagent invocation:**
+   ```
+   Task: Implement Phase 3 session creation
+   
+   Plan: plans/2026-01-11-tracer-bullet.md (Phase 3)
+   Issue: fabbro-wwh
+   
+   Requirements:
+   - Create internal/session/session.go
+   - Implement Session struct and Create/Load functions
+   - Write tests first (TDD)
+   - Run `go test ./...` to verify
+   
+   When complete:
+   - Run `bd close fabbro-wwh`
+   - Report what was created
+   ```
+
+3. **Handoff between subagents:**
+   - Subagent closes its beads issue when done
+   - Parent agent runs `bd ready` to see newly unblocked work
+   - Next subagent picks up the next phase
+
+## Plan-to-Issues Workflow
+
+When a new plan is approved:
+
+1. **Create issues for each phase:**
+   ```bash
+   bd create --title="Phase 1: Setup" --type=task
+   bd create --title="Phase 2: Init command" --type=task
+   # ... etc
+   ```
+
+2. **Add dependencies:**
+   ```bash
+   bd dep add <phase-2-id> <phase-1-id>  # Phase 2 depends on Phase 1
+   ```
+
+3. **Start implementation:**
+   ```bash
+   bd ready  # Shows Phase 1 (only unblocked item)
+   ```

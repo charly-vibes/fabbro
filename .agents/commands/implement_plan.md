@@ -12,10 +12,27 @@ When given a plan path:
 1. Read the plan completely
 2. Check for existing checkmarks (completed work)
 3. Read related specs in `specs/`
-4. Create a todo list to track progress
-5. Start implementing from the first unchecked phase
+4. Check `bd ready` for the next unblocked issue
+5. Create a todo list to track progress
+6. Start implementing from the first unchecked phase
 
 If no plan path provided, list available plans: `ls plans/`
+
+## Beads Integration
+
+Plans should have corresponding beads issues for tracking. Before starting:
+
+```bash
+bd ready                    # Show unblocked work
+bd show <issue-id>          # Review issue details
+bd update <id> --status=in_progress  # Claim the phase
+```
+
+After completing a phase:
+```bash
+bd close <id>               # Mark phase complete
+bd ready                    # See what's unblocked next
+```
 
 ## Implementation Philosophy
 
@@ -80,3 +97,4 @@ If the plan has checkmarks:
 - Check off items as you complete them
 - Minimal code to pass tests
 - Refactor only with green tests
+- Update beads: `bd update <id> --status=in_progress` when starting, `bd close <id>` when done
