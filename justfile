@@ -33,14 +33,14 @@ test-all: test test-integration test-fuzz
 
 # === Coverage Commands ===
 
-# Check coverage meets threshold (20% for tracer bullet, will increase as features mature)
+# Check coverage meets threshold (65% minimum)
 check-coverage: test-cover
     #!/usr/bin/env bash
     set -euo pipefail
     pct=$(go tool cover -func=coverage.out | grep '^total:' | awk '{print substr($3, 1, length($3)-1)}')
     echo "Total coverage: ${pct}%"
-    if (( $(echo "$pct < 20.0" | bc -l) )); then
-        echo "❌ Coverage ${pct}% is below required 20%"
+    if (( $(echo "$pct < 65.0" | bc -l) )); then
+        echo "❌ Coverage ${pct}% is below required 65%"
         exit 1
     fi
     echo "✅ Coverage ${pct}% meets threshold"
