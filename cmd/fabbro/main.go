@@ -66,7 +66,7 @@ func main() {
 
 			// Launch TUI
 			model := tui.New(sess)
-			p := tea.NewProgram(model, tea.WithAltScreen())
+			p := tea.NewProgram(model)
 			if _, err := p.Run(); err != nil {
 				return fmt.Errorf("TUI error: %w", err)
 			}
