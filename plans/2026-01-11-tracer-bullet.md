@@ -223,12 +223,12 @@ Comment: _                                    [Enter]
 - [x] `go test ./...` passes
 
 #### Manual:
-- [ ] TUI displays content with line numbers
-- [ ] Can navigate with j/k
-- [ ] Can select line with v
-- [ ] Can add comment with c → type → Enter
-- [ ] Can save with w
-- [ ] Session file now contains FEM markup
+- [x] TUI displays content with line numbers
+- [x] Can navigate with j/k
+- [x] Can select line with v
+- [x] Can add comment with c → type → Enter
+- [x] Can save with w
+- [x] Session file now contains FEM markup
 
 ---
 
@@ -261,7 +261,7 @@ func Parse(content string) ([]Annotation, string, error)
 - [x] Test: multiple annotations on different lines
 
 #### Manual:
-- [ ] Can parse the session file created by TUI
+- [x] Can parse the session file created by TUI
 
 ---
 
@@ -323,7 +323,7 @@ func TestTracerBullet(t *testing.T) {
 - [x] `go build ./cmd/fabbro` produces working binary
 
 #### Manual:
-- [ ] Full flow works: init → review → annotate → apply --json
+- [x] Full flow works: init → review → annotate → apply --json
 
 ---
 
