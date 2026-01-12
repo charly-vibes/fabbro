@@ -64,6 +64,26 @@ All contributions to `fabbro` must follow this process:
 
 This structured approach ensures that `fabbro` is built on a solid foundation of clear specifications and comprehensive tests, making it robust and easy to maintain.
 
+## Commit Workflow
+
+**NEVER commit without explicit user approval.** Before running any `git add` or `git commit`:
+
+1. Run `git status` and `git diff` to understand all changes
+2. Present a clear commit plan to the user:
+   ```
+   I plan to create [N] commit(s):
+
+   Commit 1: [type]: [message]
+   - file1.ext
+   - file2.ext
+
+   Shall I proceed?
+   ```
+3. Wait for user confirmation before executing
+4. Use `git add` with specific files (avoid `-A` or `.`)
+
+See `.agents/commands/commit.md` for the full commit process.
+
 ## Conventional Commits
 
 All commits MUST follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:

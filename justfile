@@ -16,7 +16,7 @@ test:
 
 # Run unit tests with coverage
 test-cover:
-    go test ./... -race -coverprofile=coverage.out -coverpkg=./...
+    go test ./... -race -count=1 -coverprofile=coverage.out -coverpkg=./...
     go tool cover -func=coverage.out
 
 # Run integration tests (Tier 2) - real files, TUI program
