@@ -1,10 +1,13 @@
 package tui
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/charly-vibes/fabbro/internal/config"
 	"github.com/charly-vibes/fabbro/internal/session"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -348,6 +351,20 @@ func TestViewScrolling(t *testing.T) {
 	}
 }
 
+func TestViewSmallHeight(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+	m.width = 80
+	m.height = 5 // Very small height triggers visibleLines < 5 branch
+
+	view := m.View()
+
+	// Should still render
+	if len(view) == 0 {
+		t.Error("view should not be empty with small height")
+	}
+}
+
 func TestMax(t *testing.T) {
 	if max(5, 3) != 5 {
 		t.Error("max(5, 3) should be 5")
@@ -357,5 +374,108 @@ func TestMax(t *testing.T) {
 	}
 	if max(4, 4) != 4 {
 		t.Error("max(4, 4) should be 4")
+	}
+}
+
+func TestWriteCommand(t *testing.T) {
+	sess := newTestSession("line1")
+	m := New(sess)
+
+	// w command should return quit
+	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'w'}})
+	if cmd == nil {
+		t.Error("expected quit command after w")
+	}
+}
+
+func TestBackspaceOnEmptyInput(t *testing.T) {
+	sess := newTestSession("line1")
+	m := New(sess)
+
+	// Enter input mode
+	m = sendKey(m, 'v')
+	m = sendKey(m, 'c')
+
+	// Backspace on empty input should not panic
+	m = sendKeyType(m, tea.KeyBackspace)
+	if m.input != "" {
+		t.Error("input should remain empty")
+	}
+}
+
+func TestMultiCharKeyIgnored(t *testing.T) {
+	sess := newTestSession("line1")
+	m := New(sess)
+
+	// Enter input mode
+	m = sendKey(m, 'v')
+	m = sendKey(m, 'c')
+
+	// Multi-char key messages should be ignored
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'a', 'b'}})
+	m = newModel.(Model)
+	if m.input != "" {
+		t.Error("multi-char key should be ignored")
+	}
+}
+
+func TestUnknownMessageType(t *testing.T) {
+	sess := newTestSession("line1")
+	m := New(sess)
+
+	// Unknown message types should not crash
+	type customMsg struct{}
+	newModel, cmd := m.Update(customMsg{})
+	if newModel == nil {
+		t.Error("model should not be nil")
+	}
+	if cmd != nil {
+		t.Error("command should be nil for unknown message")
+	}
+}
+
+func TestSave(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	sess := &session.Session{
+		ID:        "test-save-session",
+		Content:   "line1\nline2",
+		CreatedAt: time.Date(2026, 1, 11, 12, 0, 0, 0, time.UTC),
+	}
+	m := New(sess)
+
+	// Add an annotation
+	m.annotations = append(m.annotations, Annotation{Line: 0, Text: "my comment"})
+
+	// Call save
+	m.save()
+
+	// Check file was written
+	sessionFile := filepath.Join(config.SessionsDir, "test-save-session.fem")
+	data, err := os.ReadFile(sessionFile)
+	if err != nil {
+		t.Fatalf("save() did not create file: %v", err)
+	}
+
+	content := string(data)
+
+	// Should have frontmatter
+	if !strings.HasPrefix(content, "---\n") {
+		t.Error("saved file should start with frontmatter")
+	}
+
+	// Should have annotation in FEM format
+	if !strings.Contains(content, "{>> my comment <<}") {
+		t.Error("saved file should contain FEM annotation")
+	}
+
+	// Line without annotation should be unchanged
+	if !strings.Contains(content, "line2") {
+		t.Error("saved file should contain line2")
 	}
 }
