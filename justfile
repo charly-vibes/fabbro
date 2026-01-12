@@ -75,6 +75,14 @@ build:
 build-release version:
     go build -ldflags="-X main.version={{version}}" -o bin/fabbro ./cmd/fabbro
 
+# Build and run with arguments (e.g., `just run init`, `just run review file.go`)
+run *args:
+    go run ./cmd/fabbro {{args}}
+
+# Install locally to ~/go/bin for testing across directories (includes git commit)
+install:
+    go install -ldflags="-X main.version=dev-$(git rev-parse --short HEAD)" ./cmd/fabbro
+
 # === CI Commands ===
 
 # Full CI pipeline (what GitHub Actions runs)

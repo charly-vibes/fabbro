@@ -15,10 +15,13 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+var version = "dev"
+
 func main() {
 	rootCmd := &cobra.Command{
-		Use:   "fabbro",
-		Short: "A code review annotation tool",
+		Use:     "fabbro",
+		Short:   "A code review annotation tool",
+		Version: version,
 	}
 
 	initCmd := &cobra.Command{

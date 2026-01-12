@@ -15,6 +15,22 @@ fabbro/
 └── .claude/commands/  # Claude Code slash commands (symlinked)
 ```
 
+## Running Locally
+
+Use `just` commands to build and test fabbro during development:
+
+```bash
+# Build and run with arguments (fastest iteration)
+just run init
+just run review --stdin < file.go
+
+# Install to ~/go/bin for testing from any directory
+just install
+
+# Run tests
+just test
+```
+
 ## Available Commands
 
 Commands are available as slash commands in Claude Code:

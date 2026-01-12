@@ -76,6 +76,13 @@ fabbro is designed to integrate with Claude Code for AI-assisted code review. Se
 ## Development
 
 ```bash
+# Run the tool locally (builds and runs in one step)
+just run init
+just run review --stdin < file.go
+
+# Install to ~/go/bin for testing across directories
+just install
+
 # Run tests
 just test
 
