@@ -20,19 +20,39 @@ const (
 
 type Annotation struct {
 	Line int
+	Type string
 	Text string
 }
 
+var markers = map[string][2]string{
+	"comment":  {"{>> ", " <<}"},
+	"delete":   {"{-- ", " --}"},
+	"question": {"{?? ", " ??}"},
+	"expand":   {"{!! ", " !!}"},
+	"keep":     {"{== ", " ==}"},
+	"unclear":  {"{~~ ", " ~~}"},
+}
+
+var inputPrompts = map[string]string{
+	"comment":  "Comment:",
+	"delete":   "Reason for deletion:",
+	"question": "Question:",
+	"expand":   "What to expand:",
+	"keep":     "Reason to keep:",
+	"unclear":  "What's unclear:",
+}
+
 type Model struct {
-	session     *session.Session
-	lines       []string
-	cursor      int
-	selected    int
-	mode        mode
-	input       string
-	annotations []Annotation
-	width       int
-	height      int
+	session        *session.Session
+	lines          []string
+	cursor         int
+	selected       int
+	mode           mode
+	input          string
+	inputType      string // annotation type being entered: "comment", "delete", etc.
+	annotations    []Annotation
+	width          int
+	height         int
 }
 
 func New(sess *session.Session) Model {
@@ -93,6 +113,35 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.selected >= 0 {
 			m.mode = modeInput
 			m.input = ""
+			m.inputType = "comment"
+		}
+
+	case "d":
+		if m.selected >= 0 {
+			m.mode = modeInput
+			m.input = ""
+			m.inputType = "delete"
+		}
+
+	case "q":
+		if m.selected >= 0 {
+			m.mode = modeInput
+			m.input = ""
+			m.inputType = "question"
+		}
+
+	case "e":
+		if m.selected >= 0 {
+			m.mode = modeInput
+			m.input = ""
+			m.inputType = "expand"
+		}
+
+	case "u":
+		if m.selected >= 0 {
+			m.mode = modeInput
+			m.input = ""
+			m.inputType = "unclear"
 		}
 
 	case "w":
@@ -108,16 +157,19 @@ func (m Model) handleInputMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.input != "" {
 			m.annotations = append(m.annotations, Annotation{
 				Line: m.selected,
+				Type: m.inputType,
 				Text: m.input,
 			})
 		}
 		m.mode = modeNormal
 		m.input = ""
+		m.inputType = ""
 		m.selected = -1
 
 	case "esc":
 		m.mode = modeNormal
 		m.input = ""
+		m.inputType = ""
 
 	case "backspace":
 		if len(m.input) > 0 {
@@ -133,15 +185,16 @@ func (m Model) handleInputMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) save() {
-	annotationsByLine := make(map[int]string)
+	annotationsByLine := make(map[int]Annotation)
 	for _, a := range m.annotations {
-		annotationsByLine[a.Line] = a.Text
+		annotationsByLine[a.Line] = a
 	}
 
 	var result []string
 	for i, line := range m.lines {
-		if comment, ok := annotationsByLine[i]; ok {
-			result = append(result, line+" {>> "+comment+" <<}")
+		if ann, ok := annotationsByLine[i]; ok {
+			marker := markers[ann.Type]
+			result = append(result, line+" "+marker[0]+ann.Text+marker[1])
 		} else {
 			result = append(result, line)
 		}
@@ -202,9 +255,10 @@ func (m Model) View() string {
 	b.WriteString("\n")
 
 	if m.mode == modeInput {
-		b.WriteString(fmt.Sprintf("Comment: %s_\n", m.input))
+		prompt := inputPrompts[m.inputType]
+		b.WriteString(fmt.Sprintf("%s %s_\n", prompt, m.input))
 	} else {
-		b.WriteString("[v]select [c]omment [w]rite [Q]uit\n")
+		b.WriteString("[v]select [c]omment [d]elete [q]uestion [e]xpand [u]nclear [w]rite [Q]uit\n")
 	}
 
 	return b.String()

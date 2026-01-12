@@ -184,6 +184,60 @@ func TestEnterCommentMode(t *testing.T) {
 	if m.input != "" {
 		t.Errorf("expected empty input, got %q", m.input)
 	}
+	if m.inputType != "comment" {
+		t.Errorf("expected inputType 'comment', got %q", m.inputType)
+	}
+}
+
+func TestAnnotationKeybindings(t *testing.T) {
+	tests := []struct {
+		key       rune
+		wantType  string
+	}{
+		{'c', "comment"},
+		{'d', "delete"},
+		{'q', "question"},
+		{'e', "expand"},
+		{'u', "unclear"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.wantType, func(t *testing.T) {
+			sess := newTestSession("line1")
+			m := New(sess)
+
+			// Select a line first
+			m = sendKey(m, 'v')
+
+			// Press the annotation key
+			m = sendKey(m, tt.key)
+
+			if m.mode != modeInput {
+				t.Errorf("expected modeInput after pressing %c", tt.key)
+			}
+			if m.inputType != tt.wantType {
+				t.Errorf("expected inputType %q, got %q", tt.wantType, m.inputType)
+			}
+		})
+	}
+}
+
+func TestAnnotationKeybindingsRequireSelection(t *testing.T) {
+	keys := []rune{'c', 'd', 'q', 'e', 'u'}
+
+	for _, key := range keys {
+		t.Run(string(key), func(t *testing.T) {
+			sess := newTestSession("line1")
+			m := New(sess)
+
+			// Press key without selection
+			m = sendKey(m, key)
+
+			if m.mode != modeNormal {
+				t.Errorf("key %c should not enter input mode without selection", key)
+			}
+		})
+	}
 }
 
 func sendKey(m Model, key rune) Model {
@@ -242,8 +296,50 @@ func TestInputModeSubmit(t *testing.T) {
 	if m.annotations[0].Text != "comment" {
 		t.Errorf("expected annotation text 'comment', got %q", m.annotations[0].Text)
 	}
+	if m.annotations[0].Type != "comment" {
+		t.Errorf("expected annotation type 'comment', got %q", m.annotations[0].Type)
+	}
 	if m.selected != -1 {
 		t.Error("expected selection cleared after submit")
+	}
+	if m.inputType != "" {
+		t.Error("expected inputType cleared after submit")
+	}
+}
+
+func TestInputModeSubmitAllTypes(t *testing.T) {
+	tests := []struct {
+		key      rune
+		wantType string
+	}{
+		{'d', "delete"},
+		{'q', "question"},
+		{'e', "expand"},
+		{'u', "unclear"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.wantType, func(t *testing.T) {
+			sess := newTestSession("line1")
+			m := New(sess)
+
+			// Select and enter annotation mode
+			m = sendKey(m, 'v')
+			m = sendKey(m, tt.key)
+
+			// Type and submit
+			for _, r := range "test text" {
+				m = sendKey(m, r)
+			}
+			m = sendKeyType(m, tea.KeyEnter)
+
+			if len(m.annotations) != 1 {
+				t.Fatalf("expected 1 annotation, got %d", len(m.annotations))
+			}
+			if m.annotations[0].Type != tt.wantType {
+				t.Errorf("expected type %q, got %q", tt.wantType, m.annotations[0].Type)
+			}
+		})
 	}
 }
 
@@ -318,6 +414,7 @@ func TestViewInputMode(t *testing.T) {
 	m.width = 80
 	m.height = 20
 	m.mode = modeInput
+	m.inputType = "comment"
 	m.input = "typing"
 
 	view := m.View()
@@ -460,8 +557,8 @@ func TestSave(t *testing.T) {
 	}
 	m := New(sess)
 
-	// Add an annotation
-	m.annotations = append(m.annotations, Annotation{Line: 0, Text: "my comment"})
+	// Add a comment annotation
+	m.annotations = append(m.annotations, Annotation{Line: 0, Type: "comment", Text: "my comment"})
 
 	// Call save
 	m.save()
@@ -488,5 +585,57 @@ func TestSave(t *testing.T) {
 	// Line without annotation should be unchanged
 	if !strings.Contains(content, "line2") {
 		t.Error("saved file should contain line2")
+	}
+}
+
+func TestSaveAllAnnotationTypes(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	sess := &session.Session{
+		ID:        "test-save-types",
+		Content:   "line1\nline2\nline3\nline4\nline5\nline6",
+		CreatedAt: time.Date(2026, 1, 11, 12, 0, 0, 0, time.UTC),
+	}
+	m := New(sess)
+
+	// Add one of each annotation type
+	m.annotations = []Annotation{
+		{Line: 0, Type: "comment", Text: "a comment"},
+		{Line: 1, Type: "delete", Text: "DELETE: remove"},
+		{Line: 2, Type: "question", Text: "why?"},
+		{Line: 3, Type: "expand", Text: "EXPAND: more"},
+		{Line: 4, Type: "keep", Text: "KEEP: good"},
+		{Line: 5, Type: "unclear", Text: "UNCLEAR: huh"},
+	}
+
+	m.save()
+
+	sessionFile := filepath.Join(config.SessionsDir, "test-save-types.fem")
+	data, err := os.ReadFile(sessionFile)
+	if err != nil {
+		t.Fatalf("save() did not create file: %v", err)
+	}
+
+	content := string(data)
+
+	// Check each annotation type has correct FEM markers
+	expected := []string{
+		"{>> a comment <<}",
+		"{-- DELETE: remove --}",
+		"{?? why? ??}",
+		"{!! EXPAND: more !!}",
+		"{== KEEP: good ==}",
+		"{~~ UNCLEAR: huh ~~}",
+	}
+
+	for _, exp := range expected {
+		if !strings.Contains(content, exp) {
+			t.Errorf("saved file should contain %q", exp)
+		}
 	}
 }
