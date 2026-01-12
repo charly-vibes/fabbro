@@ -99,11 +99,11 @@ require (
 ### Success Criteria
 
 #### Automated:
-- [ ] `go mod tidy` succeeds
-- [ ] `go build ./...` succeeds
+- [x] `go mod tidy` succeeds
+- [x] `go build ./...` succeeds
 
 #### Manual:
-- [ ] Directory structure matches plan
+- [x] Directory structure matches plan
 
 ---
 
@@ -128,11 +128,11 @@ require (
 ### Success Criteria
 
 #### Automated:
-- [ ] `go test ./...` passes (write one test)
+- [x] `go test ./...` passes (write one test)
 
 #### Manual:
-- [ ] `go run ./cmd/fabbro init` creates `.fabbro/sessions/`
-- [ ] Running again prints "already initialized"
+- [x] `go run ./cmd/fabbro init` creates `.fabbro/sessions/`
+- [x] Running again prints "already initialized"
 
 ---
 
@@ -163,11 +163,11 @@ Original content here...
 ### Success Criteria
 
 #### Automated:
-- [ ] `go test ./...` passes
+- [x] `go test ./...` passes
 
 #### Manual:
-- [ ] `echo "test" | go run ./cmd/fabbro review --stdin` creates session file
-- [ ] Session file exists in `.fabbro/sessions/`
+- [x] `echo "test" | go run ./cmd/fabbro review --stdin` creates session file
+- [x] Session file exists in `.fabbro/sessions/`
 
 ---
 
@@ -220,7 +220,7 @@ Comment: _                                    [Enter]
 ### Success Criteria
 
 #### Automated:
-- [ ] `go test ./...` passes
+- [x] `go test ./...` passes
 
 #### Manual:
 - [ ] TUI displays content with line numbers
@@ -257,8 +257,8 @@ func Parse(content string) ([]Annotation, string, error)
 ### Success Criteria
 
 #### Automated:
-- [ ] Test: `{>> hello <<}` extracts annotation with text "hello"
-- [ ] Test: multiple annotations on different lines
+- [x] Test: `{>> hello <<}` extracts annotation with text "hello"
+- [x] Test: multiple annotations on different lines
 
 #### Manual:
 - [ ] Can parse the session file created by TUI
@@ -290,11 +290,11 @@ func Parse(content string) ([]Annotation, string, error)
 ### Success Criteria
 
 #### Automated:
-- [ ] `go test ./...` passes
+- [x] `go test ./...` passes
 
 #### Manual:
-- [ ] `fabbro apply abc123 --json` outputs valid JSON
-- [ ] Annotations appear in output
+- [x] `fabbro apply abc123 --json` outputs valid JSON
+- [x] Annotations appear in output
 
 ---
 
@@ -319,8 +319,8 @@ func TestTracerBullet(t *testing.T) {
 ### Success Criteria
 
 #### Automated:
-- [ ] Integration test passes
-- [ ] `go build ./cmd/fabbro` produces working binary
+- [x] Integration test passes
+- [x] `go build ./cmd/fabbro` produces working binary
 
 #### Manual:
 - [ ] Full flow works: init → review → annotate → apply --json
