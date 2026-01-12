@@ -11,7 +11,14 @@ type Annotation struct {
 	Line int    `json:"line"`
 }
 
-var commentPattern = regexp.MustCompile(`\{>>\s*(.*?)\s*<<\}`)
+var patterns = map[string]*regexp.Regexp{
+	"comment":  regexp.MustCompile(`\{>>\s*(.*?)\s*<<\}`),
+	"delete":   regexp.MustCompile(`\{--\s*(.*?)\s*--\}`),
+	"question": regexp.MustCompile(`\{\?\?\s*(.*?)\s*\?\?\}`),
+	"expand":   regexp.MustCompile(`\{!!\s*(.*?)\s*!!\}`),
+	"keep":     regexp.MustCompile(`\{==\s*(.*?)\s*==\}`),
+	"unclear":  regexp.MustCompile(`\{~~\s*(.*?)\s*~~\}`),
+}
 
 func Parse(content string) ([]Annotation, string, error) {
 	lines := strings.Split(content, "\n")
@@ -19,16 +26,20 @@ func Parse(content string) ([]Annotation, string, error) {
 	var cleanLines []string
 
 	for i, line := range lines {
-		matches := commentPattern.FindAllStringSubmatch(line, -1)
-		cleanLine := commentPattern.ReplaceAllString(line, "")
+		cleanLine := line
 
-		for _, match := range matches {
-			if len(match) >= 2 {
-				annotations = append(annotations, Annotation{
-					Type: "comment",
-					Text: match[1],
-					Line: i + 1,
-				})
+		for annotationType, pattern := range patterns {
+			matches := pattern.FindAllStringSubmatch(line, -1)
+			cleanLine = pattern.ReplaceAllString(cleanLine, "")
+
+			for _, match := range matches {
+				if len(match) >= 2 {
+					annotations = append(annotations, Annotation{
+						Type: annotationType,
+						Text: match[1],
+						Line: i + 1,
+					})
+				}
 			}
 		}
 
