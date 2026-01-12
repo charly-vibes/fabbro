@@ -69,7 +69,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
-	case "q", "ctrl+c":
+	case "Q", "ctrl+c":
 		return m, tea.Quit
 
 	case "j", "down":
@@ -204,7 +204,7 @@ func (m Model) View() string {
 	if m.mode == modeInput {
 		b.WriteString(fmt.Sprintf("Comment: %s_\n", m.input))
 	} else {
-		b.WriteString("[v]select [c]omment [w]rite [q]uit\n")
+		b.WriteString("[v]select [c]omment [w]rite [Q]uit\n")
 	}
 
 	return b.String()

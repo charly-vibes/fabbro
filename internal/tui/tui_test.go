@@ -136,16 +136,27 @@ func TestNormalModeQuit(t *testing.T) {
 	sess := newTestSession("content")
 	m := New(sess)
 
-	// Quit with q
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})
+	// Quit with Q (shift+q)
+	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'Q'}})
 	if cmd == nil {
-		t.Error("expected quit command, got nil")
+		t.Error("expected quit command from Q, got nil")
 	}
 
 	// Quit with ctrl+c
 	_, cmd = m.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
 	if cmd == nil {
 		t.Error("expected quit command from ctrl+c, got nil")
+	}
+}
+
+func TestLowercaseQDoesNotQuit(t *testing.T) {
+	sess := newTestSession("content")
+	m := New(sess)
+
+	// q should NOT quit (reserved for question annotation)
+	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})
+	if cmd != nil {
+		t.Error("lowercase q should not quit (reserved for question annotation)")
 	}
 }
 
