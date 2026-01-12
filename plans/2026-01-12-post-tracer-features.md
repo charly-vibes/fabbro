@@ -35,6 +35,8 @@ After this plan:
 ## Out of Scope (Future Plans)
 
 - Block delete syntax (`{-- --}...{--/--}` spanning lines) - inline delete only for now
+- Emphasize annotation (`{** ... **}`)
+- Section annotation (`{## ... ##}`)
 - Search (`/`)
 - Mouse support
 - Selection expansion (ap, ab, as)
@@ -42,6 +44,61 @@ After this plan:
 - Config file
 - `fabbro resume`
 - Annotations panel view
+
+---
+
+## Dogfooding: Amp Integration
+
+**Goal**: Use fabbro to review Amp-generated plans, enabling a feedback loop where Amp can understand structured annotations.
+
+### Minimum Viable Dogfood (After Phase 2)
+
+```bash
+# Amp generates a plan, user reviews it
+cat plans/2026-01-12-some-plan.md | fabbro review --stdin
+# User annotates in TUI, saves
+fabbro apply <session-id> --json
+```
+
+Amp can parse the JSON output:
+```json
+{
+  "session_id": "abc123",
+  "annotations": [
+    {"type": "question", "text": "Why not use X?", "line": 42},
+    {"type": "expand", "text": "Need error handling details", "line": 55},
+    {"type": "delete", "text": "Too verbose", "line": 10}
+  ]
+}
+```
+
+### Integration Workflow
+
+1. **Plan Generation**: Amp creates plan in `plans/`
+2. **Review Session**: User runs `cat plan.md | fabbro review --stdin`
+3. **Annotation**: User marks questions, expansions, deletions in TUI
+4. **Feedback**: User runs `fabbro apply <id> --json > feedback.json`
+5. **Revision**: Amp reads feedback.json, revises plan accordingly
+
+### What's Needed for MVP Dogfooding
+
+| Feature | Phase | Status |
+|---------|-------|--------|
+| Read from stdin | Tracer | ✅ Done |
+| JSON output | Tracer | ✅ Done |
+| Comment annotations | Tracer | ✅ Done |
+| Question annotations | Phase 2 | 🔜 |
+| Expand annotations | Phase 2 | 🔜 |
+| Delete annotations | Phase 2 | 🔜 |
+| Keep annotations | Phase 2 | 🔜 |
+
+**After Phase 2, fabbro is usable for plan review with Amp.**
+
+### Future Amp Enhancements (Post-MVP)
+
+- `fabbro review --file <path>` - direct file input
+- `fabbro apply --patch` - output as unified diff
+- MCP tool integration for Amp to invoke directly
 
 ---
 
@@ -104,7 +161,32 @@ var patterns = map[string]*regexp.Regexp{
 }
 ```
 
-### 2.2 TUI: Add Annotation Keybindings
+### 2.2 TUI: Refactor Annotation Model
+
+**File: internal/tui/tui.go**
+
+Current `Annotation` struct lacks type. Refactor:
+```go
+type Annotation struct {
+    Line int
+    Type string  // "comment", "delete", "question", "expand", "keep", "unclear"
+    Text string
+}
+```
+
+Update `save()` to use type-to-marker mapping:
+```go
+var markers = map[string][2]string{
+    "comment":  {"{>> ", " <<}"},
+    "delete":   {"{-- ", " --}"},
+    "question": {"{?? ", " ??}"},
+    "expand":   {"{!! ", " !!}"},
+    "keep":     {"{== ", " ==}"},
+    "unclear":  {"{~~ ", " ~~}"},
+}
+```
+
+### 2.3 TUI: Add Annotation Keybindings
 
 **File: internal/tui/tui.go**
 
@@ -112,9 +194,9 @@ In `handleNormalMode`, add:
 - `d` → delete annotation (prompt: "Reason for deletion:")
 - `q` → question annotation (prompt: "Question:")  
 - `e` → expand annotation (prompt: "What to expand:")
-- `k` → keep annotation (no prompt, just mark)
 - `u` → unclear annotation (prompt: "What's unclear:")
 
+**Note**: `k` (keep) is palette-only since `k` is used for navigation.
 **Note**: Phase 1 already changed quit to `Q`, so `q` is available.
 
 ### Success Criteria
@@ -155,7 +237,8 @@ When SPC pressed:
 
 **Implementation:**
 - `mode: "palette"` shows overlay
-- Any annotation key (c/d/e/q/k/u) triggers that action
+- Annotation keys trigger action: c (comment), d (delete), e (expand), q (question), k (keep), u (unclear)
+- **`k` (keep) is ONLY available via palette** since `k` is navigation in normal mode
 - ESC dismisses palette
 - Any other key dismisses and is ignored
 
@@ -297,16 +380,25 @@ func realMain(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 
 ## Summary
 
-| Phase | Deliverable | Time |
-|-------|-------------|------|
-| 1 | Fix q/Q quit conflict | 15m |
-| 2 | All 6 annotation types | 2h |
-| 3 | SPC command palette | 1.5h |
-| 4 | Page navigation (Ctrl+d/u, gg, G) | 1h |
-| 5 | Multi-line selection | 1h |
-| 6 | Coverage ≥85% | 1.5h |
+| Phase | Deliverable | Time | Dogfood? |
+|-------|-------------|------|----------|
+| 1 | Fix q/Q quit conflict | 15m | Required |
+| 2 | All 6 annotation types | 2h | **Required** |
+| 3 | SPC command palette | 1.5h | Nice-to-have |
+| 4 | Page navigation (Ctrl+d/u, gg, G) | 1h | Nice-to-have |
+| 5 | Multi-line selection | 1h | Nice-to-have |
+| 6 | Coverage ≥85% | 1.5h | Deferred |
 
 **Total: ~7-8 hours**
+
+### Fast Track to Dogfooding (2.5 hours)
+
+Complete Phase 1 + Phase 2 only. This enables:
+- All annotation types for plan review
+- JSON output Amp can parse
+- Single-line annotations (good enough for line-by-line feedback)
+
+Defer Phases 3-6 until after initial dogfooding provides real feedback.
 
 ---
 
