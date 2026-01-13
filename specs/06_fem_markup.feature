@@ -3,11 +3,16 @@ Feature: FEM Markup Language
   I want to understand the FEM (Fabbro Editor Markup) syntax
   so that I can manually edit session files if needed.
 
+  # Implementation Status Legend:
+  # @implemented - Working in current build
+  # @planned     - Designed but not yet implemented
+
   # FEM is designed to be inline, non-destructive markup that can be
   # added to any text content without breaking the original format.
 
   # --- Comment Annotation ---
 
+  @implemented
   Scenario: Inline comment syntax
     Given content with the following FEM markup:
       """
@@ -18,6 +23,7 @@ Feature: FEM Markup Language
     And the annotation text should be "This needs clarification"
     And the annotation should be on line 1
 
+  @planned
   Scenario: Comment with line reference (sidecar style)
     Given content with the following FEM markup:
       """
@@ -30,7 +36,9 @@ Feature: FEM Markup Language
 
   # --- Delete Annotation ---
 
+  @planned
   Scenario: Block delete with reason
+    # Block markers {--/--} not implemented
     Given content with the following FEM markup:
       """
       Keep this line.
@@ -45,6 +53,7 @@ Feature: FEM Markup Language
     And the annotation should span lines 3-4
     And the annotation text should be "Too verbose"
 
+  @implemented
   Scenario: Inline delete (single line)
     Given content with the following FEM markup:
       """
@@ -55,6 +64,7 @@ Feature: FEM Markup Language
 
   # --- Question Annotation ---
 
+  @implemented
   Scenario: Question syntax
     Given content with the following FEM markup:
       """
@@ -66,6 +76,7 @@ Feature: FEM Markup Language
 
   # --- Expand Annotation ---
 
+  @implemented
   Scenario: Expand syntax
     Given content with the following FEM markup:
       """
@@ -77,6 +88,7 @@ Feature: FEM Markup Language
 
   # --- Keep Annotation ---
 
+  @implemented
   Scenario: Keep syntax (mark as good)
     Given content with the following FEM markup:
       """
@@ -89,6 +101,7 @@ Feature: FEM Markup Language
 
   # --- Unclear Annotation ---
 
+  @implemented
   Scenario: Unclear syntax
     Given content with the following FEM markup:
       """
@@ -100,7 +113,9 @@ Feature: FEM Markup Language
 
   # --- Emphasize Annotation ---
 
+  @planned
   Scenario: Emphasize syntax
+    # {** ... **} not implemented
     Given content with the following FEM markup:
       """
       {** EMPHASIZE: This is the key takeaway **}
@@ -111,7 +126,9 @@ Feature: FEM Markup Language
 
   # --- Section-level Annotation ---
 
+  @planned
   Scenario: Section annotation
+    # {## ... ##} not implemented
     Given content with the following FEM markup:
       """
       {## SECTION: This entire section needs rewriting ##}
@@ -123,6 +140,7 @@ Feature: FEM Markup Language
 
   # --- Multiple Annotations on Same Line ---
 
+  @implemented
   Scenario: Multiple annotations on single line
     Given content with the following FEM markup:
       """
@@ -135,7 +153,9 @@ Feature: FEM Markup Language
 
   # --- Escaping FEM Syntax ---
 
+  @planned
   Scenario: Escaped markup is not parsed
+    # Escaping not implemented
     Given content with the following FEM markup:
       """
       To add a comment, use the syntax \{>> comment <<\}
@@ -146,6 +166,7 @@ Feature: FEM Markup Language
 
   # --- Session File Format ---
 
+  @implemented
   Scenario: Session file with YAML frontmatter
     Given a session file with content:
       """
@@ -166,6 +187,7 @@ Feature: FEM Markup Language
 
   # --- Whitespace Handling ---
 
+  @implemented
   Scenario: Annotations preserve surrounding whitespace
     Given content with the following FEM markup:
       """
@@ -174,7 +196,9 @@ Feature: FEM Markup Language
     When the FEM is parsed and rendered without annotations
     Then the output should be "Text before  text after."
 
+  @planned
   Scenario: Newlines in annotation text
+    # Multi-line annotation text not supported
     Given content with the following FEM markup:
       """
       {>> This is a multi-line
@@ -186,6 +210,7 @@ Feature: FEM Markup Language
 
   # --- Edge Cases ---
 
+  @implemented
   Scenario: Empty annotation text
     Given content with the following FEM markup:
       """
@@ -195,7 +220,9 @@ Feature: FEM Markup Language
     Then the annotation should have empty text
     And parsing should not fail
 
+  @planned
   Scenario: Nested braces in annotation text
+    # Nested braces not handled correctly
     Given content with the following FEM markup:
       """
       Code example. {>> Use {curly braces} in the output <<}
@@ -203,7 +230,9 @@ Feature: FEM Markup Language
     When the FEM is parsed
     Then the annotation text should be "Use {curly braces} in the output"
 
+  @planned
   Scenario: Unclosed annotation marker
+    # No syntax error reporting
     Given content with the following FEM markup:
       """
       Content here. {>> This annotation is not closed
