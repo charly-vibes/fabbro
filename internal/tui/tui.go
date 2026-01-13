@@ -25,6 +25,19 @@ type Annotation struct {
 	Text string
 }
 
+type selection struct {
+	active bool
+	anchor int // where selection started
+	cursor int // current end of selection
+}
+
+func (s selection) lines() (start, end int) {
+	if s.anchor < s.cursor {
+		return s.anchor, s.cursor
+	}
+	return s.cursor, s.anchor
+}
+
 var markers = map[string][2]string{
 	"comment":  {"{>> ", " <<}"},
 	"delete":   {"{-- ", " --}"},
@@ -47,7 +60,7 @@ type Model struct {
 	session        *session.Session
 	lines          []string
 	cursor         int
-	selected       int
+	selection      selection
 	mode           mode
 	input          string
 	inputType      string // annotation type being entered: "comment", "delete", etc.
@@ -63,7 +76,7 @@ func New(sess *session.Session) Model {
 		session:     sess,
 		lines:       lines,
 		cursor:      0,
-		selected:    -1,
+		selection:   selection{},
 		mode:        modeNormal,
 		annotations: []Annotation{},
 	}
@@ -111,11 +124,17 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "j", "down":
 		if m.cursor < len(m.lines)-1 {
 			m.cursor++
+			if m.selection.active {
+				m.selection.cursor = m.cursor
+			}
 		}
 
 	case "k", "up":
 		if m.cursor > 0 {
 			m.cursor--
+			if m.selection.active {
+				m.selection.cursor = m.cursor
+			}
 		}
 
 	case "ctrl+d":
@@ -144,50 +163,53 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "G":
 		m.cursor = len(m.lines) - 1
 
+	case "esc":
+		m.selection = selection{}
+
 	case "v":
-		if m.selected == m.cursor {
-			m.selected = -1
+		if m.selection.active && m.selection.anchor == m.cursor && m.selection.cursor == m.cursor {
+			m.selection = selection{}
 		} else {
-			m.selected = m.cursor
+			m.selection = selection{active: true, anchor: m.cursor, cursor: m.cursor}
 		}
 
 	case "c":
-		if m.selected >= 0 {
+		if m.selection.active {
 			m.mode = modeInput
 			m.input = ""
 			m.inputType = "comment"
 		}
 
 	case "d":
-		if m.selected >= 0 {
+		if m.selection.active {
 			m.mode = modeInput
 			m.input = ""
 			m.inputType = "delete"
 		}
 
 	case "q":
-		if m.selected >= 0 {
+		if m.selection.active {
 			m.mode = modeInput
 			m.input = ""
 			m.inputType = "question"
 		}
 
 	case "e":
-		if m.selected >= 0 {
+		if m.selection.active {
 			m.mode = modeInput
 			m.input = ""
 			m.inputType = "expand"
 		}
 
 	case "u":
-		if m.selected >= 0 {
+		if m.selection.active {
 			m.mode = modeInput
 			m.input = ""
 			m.inputType = "unclear"
 		}
 
 	case " ":
-		if m.selected >= 0 {
+		if m.selection.active {
 			m.mode = modePalette
 		}
 
@@ -234,16 +256,19 @@ func (m Model) handleInputMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "enter":
 		if m.input != "" {
-			m.annotations = append(m.annotations, Annotation{
-				Line: m.selected,
-				Type: m.inputType,
-				Text: m.input,
-			})
+			start, end := m.selection.lines()
+			for line := start; line <= end; line++ {
+				m.annotations = append(m.annotations, Annotation{
+					Line: line,
+					Type: m.inputType,
+					Text: m.input,
+				})
+			}
 		}
 		m.mode = modeNormal
 		m.input = ""
 		m.inputType = ""
-		m.selected = -1
+		m.selection = selection{}
 
 	case "esc":
 		m.mode = modeNormal
@@ -313,6 +338,7 @@ func (m Model) View() string {
 		end = len(m.lines)
 	}
 
+	selStart, selEnd := m.selection.lines()
 	for i := start; i < end; i++ {
 		lineNum := fmt.Sprintf("%3d", i+1)
 		line := m.lines[i]
@@ -322,12 +348,12 @@ func (m Model) View() string {
 			cursor = ">"
 		}
 
-		selection := " "
-		if i == m.selected {
-			selection = "●"
+		selIndicator := " "
+		if m.selection.active && i >= selStart && i <= selEnd {
+			selIndicator = "●"
 		}
 
-		b.WriteString(fmt.Sprintf("%s%s %s │ %s\n", cursor, selection, lineNum, line))
+		b.WriteString(fmt.Sprintf("%s%s %s │ %s\n", cursor, selIndicator, lineNum, line))
 	}
 
 	b.WriteString(strings.Repeat("─", 50))

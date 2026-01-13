@@ -28,8 +28,8 @@ func TestNew(t *testing.T) {
 	if m.cursor != 0 {
 		t.Errorf("expected cursor at 0, got %d", m.cursor)
 	}
-	if m.selected != -1 {
-		t.Errorf("expected selected -1, got %d", m.selected)
+	if m.selection.active {
+		t.Error("expected selection to be inactive")
 	}
 	if m.mode != modeNormal {
 		t.Errorf("expected modeNormal, got %d", m.mode)
@@ -121,15 +121,15 @@ func TestNormalModeSelection(t *testing.T) {
 	// Select current line with v
 	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'v'}})
 	m = newModel.(Model)
-	if m.selected != 0 {
-		t.Errorf("expected selected 0, got %d", m.selected)
+	if !m.selection.active || m.selection.anchor != 0 {
+		t.Errorf("expected selection active at anchor 0, got active=%v anchor=%d", m.selection.active, m.selection.anchor)
 	}
 
 	// Toggle selection off
 	newModel, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'v'}})
 	m = newModel.(Model)
-	if m.selected != -1 {
-		t.Errorf("expected selected -1 after toggle, got %d", m.selected)
+	if m.selection.active {
+		t.Error("expected selection inactive after toggle")
 	}
 }
 
@@ -300,7 +300,7 @@ func TestInputModeSubmit(t *testing.T) {
 	if m.annotations[0].Type != "comment" {
 		t.Errorf("expected annotation type 'comment', got %q", m.annotations[0].Type)
 	}
-	if m.selected != -1 {
+	if m.selection.active {
 		t.Error("expected selection cleared after submit")
 	}
 	if m.inputType != "" {
@@ -430,7 +430,7 @@ func TestViewWithSelection(t *testing.T) {
 	m := New(sess)
 	m.width = 80
 	m.height = 20
-	m.selected = 0
+	m.selection = selection{active: true, anchor: 0, cursor: 0}
 
 	view := m.View()
 
@@ -784,8 +784,8 @@ func TestPaletteEscDismisses(t *testing.T) {
 		t.Errorf("expected modeNormal after ESC in palette, got %d", m.mode)
 	}
 	// Selection should remain
-	if m.selected != 0 {
-		t.Errorf("selection should remain after ESC, got %d", m.selected)
+	if !m.selection.active {
+		t.Error("selection should remain after ESC in palette")
 	}
 }
 
@@ -809,7 +809,7 @@ func TestPaletteViewShowsOverlay(t *testing.T) {
 	m := New(sess)
 	m.width = 80
 	m.height = 20
-	m.selected = 0
+	m.selection = selection{active: true, anchor: 0, cursor: 0}
 	m.mode = modePalette
 
 	view := m.View()
@@ -821,6 +821,130 @@ func TestPaletteViewShowsOverlay(t *testing.T) {
 	// Should show all annotation options including [k]eep
 	if !strings.Contains(view, "[k]") {
 		t.Error("palette view should show [k]eep option")
+	}
+}
+
+func TestMultiLineSelectionVThenJK(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3\nline4\nline5")
+	m := New(sess)
+	m.cursor = 2
+
+	// v starts selection at current line
+	m = sendKey(m, 'v')
+	if !m.selection.active {
+		t.Error("expected selection to be active after v")
+	}
+	if m.selection.anchor != 2 {
+		t.Errorf("expected anchor at 2, got %d", m.selection.anchor)
+	}
+
+	// j extends selection down
+	m = sendKey(m, 'j')
+	if m.selection.cursor != 3 {
+		t.Errorf("expected selection cursor at 3, got %d", m.selection.cursor)
+	}
+
+	// k moves selection cursor up
+	m = sendKey(m, 'k')
+	if m.selection.cursor != 2 {
+		t.Errorf("expected selection cursor at 2, got %d", m.selection.cursor)
+	}
+}
+
+func TestMultiLineSelectionLines(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3\nline4\nline5")
+	m := New(sess)
+
+	// Select from line 3 down to line 1 (anchor > cursor)
+	m.selection = selection{active: true, anchor: 3, cursor: 1}
+	start, end := m.selection.lines()
+	if start != 1 || end != 3 {
+		t.Errorf("expected lines (1, 3), got (%d, %d)", start, end)
+	}
+
+	// Select from line 1 down to line 3 (anchor < cursor)
+	m.selection = selection{active: true, anchor: 1, cursor: 3}
+	start, end = m.selection.lines()
+	if start != 1 || end != 3 {
+		t.Errorf("expected lines (1, 3), got (%d, %d)", start, end)
+	}
+}
+
+func TestMultiLineSelectionEscClears(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+
+	// Start selection
+	m = sendKey(m, 'v')
+	m = sendKey(m, 'j')
+
+	// ESC clears selection
+	m = sendKeyType(m, tea.KeyEscape)
+	if m.selection.active {
+		t.Error("expected selection to be cleared after ESC")
+	}
+}
+
+func TestMultiLineSelectionAnnotation(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	sess := &session.Session{
+		ID:        "test-multiline",
+		Content:   "line1\nline2\nline3\nline4\nline5",
+		CreatedAt: time.Date(2026, 1, 11, 12, 0, 0, 0, time.UTC),
+	}
+	m := New(sess)
+
+	// Select lines 1-3
+	m.cursor = 1
+	m = sendKey(m, 'v')
+	m = sendKey(m, 'j')
+	m = sendKey(m, 'j') // now at line 3, selection spans 1-3
+
+	// Add comment
+	m = sendKey(m, 'c')
+	// Type comment text
+	for _, r := range "multi-line comment" {
+		m = sendKey(m, r)
+	}
+	m = sendKeyType(m, tea.KeyEnter)
+
+	// Should have 3 annotations (one per line)
+	if len(m.annotations) != 3 {
+		t.Errorf("expected 3 annotations for multi-line selection, got %d", len(m.annotations))
+	}
+
+	// All should be for lines 1, 2, 3
+	for i, ann := range m.annotations {
+		if ann.Line != i+1 {
+			t.Errorf("expected annotation %d at line %d, got %d", i, i+1, ann.Line)
+		}
+		if ann.Type != "comment" {
+			t.Errorf("expected type 'comment', got %q", ann.Type)
+		}
+	}
+}
+
+func TestMultiLineSelectionViewHighlight(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3\nline4\nline5")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+	m.selection = selection{active: true, anchor: 1, cursor: 3}
+	m.cursor = 3
+
+	view := m.View()
+
+	// Should show selection indicator on multiple lines
+	// Count occurrences of selection indicator
+	count := strings.Count(view, "●")
+	if count != 3 {
+		t.Errorf("expected 3 selection indicators, got %d", count)
 	}
 }
 
