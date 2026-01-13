@@ -16,6 +16,7 @@ type mode int
 const (
 	modeNormal mode = iota
 	modeInput
+	modePalette
 )
 
 type Annotation struct {
@@ -79,10 +80,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyMsg:
-		if m.mode == modeInput {
+		switch m.mode {
+		case modeInput:
 			return m.handleInputMode(msg)
+		case modePalette:
+			return m.handlePaletteMode(msg)
+		default:
+			return m.handleNormalMode(msg)
 		}
-		return m.handleNormalMode(msg)
 	}
 	return m, nil
 }
@@ -144,9 +149,46 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.inputType = "unclear"
 		}
 
+	case " ":
+		if m.selected >= 0 {
+			m.mode = modePalette
+		}
+
 	case "w":
 		m.save()
 		return m, tea.Quit
+	}
+	return m, nil
+}
+
+func (m Model) handlePaletteMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "c":
+		m.mode = modeInput
+		m.input = ""
+		m.inputType = "comment"
+	case "d":
+		m.mode = modeInput
+		m.input = ""
+		m.inputType = "delete"
+	case "q":
+		m.mode = modeInput
+		m.input = ""
+		m.inputType = "question"
+	case "e":
+		m.mode = modeInput
+		m.input = ""
+		m.inputType = "expand"
+	case "k":
+		m.mode = modeInput
+		m.input = ""
+		m.inputType = "keep"
+	case "u":
+		m.mode = modeInput
+		m.input = ""
+		m.inputType = "unclear"
+	default:
+		m.mode = modeNormal
 	}
 	return m, nil
 }
@@ -254,11 +296,17 @@ func (m Model) View() string {
 	b.WriteString(strings.Repeat("─", 50))
 	b.WriteString("\n")
 
-	if m.mode == modeInput {
+	switch m.mode {
+	case modeInput:
 		prompt := inputPrompts[m.inputType]
 		b.WriteString(fmt.Sprintf("%s %s_\n", prompt, m.input))
-	} else {
-		b.WriteString("[v]select [c]omment [d]elete [q]uestion [e]xpand [u]nclear [w]rite [Q]uit\n")
+	case modePalette:
+		b.WriteString("┌─ Annotations ──────────────────────────────────────┐\n")
+		b.WriteString("│ [c]omment  [d]elete  [q]uestion                    │\n")
+		b.WriteString("│ [e]xpand   [k]eep    [u]nclear   [ESC] cancel      │\n")
+		b.WriteString("└────────────────────────────────────────────────────┘\n")
+	default:
+		b.WriteString("[v]select [SPC]palette [c]omment [d]elete [q]uestion [e]xpand [u]nclear [w]rite [Q]uit\n")
 	}
 
 	return b.String()

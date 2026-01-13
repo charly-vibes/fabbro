@@ -588,6 +588,120 @@ func TestSave(t *testing.T) {
 	}
 }
 
+func TestPaletteModeOpen(t *testing.T) {
+	sess := newTestSession("line1\nline2")
+	m := New(sess)
+
+	// Select a line first
+	m = sendKey(m, 'v')
+
+	// SPC opens palette mode
+	m = sendKeyType(m, tea.KeySpace)
+	if m.mode != modePalette {
+		t.Errorf("expected modePalette after SPC, got %d", m.mode)
+	}
+}
+
+func TestPaletteRequiresSelection(t *testing.T) {
+	sess := newTestSession("line1")
+	m := New(sess)
+
+	// SPC without selection should not open palette
+	m = sendKeyType(m, tea.KeySpace)
+	if m.mode != modeNormal {
+		t.Error("SPC should not open palette without selection")
+	}
+}
+
+func TestPaletteAnnotationKeys(t *testing.T) {
+	tests := []struct {
+		key      rune
+		wantType string
+	}{
+		{'c', "comment"},
+		{'d', "delete"},
+		{'q', "question"},
+		{'e', "expand"},
+		{'k', "keep"}, // k only available in palette!
+		{'u', "unclear"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.wantType, func(t *testing.T) {
+			sess := newTestSession("line1")
+			m := New(sess)
+
+			// Select, open palette
+			m = sendKey(m, 'v')
+			m = sendKeyType(m, tea.KeySpace)
+
+			// Press annotation key in palette
+			m = sendKey(m, tt.key)
+
+			if m.mode != modeInput {
+				t.Errorf("expected modeInput after pressing %c in palette", tt.key)
+			}
+			if m.inputType != tt.wantType {
+				t.Errorf("expected inputType %q, got %q", tt.wantType, m.inputType)
+			}
+		})
+	}
+}
+
+func TestPaletteEscDismisses(t *testing.T) {
+	sess := newTestSession("line1")
+	m := New(sess)
+
+	// Select, open palette
+	m = sendKey(m, 'v')
+	m = sendKeyType(m, tea.KeySpace)
+
+	// ESC dismisses palette
+	m = sendKeyType(m, tea.KeyEscape)
+	if m.mode != modeNormal {
+		t.Errorf("expected modeNormal after ESC in palette, got %d", m.mode)
+	}
+	// Selection should remain
+	if m.selected != 0 {
+		t.Errorf("selection should remain after ESC, got %d", m.selected)
+	}
+}
+
+func TestPaletteUnknownKeyDismisses(t *testing.T) {
+	sess := newTestSession("line1")
+	m := New(sess)
+
+	// Select, open palette
+	m = sendKey(m, 'v')
+	m = sendKeyType(m, tea.KeySpace)
+
+	// Unknown key dismisses palette without action
+	m = sendKey(m, 'x')
+	if m.mode != modeNormal {
+		t.Errorf("expected modeNormal after unknown key in palette, got %d", m.mode)
+	}
+}
+
+func TestPaletteViewShowsOverlay(t *testing.T) {
+	sess := newTestSession("line1")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+	m.selected = 0
+	m.mode = modePalette
+
+	view := m.View()
+
+	// Should show palette header
+	if !strings.Contains(view, "Annotations") {
+		t.Error("palette view should show 'Annotations' header")
+	}
+	// Should show all annotation options including [k]eep
+	if !strings.Contains(view, "[k]") {
+		t.Error("palette view should show [k]eep option")
+	}
+}
+
 func TestSaveAllAnnotationTypes(t *testing.T) {
 	tmpDir := t.TempDir()
 	origDir, _ := os.Getwd()
