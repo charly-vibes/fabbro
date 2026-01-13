@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/charly-vibes/fabbro/internal/config"
@@ -124,4 +125,223 @@ func TestBuildProducesWorkingBinary(t *testing.T) {
 	// This test just verifies the package compiles
 	// The actual binary test is done via go build in CI
 	t.Log("Build test passed - package compiles successfully")
+}
+
+func TestRealMainHelp(t *testing.T) {
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"--help"}, stdin, &stdout, &stderr)
+
+	if code != 0 {
+		t.Errorf("expected exit code 0, got %d", code)
+	}
+	if !strings.Contains(stdout.String(), "fabbro") {
+		t.Error("expected help output to contain 'fabbro'")
+	}
+}
+
+func TestRealMainVersion(t *testing.T) {
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"--version"}, stdin, &stdout, &stderr)
+
+	if code != 0 {
+		t.Errorf("expected exit code 0, got %d", code)
+	}
+}
+
+func TestInitCommand(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"init"}, stdin, &stdout, &stderr)
+
+	if code != 0 {
+		t.Errorf("expected exit code 0, got %d", code)
+	}
+	if !strings.Contains(stdout.String(), "Initialized fabbro") {
+		t.Errorf("expected 'Initialized fabbro' in output, got %q", stdout.String())
+	}
+}
+
+func TestInitCommandAlreadyInitialized(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"init"}, stdin, &stdout, &stderr)
+
+	if code != 0 {
+		t.Errorf("expected exit code 0, got %d", code)
+	}
+	if !strings.Contains(stdout.String(), "already initialized") {
+		t.Errorf("expected 'already initialized' in output, got %q", stdout.String())
+	}
+}
+
+func TestApplyCommandNotInitialized(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"apply", "some-id"}, stdin, &stdout, &stderr)
+
+	if code != 1 {
+		t.Errorf("expected exit code 1, got %d", code)
+	}
+}
+
+func TestApplyCommandWithJSON(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	// Create a session with FEM content
+	sess, _ := session.Create("Test content")
+	femContent := `---
+session_id: ` + sess.ID + `
+created_at: 2026-01-11T22:00:00Z
+---
+
+Test content {>> a comment <<}`
+
+	sessionPath := filepath.Join(config.SessionsDir, sess.ID+".fem")
+	os.WriteFile(sessionPath, []byte(femContent), 0644)
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"apply", sess.ID, "--json"}, stdin, &stdout, &stderr)
+
+	if code != 0 {
+		t.Errorf("expected exit code 0, got %d", code)
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal([]byte(stdout.String()), &result); err != nil {
+		t.Fatalf("failed to parse JSON output: %v", err)
+	}
+
+	if result["session_id"] != sess.ID {
+		t.Errorf("expected session_id=%s, got %v", sess.ID, result["session_id"])
+	}
+}
+
+func TestApplyCommandWithoutJSON(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	sess, _ := session.Create("Test content")
+	femContent := `---
+session_id: ` + sess.ID + `
+created_at: 2026-01-11T22:00:00Z
+---
+
+Test content {>> a comment <<}`
+
+	sessionPath := filepath.Join(config.SessionsDir, sess.ID+".fem")
+	os.WriteFile(sessionPath, []byte(femContent), 0644)
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"apply", sess.ID}, stdin, &stdout, &stderr)
+
+	if code != 0 {
+		t.Errorf("expected exit code 0, got %d", code)
+	}
+
+	if !strings.Contains(stdout.String(), "Session:") {
+		t.Error("expected output to contain 'Session:'")
+	}
+	if !strings.Contains(stdout.String(), "Annotations:") {
+		t.Error("expected output to contain 'Annotations:'")
+	}
+}
+
+func TestReviewCommandNotInitialized(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("content")
+
+	code := realMain([]string{"review", "--stdin"}, stdin, &stdout, &stderr)
+
+	if code != 1 {
+		t.Errorf("expected exit code 1, got %d", code)
+	}
+}
+
+func TestReviewCommandWithoutStdinFlag(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"review"}, stdin, &stdout, &stderr)
+
+	if code != 1 {
+		t.Errorf("expected exit code 1, got %d", code)
+	}
+}
+
+func TestApplyCommandSessionNotFound(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"apply", "nonexistent-session"}, stdin, &stdout, &stderr)
+
+	if code != 1 {
+		t.Errorf("expected exit code 1, got %d", code)
+	}
+}
+
+func TestUnknownCommand(t *testing.T) {
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"unknown"}, stdin, &stdout, &stderr)
+
+	if code != 1 {
+		t.Errorf("expected exit code 1 for unknown command, got %d", code)
+	}
 }

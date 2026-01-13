@@ -18,30 +18,56 @@ import (
 var version = "dev"
 
 func main() {
+	os.Exit(realMain(os.Args[1:], os.Stdin, os.Stdout, os.Stderr))
+}
+
+func realMain(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
+	rootCmd := buildRootCmd(stdin, stdout)
+	rootCmd.SetArgs(args)
+	rootCmd.SetOut(stdout)
+	rootCmd.SetErr(stderr)
+
+	if err := rootCmd.Execute(); err != nil {
+		return 1
+	}
+	return 0
+}
+
+func buildRootCmd(stdin io.Reader, stdout io.Writer) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:     "fabbro",
 		Short:   "A code review annotation tool",
 		Version: version,
 	}
 
-	initCmd := &cobra.Command{
+	rootCmd.AddCommand(buildInitCmd(stdout))
+	rootCmd.AddCommand(buildReviewCmd(stdin, stdout))
+	rootCmd.AddCommand(buildApplyCmd(stdout))
+
+	return rootCmd
+}
+
+func buildInitCmd(stdout io.Writer) *cobra.Command {
+	return &cobra.Command{
 		Use:   "init",
 		Short: "Initialize fabbro in the current directory",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if config.IsInitialized() {
-				fmt.Println("fabbro already initialized")
+				fmt.Fprintln(stdout, "fabbro already initialized")
 				return nil
 			}
 			if err := config.Init(); err != nil {
 				return fmt.Errorf("failed to initialize: %w", err)
 			}
-			fmt.Println("Initialized fabbro in .fabbro/")
+			fmt.Fprintln(stdout, "Initialized fabbro in .fabbro/")
 			return nil
 		},
 	}
+}
 
+func buildReviewCmd(stdin io.Reader, stdout io.Writer) *cobra.Command {
 	var stdinFlag bool
-	reviewCmd := &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "review",
 		Short: "Start a review session",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -53,8 +79,7 @@ func main() {
 				return fmt.Errorf("--stdin flag is required")
 			}
 
-			// Read from stdin
-			data, err := io.ReadAll(os.Stdin)
+			data, err := io.ReadAll(stdin)
 			if err != nil {
 				return fmt.Errorf("failed to read stdin: %w", err)
 			}
@@ -65,9 +90,8 @@ func main() {
 				return fmt.Errorf("failed to create session: %w", err)
 			}
 
-			fmt.Printf("Created session: %s\n", sess.ID)
+			fmt.Fprintf(stdout, "Created session: %s\n", sess.ID)
 
-			// Launch TUI
 			model := tui.New(sess)
 			p := tea.NewProgram(model)
 			if _, err := p.Run(); err != nil {
@@ -77,10 +101,13 @@ func main() {
 			return nil
 		},
 	}
-	reviewCmd.Flags().BoolVar(&stdinFlag, "stdin", false, "Read content from stdin")
+	cmd.Flags().BoolVar(&stdinFlag, "stdin", false, "Read content from stdin")
+	return cmd
+}
 
+func buildApplyCmd(stdout io.Writer) *cobra.Command {
 	var jsonFlag bool
-	applyCmd := &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "apply [session-id]",
 		Short: "Apply annotations from a session",
 		Args:  cobra.ExactArgs(1),
@@ -109,26 +136,19 @@ func main() {
 					Annotations: annotations,
 				}
 
-				enc := json.NewEncoder(os.Stdout)
+				enc := json.NewEncoder(stdout)
 				enc.SetIndent("", "  ")
 				return enc.Encode(output)
 			}
 
-			fmt.Printf("Session: %s\n", sess.ID)
-			fmt.Printf("Annotations: %d\n", len(annotations))
+			fmt.Fprintf(stdout, "Session: %s\n", sess.ID)
+			fmt.Fprintf(stdout, "Annotations: %d\n", len(annotations))
 			for _, a := range annotations {
-				fmt.Printf("  Line %d: [%s] %s\n", a.Line, a.Type, a.Text)
+				fmt.Fprintf(stdout, "  Line %d: [%s] %s\n", a.Line, a.Type, a.Text)
 			}
 			return nil
 		},
 	}
-	applyCmd.Flags().BoolVar(&jsonFlag, "json", false, "Output as JSON")
-
-	rootCmd.AddCommand(initCmd)
-	rootCmd.AddCommand(reviewCmd)
-	rootCmd.AddCommand(applyCmd)
-
-	if err := rootCmd.Execute(); err != nil {
-		os.Exit(1)
-	}
+	cmd.Flags().BoolVar(&jsonFlag, "json", false, "Output as JSON")
+	return cmd
 }
