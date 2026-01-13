@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/charly-vibes/fabbro/internal/config"
+	"github.com/charly-vibes/fabbro/internal/fem"
 	"github.com/charly-vibes/fabbro/internal/session"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -474,18 +475,6 @@ func TestViewSmallHeight(t *testing.T) {
 	}
 }
 
-func TestMax(t *testing.T) {
-	if max(5, 3) != 5 {
-		t.Error("max(5, 3) should be 5")
-	}
-	if max(2, 7) != 7 {
-		t.Error("max(2, 7) should be 7")
-	}
-	if max(4, 4) != 4 {
-		t.Error("max(4, 4) should be 4")
-	}
-}
-
 func TestWriteCommand(t *testing.T) {
 	sess := newTestSession("line1")
 	m := New(sess)
@@ -559,10 +548,12 @@ func TestSave(t *testing.T) {
 	m := New(sess)
 
 	// Add a comment annotation
-	m.annotations = append(m.annotations, Annotation{Line: 0, Type: "comment", Text: "my comment"})
+	m.annotations = append(m.annotations, fem.Annotation{Line: 0, Type: "comment", Text: "my comment"})
 
 	// Call save
-	m.save()
+	if err := m.save(); err != nil {
+		t.Fatalf("save() failed: %v", err)
+	}
 
 	// Check file was written
 	sessionFile := filepath.Join(config.SessionsDir, "test-save-session.fem")
@@ -948,6 +939,33 @@ func TestMultiLineSelectionViewHighlight(t *testing.T) {
 	}
 }
 
+func TestSaveErrorHandling(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	// Create sessions directory, then make it read-only
+	config.Init()
+	os.Chmod(config.SessionsDir, 0444)
+	defer os.Chmod(config.SessionsDir, 0755)
+
+	sess := &session.Session{
+		ID:        "test-save-error",
+		Content:   "line1\nline2",
+		CreatedAt: time.Date(2026, 1, 11, 12, 0, 0, 0, time.UTC),
+	}
+	m := New(sess)
+
+	err := m.save()
+	if err == nil {
+		t.Error("expected error when saving to read-only directory")
+	}
+	if !strings.Contains(err.Error(), "failed to save session") {
+		t.Errorf("expected error to contain 'failed to save session', got: %v", err)
+	}
+}
+
 func TestSaveAllAnnotationTypes(t *testing.T) {
 	tmpDir := t.TempDir()
 	origDir, _ := os.Getwd()
@@ -964,7 +982,7 @@ func TestSaveAllAnnotationTypes(t *testing.T) {
 	m := New(sess)
 
 	// Add one of each annotation type
-	m.annotations = []Annotation{
+	m.annotations = []fem.Annotation{
 		{Line: 0, Type: "comment", Text: "a comment"},
 		{Line: 1, Type: "delete", Text: "DELETE: remove"},
 		{Line: 2, Type: "question", Text: "why?"},
@@ -973,7 +991,9 @@ func TestSaveAllAnnotationTypes(t *testing.T) {
 		{Line: 5, Type: "unclear", Text: "UNCLEAR: huh"},
 	}
 
-	m.save()
+	if err := m.save(); err != nil {
+		t.Fatalf("save() failed: %v", err)
+	}
 
 	sessionFile := filepath.Join(config.SessionsDir, "test-save-types.fem")
 	data, err := os.ReadFile(sessionFile)

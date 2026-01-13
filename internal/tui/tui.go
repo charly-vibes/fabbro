@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/charly-vibes/fabbro/internal/config"
+	"github.com/charly-vibes/fabbro/internal/fem"
 	"github.com/charly-vibes/fabbro/internal/session"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -19,12 +20,6 @@ const (
 	modePalette
 )
 
-type Annotation struct {
-	Line int
-	Type string
-	Text string
-}
-
 type selection struct {
 	active bool
 	anchor int // where selection started
@@ -36,15 +31,6 @@ func (s selection) lines() (start, end int) {
 		return s.anchor, s.cursor
 	}
 	return s.cursor, s.anchor
-}
-
-var markers = map[string][2]string{
-	"comment":  {"{>> ", " <<}"},
-	"delete":   {"{-- ", " --}"},
-	"question": {"{?? ", " ??}"},
-	"expand":   {"{!! ", " !!}"},
-	"keep":     {"{== ", " ==}"},
-	"unclear":  {"{~~ ", " ~~}"},
 }
 
 var inputPrompts = map[string]string{
@@ -64,7 +50,7 @@ type Model struct {
 	mode           mode
 	input          string
 	inputType      string // annotation type being entered: "comment", "delete", etc.
-	annotations    []Annotation
+	annotations    []fem.Annotation
 	width          int
 	height         int
 	gPending       bool   // waiting for second 'g' in gg command
@@ -78,7 +64,7 @@ func New(sess *session.Session) Model {
 		cursor:      0,
 		selection:   selection{},
 		mode:        modeNormal,
-		annotations: []Annotation{},
+		annotations: []fem.Annotation{},
 	}
 }
 
@@ -214,7 +200,9 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 
 	case "w":
-		m.save()
+		if err := m.save(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		}
 		return m, tea.Quit
 	}
 	return m, nil
@@ -258,7 +246,7 @@ func (m Model) handleInputMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.input != "" {
 			start, end := m.selection.lines()
 			for line := start; line <= end; line++ {
-				m.annotations = append(m.annotations, Annotation{
+				m.annotations = append(m.annotations, fem.Annotation{
 					Line: line,
 					Type: m.inputType,
 					Text: m.input,
@@ -288,8 +276,8 @@ func (m Model) handleInputMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) save() {
-	annotationsByLine := make(map[int]Annotation)
+func (m Model) save() error {
+	annotationsByLine := make(map[int]fem.Annotation)
 	for _, a := range m.annotations {
 		annotationsByLine[a.Line] = a
 	}
@@ -297,7 +285,7 @@ func (m Model) save() {
 	var result []string
 	for i, line := range m.lines {
 		if ann, ok := annotationsByLine[i]; ok {
-			marker := markers[ann.Type]
+			marker := fem.Markers[ann.Type]
 			result = append(result, line+" "+marker[0]+ann.Text+marker[1])
 		} else {
 			result = append(result, line)
@@ -313,7 +301,10 @@ created_at: %s
 %s`, m.session.ID, m.session.CreatedAt.Format("2006-01-02T15:04:05Z07:00"), content)
 
 	sessionPath := filepath.Join(config.SessionsDir, m.session.ID+".fem")
-	os.WriteFile(sessionPath, []byte(fileContent), 0644)
+	if err := os.WriteFile(sessionPath, []byte(fileContent), 0644); err != nil {
+		return fmt.Errorf("failed to save session: %w", err)
+	}
+	return nil
 }
 
 func (m Model) View() string {
@@ -373,11 +364,4 @@ func (m Model) View() string {
 	}
 
 	return b.String()
-}
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
 }
