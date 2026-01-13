@@ -42,3 +42,35 @@ Feature: Project Initialization
     When I run the command `fabbro init`
     Then a new ".fabbro" directory should be created in the current subdirectory
     And a warning should indicate a parent directory is already initialized
+
+  @planned
+  Scenario: Initializing with agent integration scaffolding
+    # Creates custom commands for various AI coding agents (Amp, Claude Code, Cursor)
+    Given I am in a directory that has not been initialized
+    When I run the command `fabbro init --agents`
+    Then a directory named ".fabbro" should be created in the current directory
+    And the ".fabbro" directory should contain a subdirectory named "sessions"
+    And a directory named ".agents/commands" should be created
+    And the ".agents/commands" directory should contain "fabbro-review.md"
+    And a directory named ".claude/commands" should be created
+    And the ".claude/commands" directory should contain "fabbro-review.md"
+    And the command files should contain fabbro workflow instructions
+    And the command should exit with code 0
+
+  @planned
+  Scenario: Initializing with agents updates AGENTS.md
+    Given I am in a directory with an existing AGENTS.md file
+    When I run the command `fabbro init --agents`
+    Then the AGENTS.md file should be updated with a fabbro workflow section
+    And the fabbro workflow section should document the review process
+    And existing AGENTS.md content should be preserved
+
+  @planned
+  Scenario: Agent scaffolding detects available agents
+    # Only creates command files for agents that appear to be in use
+    Given I am in a directory with a ".claude" directory
+    And no ".cursor" directory exists
+    When I run the command `fabbro init --agents`
+    Then the ".claude/commands" directory should contain "fabbro-review.md"
+    And no ".cursor/commands" directory should be created
+    And the ".agents/commands" directory should always be created

@@ -20,6 +20,7 @@ What's missing for agents:
 - Session listing/management commands
 - Programmatic annotation injection
 - MCP server for dynamic discovery
+- Agent integration scaffolding (`fabbro init --agents`)
 
 ---
 
@@ -276,7 +277,103 @@ fabbro apply session-id-abc123 --json
 
 ---
 
-## Part 6: Related TUI Tools
+## Part 6: Agent Integration Scaffolding (OpenSpec/Goose Pattern)
+
+### Lesson from OpenSpec
+
+OpenSpec's `openspec init` command scaffolds per-agent integration files:
+- Detects which agents are available (Claude Code, Cursor, Amp, etc.)
+- Creates custom slash commands in `.claude/commands/`, `.cursor/commands/`, etc.
+- Writes managed `AGENTS.md` stub at project root
+- Agents discover fabbro naturally through their existing context mechanisms
+
+**Key insight:** Tools don't need to "hook into" agents — they create **file-based artifacts** that agents discover.
+
+### Lesson from Block's Goose
+
+Goose takes the opposite approach — it's the **orchestrator** that wraps other tools:
+- MCP-first architecture (everything is an extension)
+- Can use Claude Code, Cursor, Gemini CLI as backend providers
+- Recipes (YAML workflows) for automation
+- Deeplinks for one-click extension install
+
+### Proposed: `fabbro init --agents`
+
+```bash
+# Initialize fabbro with agent integration files
+fabbro init --agents
+
+# What it creates:
+.fabbro/
+├── sessions/
+├── config.yaml
+└── .gitignore
+
+.agents/commands/
+└── fabbro-review.md      # Custom command for Amp
+
+.claude/commands/
+└── fabbro-review.md      # Custom command for Claude Code
+
+.cursor/commands/
+└── fabbro-review.md      # Custom command for Cursor
+
+# Also appends to AGENTS.md:
+# ## Fabbro Review Workflow
+# Use `fabbro review --stdin --no-interactive` to create sessions...
+```
+
+### Command File Template
+
+```markdown
+---
+description: Review content with fabbro TUI
+---
+
+Create a fabbro review session for the provided content.
+
+1. Run: `echo "$CONTENT" | fabbro review --stdin --no-interactive`
+2. Capture the session ID from stdout
+3. Tell the user: "Session created. Run: fabbro resume <session-id>"
+4. After user annotates, run: `fabbro apply <session-id> --json`
+5. Process annotations and revise content accordingly
+```
+
+---
+
+## Part 7: Non-Obtrusive TUI UX (Open Research)
+
+**Problem:** When agents invoke fabbro, the TUI shouldn't disrupt terminal flow.
+
+### Questions to Research
+
+1. **Launch mode:** Should fabbro open inline, in new pane, or floating overlay?
+2. **Session handoff:** Agent creates session → how does human seamlessly enter TUI?
+3. **Notification:** How to signal "session ready for review" without interrupting?
+4. **Fast exit:** How to make review feel like a quick aside, not a context switch?
+
+### Reference Patterns
+
+| Tool | Pattern |
+|------|---------|
+| **fzf** | Floating overlay, instant dismiss |
+| **lazygit** | Full-screen but launches fast, `q` exits instantly |
+| **gum** | Inline prompts, no screen takeover |
+| **charmbracelet/pop** | Desktop notifications from CLI |
+| **tmux popup** | Floating pane within terminal multiplexer |
+
+### Possible Approaches
+
+1. **tmux/zellij popup** — `fabbro resume` opens in floating pane
+2. **$EDITOR pattern** — Like `git commit`, opens TUI and waits
+3. **Background + notify** — Session created in background, notify when ready
+4. **Inline mode** — Minimal TUI that doesn't clear screen
+
+**Status:** See issue `fabbro-d3d` for research task.
+
+---
+
+## Part 8: Related TUI Tools
 
 Tools researched for patterns applicable to fabbro:
 
@@ -285,10 +382,12 @@ Tools researched for patterns applicable to fabbro:
 | **Elia** (darrenburns/elia) | Keyboard-centric UI, conversation persistence → model for session management |
 | **Ralph TUI** (subsy/ralph-tui) | Agent loop orchestration with prd.json (product requirements doc) and Beads → completion detection via `<promise>COMPLETE</promise>` token |
 | **OpenCode** (sst/opencode) | Open-source Claude Code alternative with MCP → reference for `fabbro-mcp` implementation |
+| **OpenSpec** (Fission-AI/OpenSpec) | Agent scaffolding via `init` command → model for `fabbro init --agents` |
+| **Goose** (block/goose) | MCP-first orchestrator, CLI providers, recipes → reference for `fabbro-mcp` |
 
 ---
 
-## Part 7: Experiments to Run
+## Part 9: Experiments to Run
 
 ### Experiment 1: Claude Code Integration
 
@@ -355,7 +454,7 @@ Build minimal `fabbro-mcp` with:
 
 ---
 
-## Part 8: Open Questions
+## Part 10: Open Questions
 
 1. **Should agents add annotations directly?** Or only humans?
    - Pro: AI code review could add annotations via `fabbro annotate`
