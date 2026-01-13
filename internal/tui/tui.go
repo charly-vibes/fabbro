@@ -54,6 +54,7 @@ type Model struct {
 	annotations    []Annotation
 	width          int
 	height         int
+	gPending       bool   // waiting for second 'g' in gg command
 }
 
 func New(sess *session.Session) Model {
@@ -93,6 +94,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	// Handle g-pending state first
+	if m.gPending {
+		m.gPending = false
+		if msg.String() == "g" {
+			m.cursor = 0
+			return m, nil
+		}
+		// Fall through to handle the key normally
+	}
+
 	switch msg.String() {
 	case "Q", "ctrl+c":
 		return m, tea.Quit
@@ -106,6 +117,32 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.cursor > 0 {
 			m.cursor--
 		}
+
+	case "ctrl+d":
+		halfPage := (m.height - 4) / 2
+		if halfPage < 1 {
+			halfPage = 1
+		}
+		m.cursor += halfPage
+		if m.cursor > len(m.lines)-1 {
+			m.cursor = len(m.lines) - 1
+		}
+
+	case "ctrl+u":
+		halfPage := (m.height - 4) / 2
+		if halfPage < 1 {
+			halfPage = 1
+		}
+		m.cursor -= halfPage
+		if m.cursor < 0 {
+			m.cursor = 0
+		}
+
+	case "g":
+		m.gPending = true
+
+	case "G":
+		m.cursor = len(m.lines) - 1
 
 	case "v":
 		if m.selected == m.cursor {

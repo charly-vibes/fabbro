@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -585,6 +586,127 @@ func TestSave(t *testing.T) {
 	// Line without annotation should be unchanged
 	if !strings.Contains(content, "line2") {
 		t.Error("saved file should contain line2")
+	}
+}
+
+func TestCtrlDScrollsDown(t *testing.T) {
+	// Create 50 lines
+	lines := make([]string, 50)
+	for i := range lines {
+		lines[i] = fmt.Sprintf("line%d", i+1)
+	}
+	sess := newTestSession(strings.Join(lines, "\n"))
+	m := New(sess)
+	m.height = 20 // viewport height
+
+	// Ctrl+d should move cursor down by half page (8 lines with height 20)
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyCtrlD})
+	m = newModel.(Model)
+
+	// Half page = (height - 4) / 2 = 8
+	if m.cursor != 8 {
+		t.Errorf("expected cursor at 8 after Ctrl+d, got %d", m.cursor)
+	}
+}
+
+func TestCtrlUScrollsUp(t *testing.T) {
+	lines := make([]string, 50)
+	for i := range lines {
+		lines[i] = fmt.Sprintf("line%d", i+1)
+	}
+	sess := newTestSession(strings.Join(lines, "\n"))
+	m := New(sess)
+	m.height = 20
+	m.cursor = 20
+
+	// Ctrl+u should move cursor up by half page
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyCtrlU})
+	m = newModel.(Model)
+
+	if m.cursor != 12 {
+		t.Errorf("expected cursor at 12 after Ctrl+u, got %d", m.cursor)
+	}
+}
+
+func TestCtrlDClampsToEnd(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+	m.height = 20
+	m.cursor = 1
+
+	// Ctrl+d should clamp to last line
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyCtrlD})
+	m = newModel.(Model)
+
+	if m.cursor != 2 {
+		t.Errorf("expected cursor clamped to 2, got %d", m.cursor)
+	}
+}
+
+func TestCtrlUClampsToStart(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+	m.height = 20
+	m.cursor = 1
+
+	// Ctrl+u should clamp to first line
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyCtrlU})
+	m = newModel.(Model)
+
+	if m.cursor != 0 {
+		t.Errorf("expected cursor clamped to 0, got %d", m.cursor)
+	}
+}
+
+func TestGGJumpsToFirstLine(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3\nline4\nline5")
+	m := New(sess)
+	m.cursor = 4
+
+	// First g sets pending
+	m = sendKey(m, 'g')
+	if !m.gPending {
+		t.Error("expected gPending after first g")
+	}
+
+	// Second g jumps to first line
+	m = sendKey(m, 'g')
+	if m.cursor != 0 {
+		t.Errorf("expected cursor at 0 after gg, got %d", m.cursor)
+	}
+	if m.gPending {
+		t.Error("gPending should be cleared after gg")
+	}
+}
+
+func TestGJumpsToLastLine(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3\nline4\nline5")
+	m := New(sess)
+
+	// G jumps to last line
+	m = sendKey(m, 'G')
+	if m.cursor != 4 {
+		t.Errorf("expected cursor at 4 after G, got %d", m.cursor)
+	}
+}
+
+func TestGPendingClearedByOtherKey(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+
+	// g sets pending
+	m = sendKey(m, 'g')
+	if !m.gPending {
+		t.Error("expected gPending after g")
+	}
+
+	// j clears pending and moves down
+	m = sendKey(m, 'j')
+	if m.gPending {
+		t.Error("gPending should be cleared by other key")
+	}
+	if m.cursor != 1 {
+		t.Errorf("expected cursor at 1 after j, got %d", m.cursor)
 	}
 }
 
