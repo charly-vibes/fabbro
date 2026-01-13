@@ -62,17 +62,19 @@ The `--json` output is designed for easy parsing by AI assistants:
 
 ```json
 {
-  "session_id": "abc12345",
+  "sessionId": "abc12345",
   "annotations": [
     {
-      "line": 15,
       "type": "comment",
-      "text": "Add error handling for network failures"
+      "text": "Add error handling for network failures",
+      "startLine": 15,
+      "endLine": 15
     },
     {
-      "line": 42,
       "type": "comment",
-      "text": "This logic should be extracted to a helper function"
+      "text": "This logic should be extracted to a helper function",
+      "startLine": 42,
+      "endLine": 42
     }
   ]
 }

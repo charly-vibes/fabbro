@@ -43,12 +43,12 @@ Line three {>> second comment <<}`
 		t.Fatalf("expected 2 annotations, got %d", len(annotations))
 	}
 
-	if annotations[0].Line != 1 {
-		t.Errorf("expected first annotation on line 1, got %d", annotations[0].Line)
+	if annotations[0].StartLine != 1 {
+		t.Errorf("expected first annotation on line 1, got %d", annotations[0].StartLine)
 	}
 
-	if annotations[1].Line != 3 {
-		t.Errorf("expected second annotation on line 3, got %d", annotations[1].Line)
+	if annotations[1].StartLine != 3 {
+		t.Errorf("expected second annotation on line 3, got %d", annotations[1].StartLine)
 	}
 }
 
@@ -171,9 +171,9 @@ Third line {?? question ??}`
 	}
 
 	expected := []struct {
-		typ  string
-		text string
-		line int
+		typ       string
+		text      string
+		startLine int
 	}{
 		{"comment", "comment", 1},
 		{"delete", "delete", 2},
@@ -187,8 +187,8 @@ Third line {?? question ??}`
 		if annotations[i].Text != exp.text {
 			t.Errorf("annotation %d: expected Text=%q, got %q", i, exp.text, annotations[i].Text)
 		}
-		if annotations[i].Line != exp.line {
-			t.Errorf("annotation %d: expected Line=%d, got %d", i, exp.line, annotations[i].Line)
+		if annotations[i].StartLine != exp.startLine {
+			t.Errorf("annotation %d: expected StartLine=%d, got %d", i, exp.startLine, annotations[i].StartLine)
 		}
 	}
 }

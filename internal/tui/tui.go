@@ -247,9 +247,10 @@ func (m Model) handleInputMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			start, end := m.selection.lines()
 			for line := start; line <= end; line++ {
 				m.annotations = append(m.annotations, fem.Annotation{
-					Line: line,
-					Type: m.inputType,
-					Text: m.input,
+					StartLine: line,
+					EndLine:   line,
+					Type:      m.inputType,
+					Text:      m.input,
 				})
 			}
 		}
@@ -279,7 +280,7 @@ func (m Model) handleInputMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m Model) save() error {
 	annotationsByLine := make(map[int]fem.Annotation)
 	for _, a := range m.annotations {
-		annotationsByLine[a.Line] = a
+		annotationsByLine[a.StartLine] = a
 	}
 
 	var result []string

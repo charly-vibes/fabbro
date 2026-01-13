@@ -71,16 +71,16 @@ Third line {>> consider refactoring <<}`
 		t.Errorf("expected first annotation text 'needs review', got %q", annotations[0].Text)
 	}
 
-	if annotations[0].Line != 1 {
-		t.Errorf("expected first annotation on line 1, got %d", annotations[0].Line)
+	if annotations[0].StartLine != 1 {
+		t.Errorf("expected first annotation on line 1, got %d", annotations[0].StartLine)
 	}
 
 	if annotations[1].Text != "consider refactoring" {
 		t.Errorf("expected second annotation text 'consider refactoring', got %q", annotations[1].Text)
 	}
 
-	if annotations[1].Line != 3 {
-		t.Errorf("expected second annotation on line 3, got %d", annotations[1].Line)
+	if annotations[1].StartLine != 3 {
+		t.Errorf("expected second annotation on line 3, got %d", annotations[1].StartLine)
 	}
 
 	// Verify clean content strips markers
@@ -93,7 +93,7 @@ Third line `
 
 	// Verify JSON marshaling works
 	output := struct {
-		SessionID   string           `json:"session_id"`
+		SessionID   string           `json:"sessionId"`
 		Annotations []fem.Annotation `json:"annotations"`
 	}{
 		SessionID:   loaded.ID,
@@ -111,8 +111,8 @@ Third line `
 		t.Fatalf("JSON unmarshal failed: %v", err)
 	}
 
-	if parsed["session_id"] != loaded.ID {
-		t.Errorf("expected session_id=%s in JSON", loaded.ID)
+	if parsed["sessionId"] != loaded.ID {
+		t.Errorf("expected sessionId=%s in JSON", loaded.ID)
 	}
 
 	annots := parsed["annotations"].([]interface{})
@@ -242,8 +242,8 @@ Test content {>> a comment <<}`
 		t.Fatalf("failed to parse JSON output: %v", err)
 	}
 
-	if result["session_id"] != sess.ID {
-		t.Errorf("expected session_id=%s, got %v", sess.ID, result["session_id"])
+	if result["sessionId"] != sess.ID {
+		t.Errorf("expected sessionId=%s, got %v", sess.ID, result["sessionId"])
 	}
 }
 

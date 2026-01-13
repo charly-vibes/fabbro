@@ -129,7 +129,7 @@ func buildApplyCmd(stdout io.Writer) *cobra.Command {
 
 			if jsonFlag {
 				output := struct {
-					SessionID   string           `json:"session_id"`
+					SessionID   string           `json:"sessionId"`
 					Annotations []fem.Annotation `json:"annotations"`
 				}{
 					SessionID:   sess.ID,
@@ -144,7 +144,11 @@ func buildApplyCmd(stdout io.Writer) *cobra.Command {
 			fmt.Fprintf(stdout, "Session: %s\n", sess.ID)
 			fmt.Fprintf(stdout, "Annotations: %d\n", len(annotations))
 			for _, a := range annotations {
-				fmt.Fprintf(stdout, "  Line %d: [%s] %s\n", a.Line, a.Type, a.Text)
+				if a.StartLine == a.EndLine {
+					fmt.Fprintf(stdout, "  Line %d: [%s] %s\n", a.StartLine, a.Type, a.Text)
+				} else {
+					fmt.Fprintf(stdout, "  Lines %d-%d: [%s] %s\n", a.StartLine, a.EndLine, a.Type, a.Text)
+				}
 			}
 			return nil
 		},

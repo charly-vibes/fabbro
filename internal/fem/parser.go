@@ -6,9 +6,10 @@ import (
 )
 
 type Annotation struct {
-	Type string `json:"type"`
-	Text string `json:"text"`
-	Line int    `json:"line"`
+	Type      string `json:"type"`
+	Text      string `json:"text"`
+	StartLine int    `json:"startLine"`
+	EndLine   int    `json:"endLine"`
 }
 
 var patterns = map[string]*regexp.Regexp{
@@ -34,10 +35,12 @@ func Parse(content string) ([]Annotation, string, error) {
 
 			for _, match := range matches {
 				if len(match) >= 2 {
+					lineNum := i + 1
 					annotations = append(annotations, Annotation{
-						Type: annotationType,
-						Text: match[1],
-						Line: i + 1,
+						Type:      annotationType,
+						Text:      match[1],
+						StartLine: lineNum,
+						EndLine:   lineNum,
 					})
 				}
 			}

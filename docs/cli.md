@@ -91,17 +91,19 @@ fabbro apply abc12345 --json
 
 ```json
 {
-  "session_id": "abc12345",
+  "sessionId": "abc12345",
   "annotations": [
     {
-      "line": 5,
       "type": "comment",
-      "text": "Consider error handling"
+      "text": "Consider error handling",
+      "startLine": 5,
+      "endLine": 5
     },
     {
-      "line": 12,
       "type": "comment",
-      "text": "Extract to function"
+      "text": "Extract to function",
+      "startLine": 12,
+      "endLine": 12
     }
   ]
 }

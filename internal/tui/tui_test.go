@@ -548,7 +548,7 @@ func TestSave(t *testing.T) {
 	m := New(sess)
 
 	// Add a comment annotation
-	m.annotations = append(m.annotations, fem.Annotation{Line: 0, Type: "comment", Text: "my comment"})
+	m.annotations = append(m.annotations, fem.Annotation{StartLine: 0, EndLine: 0, Type: "comment", Text: "my comment"})
 
 	// Call save
 	if err := m.save(); err != nil {
@@ -912,8 +912,8 @@ func TestMultiLineSelectionAnnotation(t *testing.T) {
 
 	// All should be for lines 1, 2, 3
 	for i, ann := range m.annotations {
-		if ann.Line != i+1 {
-			t.Errorf("expected annotation %d at line %d, got %d", i, i+1, ann.Line)
+		if ann.StartLine != i+1 {
+			t.Errorf("expected annotation %d at line %d, got %d", i, i+1, ann.StartLine)
 		}
 		if ann.Type != "comment" {
 			t.Errorf("expected type 'comment', got %q", ann.Type)
@@ -983,12 +983,12 @@ func TestSaveAllAnnotationTypes(t *testing.T) {
 
 	// Add one of each annotation type
 	m.annotations = []fem.Annotation{
-		{Line: 0, Type: "comment", Text: "a comment"},
-		{Line: 1, Type: "delete", Text: "DELETE: remove"},
-		{Line: 2, Type: "question", Text: "why?"},
-		{Line: 3, Type: "expand", Text: "EXPAND: more"},
-		{Line: 4, Type: "keep", Text: "KEEP: good"},
-		{Line: 5, Type: "unclear", Text: "UNCLEAR: huh"},
+		{StartLine: 0, EndLine: 0, Type: "comment", Text: "a comment"},
+		{StartLine: 1, EndLine: 1, Type: "delete", Text: "DELETE: remove"},
+		{StartLine: 2, EndLine: 2, Type: "question", Text: "why?"},
+		{StartLine: 3, EndLine: 3, Type: "expand", Text: "EXPAND: more"},
+		{StartLine: 4, EndLine: 4, Type: "keep", Text: "KEEP: good"},
+		{StartLine: 5, EndLine: 5, Type: "unclear", Text: "UNCLEAR: huh"},
 	}
 
 	if err := m.save(); err != nil {
