@@ -300,7 +300,7 @@ created_at: %s
 %s`, m.session.ID, m.session.CreatedAt.Format(time.RFC3339), content)
 
 	sessionPath := filepath.Join(config.SessionsDir, m.session.ID+".fem")
-	if err := os.WriteFile(sessionPath, []byte(fileContent), 0644); err != nil {
+	if err := os.WriteFile(sessionPath, []byte(fileContent), 0600); err != nil {
 		return fmt.Errorf("failed to save session: %w", err)
 	}
 	return nil

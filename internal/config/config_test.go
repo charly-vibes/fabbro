@@ -86,3 +86,19 @@ func TestInit_IsIdempotent(t *testing.T) {
 		t.Fatalf("second Init() returned error: %v", err)
 	}
 }
+
+func TestInit_CreatesPrivateDirectories(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	Init()
+
+	// Sessions dir should be 0700 (owner only)
+	info, _ := os.Stat(SessionsDir)
+	mode := info.Mode().Perm()
+	if mode != 0700 {
+		t.Errorf("expected SessionsDir permissions 0700, got %04o", mode)
+	}
+}

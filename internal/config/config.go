@@ -16,5 +16,5 @@ func IsInitialized() bool {
 }
 
 func Init() error {
-	return os.MkdirAll(SessionsDir, 0755)
+	return os.MkdirAll(SessionsDir, 0700)
 }

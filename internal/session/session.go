@@ -63,7 +63,7 @@ created_at: %s
 
 %s`, session.ID, session.CreatedAt.Format(time.RFC3339), content)
 
-	if err := os.WriteFile(sessionPath, []byte(fileContent), 0644); err != nil {
+	if err := os.WriteFile(sessionPath, []byte(fileContent), 0600); err != nil {
 		return nil, fmt.Errorf("failed to write session file: %w", err)
 	}
 
