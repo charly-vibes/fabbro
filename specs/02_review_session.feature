@@ -20,7 +20,7 @@ Feature: Review Session Creation
     And the session file should contain the piped content
     And the TUI should open with the content displayed
 
-  @planned
+  @implemented
   Scenario: Creating a review session from a file
     Given a file named "document.md" exists with content
     When I run the command `fabbro review document.md`
@@ -69,7 +69,7 @@ Feature: Review Session Creation
     Then an error message should indicate the project is not initialized
     And the command should exit with code 1
 
-  @planned
+  @implemented
   Scenario: Attempting to review a non-existent file
     # Depends on file input support
     Given no file named "missing.md" exists

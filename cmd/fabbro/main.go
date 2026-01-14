@@ -68,23 +68,36 @@ func buildInitCmd(stdout io.Writer) *cobra.Command {
 func buildReviewCmd(stdin io.Reader, stdout io.Writer) *cobra.Command {
 	var stdinFlag bool
 	cmd := &cobra.Command{
-		Use:   "review",
+		Use:   "review [file]",
 		Short: "Start a review session",
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if !config.IsInitialized() {
 				return fmt.Errorf("fabbro not initialized. Run 'fabbro init' first")
 			}
 
-			if !stdinFlag {
-				return fmt.Errorf("--stdin flag is required")
+			var content string
+			var err error
+
+			if stdinFlag {
+				data, err := io.ReadAll(stdin)
+				if err != nil {
+					return fmt.Errorf("failed to read stdin: %w", err)
+				}
+				content = string(data)
+			} else if len(args) == 1 {
+				data, err := os.ReadFile(args[0])
+				if err != nil {
+					if os.IsNotExist(err) {
+						return fmt.Errorf("file not found: %s", args[0])
+					}
+					return fmt.Errorf("failed to read file: %w", err)
+				}
+				content = string(data)
+			} else {
+				return fmt.Errorf("no input provided. Use --stdin or provide a file path")
 			}
 
-			data, err := io.ReadAll(stdin)
-			if err != nil {
-				return fmt.Errorf("failed to read stdin: %w", err)
-			}
-
-			content := string(data)
 			sess, err := session.Create(content)
 			if err != nil {
 				return fmt.Errorf("failed to create session: %w", err)

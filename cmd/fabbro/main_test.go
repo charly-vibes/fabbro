@@ -345,3 +345,61 @@ func TestUnknownCommand(t *testing.T) {
 		t.Errorf("expected exit code 1 for unknown command, got %d", code)
 	}
 }
+
+func TestReviewCommandWithFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	// Create a test file
+	testContent := "# My Document\n\nThis is test content."
+	os.WriteFile("document.md", []byte(testContent), 0644)
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	// Note: TUI will fail without a TTY, but we can verify session creation
+	realMain([]string{"review", "document.md"}, stdin, &stdout, &stderr)
+
+	// Verify the session was created (message appears before TUI attempt)
+	if !strings.Contains(stdout.String(), "Created session:") {
+		t.Errorf("expected 'Created session:' in output, got %q", stdout.String())
+	}
+
+	// Verify session file exists
+	files, err := os.ReadDir(config.SessionsDir)
+	if err != nil {
+		t.Fatalf("failed to read sessions dir: %v", err)
+	}
+	if len(files) == 0 {
+		t.Error("expected session file to be created")
+	}
+
+	// Verify file content was captured in session
+	sessionPath := filepath.Join(config.SessionsDir, files[0].Name())
+	sessionContent, _ := os.ReadFile(sessionPath)
+	if !strings.Contains(string(sessionContent), "This is test content") {
+		t.Errorf("expected session to contain original file content")
+	}
+}
+
+func TestReviewCommandWithNonExistentFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"review", "missing.md"}, stdin, &stdout, &stderr)
+
+	if code != 1 {
+		t.Errorf("expected exit code 1, got %d", code)
+	}
+}
