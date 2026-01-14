@@ -18,19 +18,42 @@ type Session struct {
 	CreatedAt time.Time
 }
 
-func generateID() string {
-	bytes := make([]byte, 2)
-	rand.Read(bytes)
+func generateID() (string, error) {
+	bytes := make([]byte, 8)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", fmt.Errorf("failed to generate random bytes: %w", err)
+	}
 	suffix := hex.EncodeToString(bytes)
 	date := time.Now().Format("20060102")
-	return date + "-" + suffix
+	return date + "-" + suffix, nil
 }
 
+const maxCollisionRetries = 3
+
 func Create(content string) (*Session, error) {
-	session := &Session{
-		ID:        generateID(),
-		Content:   content,
-		CreatedAt: time.Now().UTC(),
+	var session *Session
+	var sessionPath string
+
+	for attempt := 0; attempt < maxCollisionRetries; attempt++ {
+		id, err := generateID()
+		if err != nil {
+			return nil, err
+		}
+
+		sessionPath = filepath.Join(config.SessionsDir, id+".fem")
+
+		if _, err := os.Stat(sessionPath); os.IsNotExist(err) {
+			session = &Session{
+				ID:        id,
+				Content:   content,
+				CreatedAt: time.Now().UTC(),
+			}
+			break
+		}
+	}
+
+	if session == nil {
+		return nil, fmt.Errorf("failed to generate unique session ID after %d attempts", maxCollisionRetries)
 	}
 
 	fileContent := fmt.Sprintf(`---
@@ -40,7 +63,6 @@ created_at: %s
 
 %s`, session.ID, session.CreatedAt.Format(time.RFC3339), content)
 
-	sessionPath := filepath.Join(config.SessionsDir, session.ID+".fem")
 	if err := os.WriteFile(sessionPath, []byte(fileContent), 0644); err != nil {
 		return nil, fmt.Errorf("failed to write session file: %w", err)
 	}

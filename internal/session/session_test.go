@@ -175,7 +175,10 @@ func TestCreate_ReturnsErrorWhenSessionsDirMissing(t *testing.T) {
 func TestGenerateID_ReturnsUniqueIDs(t *testing.T) {
 	ids := make(map[string]bool)
 	for i := 0; i < 100; i++ {
-		id := generateID()
+		id, err := generateID()
+		if err != nil {
+			t.Fatalf("generateID() returned error: %v", err)
+		}
 		if ids[id] {
 			t.Errorf("generateID() returned duplicate ID: %s", id)
 		}
@@ -184,11 +187,14 @@ func TestGenerateID_ReturnsUniqueIDs(t *testing.T) {
 }
 
 func TestGenerateID_ReturnsDateBasedFormat(t *testing.T) {
-	id := generateID()
+	id, err := generateID()
+	if err != nil {
+		t.Fatalf("generateID() returned error: %v", err)
+	}
 
-	// Format should be: YYYYMMDD-xxxx (8 + 1 + 4 = 13 chars)
-	if len(id) != 13 {
-		t.Errorf("expected 13 char ID (YYYYMMDD-xxxx), got %d chars: %s", len(id), id)
+	// Format should be: YYYYMMDD-xxxxxxxxxxxxxxxx (8 + 1 + 16 = 25 chars)
+	if len(id) != 25 {
+		t.Errorf("expected 25 char ID (YYYYMMDD-xxxxxxxxxxxxxxxx), got %d chars: %s", len(id), id)
 	}
 
 	// Should contain a hyphen at position 8
@@ -203,10 +209,10 @@ func TestGenerateID_ReturnsDateBasedFormat(t *testing.T) {
 		t.Errorf("expected date prefix %s, got %s", today, datePrefix)
 	}
 
-	// Last 4 chars should be hex
+	// Last 16 chars should be hex (8 bytes = 16 hex chars)
 	suffix := id[9:]
-	if len(suffix) != 4 {
-		t.Errorf("expected 4 char suffix, got %d: %s", len(suffix), suffix)
+	if len(suffix) != 16 {
+		t.Errorf("expected 16 char suffix, got %d: %s", len(suffix), suffix)
 	}
 	for _, c := range suffix {
 		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) {
