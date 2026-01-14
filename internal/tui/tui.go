@@ -190,9 +190,7 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 
 	case " ":
-		if m.selection.active {
-			m.mode = modePalette
-		}
+		m.mode = modePalette
 
 	case "w":
 		if err := m.save(); err != nil {
@@ -206,30 +204,51 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 func (m Model) handlePaletteMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
+	case "w":
+		if err := m.save(); err != nil {
+			m.lastError = err.Error()
+		} else {
+			m.lastError = ""
+		}
+		m.mode = modeNormal
+	case "Q":
+		return m, tea.Quit
 	case "c":
-		m.mode = modeInput
-		m.input = ""
-		m.inputType = "comment"
+		if m.selection.active {
+			m.mode = modeInput
+			m.input = ""
+			m.inputType = "comment"
+		}
 	case "d":
-		m.mode = modeInput
-		m.input = ""
-		m.inputType = "delete"
+		if m.selection.active {
+			m.mode = modeInput
+			m.input = ""
+			m.inputType = "delete"
+		}
 	case "q":
-		m.mode = modeInput
-		m.input = ""
-		m.inputType = "question"
+		if m.selection.active {
+			m.mode = modeInput
+			m.input = ""
+			m.inputType = "question"
+		}
 	case "e":
-		m.mode = modeInput
-		m.input = ""
-		m.inputType = "expand"
+		if m.selection.active {
+			m.mode = modeInput
+			m.input = ""
+			m.inputType = "expand"
+		}
 	case "k":
-		m.mode = modeInput
-		m.input = ""
-		m.inputType = "keep"
+		if m.selection.active {
+			m.mode = modeInput
+			m.input = ""
+			m.inputType = "keep"
+		}
 	case "u":
-		m.mode = modeInput
-		m.input = ""
-		m.inputType = "unclear"
+		if m.selection.active {
+			m.mode = modeInput
+			m.input = ""
+			m.inputType = "unclear"
+		}
 	default:
 		m.mode = modeNormal
 	}
@@ -363,9 +382,14 @@ func (m Model) View() string {
 		prompt := fem.Prompts[m.inputType]
 		b.WriteString(fmt.Sprintf("%s %s_\n", prompt, m.input))
 	case modePalette:
-		b.WriteString("┌─ Annotations ──────────────────────────────────────┐\n")
-		b.WriteString("│ [c]omment  [d]elete  [q]uestion                    │\n")
-		b.WriteString("│ [e]xpand   [k]eep    [u]nclear   [ESC] cancel      │\n")
+		b.WriteString("┌─ Commands ─────────────────────────────────────────┐\n")
+		b.WriteString("│ [w]rite    [Q]uit                                  │\n")
+		if m.selection.active {
+			b.WriteString("├─ Annotations ──────────────────────────────────────┤\n")
+			b.WriteString("│ [c]omment  [d]elete  [q]uestion                    │\n")
+			b.WriteString("│ [e]xpand   [k]eep    [u]nclear                     │\n")
+		}
+		b.WriteString("│                                  [ESC] cancel      │\n")
 		b.WriteString("└────────────────────────────────────────────────────┘\n")
 	default:
 		b.WriteString("[v]select [SPC]palette [w]rite [Q]uit")

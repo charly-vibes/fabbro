@@ -787,14 +787,40 @@ func TestPaletteModeOpen(t *testing.T) {
 	}
 }
 
-func TestPaletteRequiresSelection(t *testing.T) {
+func TestPaletteAlwaysOpens(t *testing.T) {
 	sess := newTestSession("line1")
 	m := New(sess)
 
-	// SPC without selection should not open palette
+	// SPC without selection should still open palette
 	m = sendKeyType(m, tea.KeySpace)
-	if m.mode != modeNormal {
-		t.Error("SPC should not open palette without selection")
+	if m.mode != modePalette {
+		t.Error("SPC should open palette even without selection")
+	}
+}
+
+func TestPaletteShowsMarkupOnlyWithSelection(t *testing.T) {
+	sess := newTestSession("line1\nline2")
+	m := New(sess)
+	m.width = 80
+	m.height = 24
+
+	// Without selection: palette should show general commands only
+	m = sendKeyType(m, tea.KeySpace)
+	view := m.View()
+	if strings.Contains(view, "[c]omment") {
+		t.Error("palette without selection should not show markup commands")
+	}
+	if !strings.Contains(view, "[w]rite") {
+		t.Error("palette should show general commands like [w]rite")
+	}
+
+	// With selection: palette should show markup commands
+	m.mode = modeNormal
+	m = sendKey(m, 'v') // start selection
+	m = sendKeyType(m, tea.KeySpace)
+	view = m.View()
+	if !strings.Contains(view, "[c]omment") {
+		t.Error("palette with selection should show markup commands")
 	}
 }
 
@@ -864,6 +890,56 @@ func TestPaletteUnknownKeyDismisses(t *testing.T) {
 	m = sendKey(m, 'x')
 	if m.mode != modeNormal {
 		t.Errorf("expected modeNormal after unknown key in palette, got %d", m.mode)
+	}
+}
+
+func TestPaletteWriteCommand(t *testing.T) {
+	sess := newTestSession("line1")
+	m := New(sess)
+
+	// Open palette (no selection needed for general commands)
+	m = sendKeyType(m, tea.KeySpace)
+	if m.mode != modePalette {
+		t.Fatal("expected palette mode")
+	}
+
+	// Press w to save
+	m = sendKey(m, 'w')
+	if m.mode != modeNormal {
+		t.Errorf("expected modeNormal after w in palette, got %d", m.mode)
+	}
+}
+
+func TestPaletteQuitCommand(t *testing.T) {
+	sess := newTestSession("line1")
+	m := New(sess)
+
+	// Open palette
+	m = sendKeyType(m, tea.KeySpace)
+
+	// Press Q to quit - should return tea.Quit command
+	newModel, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'Q'}})
+	m = newModel.(Model)
+
+	if cmd == nil {
+		t.Error("expected quit command from Q in palette")
+	}
+}
+
+func TestPaletteMarkupIgnoredWithoutSelection(t *testing.T) {
+	sess := newTestSession("line1")
+	m := New(sess)
+
+	// Open palette without selection
+	m = sendKeyType(m, tea.KeySpace)
+
+	// Pressing markup keys should do nothing (stay in palette)
+	for _, key := range []rune{'c', 'd', 'e', 'k', 'u'} {
+		m.mode = modePalette // reset
+		m = sendKey(m, key)
+		if m.mode == modeInput {
+			t.Errorf("key %c should not enter input mode without selection", key)
+		}
 	}
 }
 
