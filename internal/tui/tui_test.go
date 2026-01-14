@@ -134,6 +134,30 @@ func TestNormalModeSelection(t *testing.T) {
 	}
 }
 
+func TestVCancelsMultiLineSelection(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3\nline4\nline5")
+	m := New(sess)
+
+	// Start selection at line 1
+	m = sendKey(m, 'v')
+	if !m.selection.active {
+		t.Fatal("expected selection to be active")
+	}
+
+	// Extend selection to line 3
+	m = sendKey(m, 'j')
+	m = sendKey(m, 'j')
+	if m.selection.cursor != 2 {
+		t.Errorf("expected selection cursor at 2, got %d", m.selection.cursor)
+	}
+
+	// v should cancel the expanded selection (not start new one)
+	m = sendKey(m, 'v')
+	if m.selection.active {
+		t.Error("v should cancel multi-line selection, but selection is still active")
+	}
+}
+
 func TestNormalModeQuit(t *testing.T) {
 	sess := newTestSession("content")
 	m := New(sess)

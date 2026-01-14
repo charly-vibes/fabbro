@@ -153,7 +153,7 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.selection = selection{}
 
 	case "v":
-		if m.selection.active && m.selection.anchor == m.cursor && m.selection.cursor == m.cursor {
+		if m.selection.active {
 			m.selection = selection{}
 		} else {
 			m.selection = selection{active: true, anchor: m.cursor, cursor: m.cursor}
