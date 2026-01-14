@@ -151,12 +151,12 @@ func buildApplyCmd(stdout io.Writer) *cobra.Command {
 			sessionID := args[0]
 			sess, err := session.Load(sessionID)
 			if err != nil {
-				return fmt.Errorf("failed to load session: %w", err)
+				return fmt.Errorf("failed to load session %q: %w", sessionID, err)
 			}
 
 			annotations, _, err := fem.Parse(sess.Content)
 			if err != nil {
-				return fmt.Errorf("failed to parse FEM: %w", err)
+				return fmt.Errorf("failed to parse FEM in session %q: %w", sessionID, err)
 			}
 
 			if jsonFlag {
