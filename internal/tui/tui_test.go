@@ -1108,11 +1108,11 @@ func TestMultiLineSelectionAnnotation(t *testing.T) {
 	}
 	m := New(sess)
 
-	// Select lines 1-3
+	// Select lines 2-4 (0-indexed cursor 1-3)
 	m.cursor = 1
 	m = sendKey(m, 'v')
 	m = sendKey(m, 'j')
-	m = sendKey(m, 'j') // now at line 3, selection spans 1-3
+	m = sendKey(m, 'j') // now at cursor 3, selection spans 0-indexed 1-3
 
 	// Add comment
 	m = sendKey(m, 'c')
@@ -1127,10 +1127,11 @@ func TestMultiLineSelectionAnnotation(t *testing.T) {
 		t.Errorf("expected 3 annotations for multi-line selection, got %d", len(m.annotations))
 	}
 
-	// All should be for lines 1, 2, 3
+	// All should be for 1-indexed lines 2, 3, 4
+	expectedLines := []int{2, 3, 4}
 	for i, ann := range m.annotations {
-		if ann.StartLine != i+1 {
-			t.Errorf("expected annotation %d at line %d, got %d", i, i+1, ann.StartLine)
+		if ann.StartLine != expectedLines[i] {
+			t.Errorf("expected annotation %d at line %d, got %d", i, expectedLines[i], ann.StartLine)
 		}
 		if ann.Type != "comment" {
 			t.Errorf("expected type 'comment', got %q", ann.Type)
@@ -1365,6 +1366,88 @@ func TestSaveAllAnnotationTypes(t *testing.T) {
 		if !strings.Contains(content, exp) {
 			t.Errorf("saved file should contain %q", exp)
 		}
+	}
+}
+
+func TestMultipleAnnotationsOnSameLine(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	sess := &session.Session{
+		ID:        "test-multi-annotations",
+		Content:   "line1\nline2\nline3",
+		CreatedAt: time.Date(2026, 1, 11, 12, 0, 0, 0, time.UTC),
+	}
+	m := New(sess)
+
+	// Add multiple annotations to the same line
+	m.annotations = []fem.Annotation{
+		{StartLine: 2, EndLine: 2, Type: "comment", Text: "first comment"},
+		{StartLine: 2, EndLine: 2, Type: "question", Text: "why?"},
+		{StartLine: 2, EndLine: 2, Type: "expand", Text: "EXPAND: more"},
+	}
+
+	if err := m.save(); err != nil {
+		t.Fatalf("save() failed: %v", err)
+	}
+
+	sessionFile := filepath.Join(config.SessionsDir, "test-multi-annotations.fem")
+	data, err := os.ReadFile(sessionFile)
+	if err != nil {
+		t.Fatalf("save() did not create file: %v", err)
+	}
+
+	content := string(data)
+
+	// All three annotations should be on line2
+	if !strings.Contains(content, "line2 {>> first comment <<} {?? why? ??} {!! EXPAND: more !!}") {
+		t.Errorf("expected all annotations on same line, got:\n%s", content)
+	}
+}
+
+func TestOverlappingAnnotationsFromDifferentSelections(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3\nline4\nline5")
+	m := New(sess)
+
+	// Simulate first selection: lines 2-3, add comment
+	m.cursor = 1
+	m = sendKey(m, 'v')
+	m = sendKey(m, 'j')
+	m = sendKey(m, 'c')
+	for _, r := range "first annotation" {
+		m = sendKey(m, r)
+	}
+	m = sendKeyType(m, tea.KeyEnter)
+
+	// Simulate second selection: lines 3-4 (overlaps on line 3), add question
+	m.cursor = 2
+	m = sendKey(m, 'v')
+	m = sendKey(m, 'j')
+	m = sendKey(m, 'q')
+	for _, r := range "second annotation" {
+		m = sendKey(m, r)
+	}
+	m = sendKeyType(m, tea.KeyEnter)
+
+	// Should have 4 annotations: lines 2,3 from first + lines 3,4 from second
+	// (0-indexed cursor 1,2 = 1-indexed lines 2,3; cursor 2,3 = lines 3,4)
+	if len(m.annotations) != 4 {
+		t.Fatalf("expected 4 annotations, got %d", len(m.annotations))
+	}
+
+	// Line 3 (1-indexed) should have 2 annotations (overlap)
+	line3Count := 0
+	for _, ann := range m.annotations {
+		if ann.StartLine == 3 { // 1-indexed
+			line3Count++
+		}
+	}
+	if line3Count != 2 {
+		t.Errorf("expected 2 annotations on line 3 (overlap), got %d", line3Count)
 	}
 }
 

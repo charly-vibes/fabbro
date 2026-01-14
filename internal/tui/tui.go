@@ -314,8 +314,8 @@ func (m Model) handleInputMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 			for line := start; line <= end; line++ {
 				m.annotations = append(m.annotations, fem.Annotation{
-					StartLine: line,
-					EndLine:   line,
+					StartLine: line + 1, // 1-indexed for storage
+					EndLine:   line + 1,
 					Type:      m.inputType,
 					Text:      text,
 				})
