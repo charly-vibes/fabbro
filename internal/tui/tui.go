@@ -363,7 +363,11 @@ func (m Model) View() string {
 		b.WriteString("│ [e]xpand   [k]eep    [u]nclear   [ESC] cancel      │\n")
 		b.WriteString("└────────────────────────────────────────────────────┘\n")
 	default:
-		b.WriteString("[v]select [SPC]palette [c]omment [d]elete [q]uestion [e]xpand [u]nclear [w]rite [Q]uit\n")
+		b.WriteString("[v]select [SPC]palette [w]rite [Q]uit")
+		if m.selection.active {
+			b.WriteString(" │ [c]omment [d]elete [q]uestion [e]xpand [u]nclear")
+		}
+		b.WriteString("\n")
 	}
 
 	return b.String()
