@@ -122,3 +122,15 @@ clean:
 # Show available commands
 help:
     @just --list
+
+# === MCP Commands ===
+
+# Start Amp with mcp-tui-test for TUI testing
+amp-tui *args:
+    amp --mcp-config '{"tui-test": {"command": "uvx", "args": ["mcp-tui-test"]}}' {{args}}
+
+# Run TUI integration tests via MCP (starts Amp with skill loaded)
+test-tui:
+    @echo "Starting TUI integration test session..."
+    @echo "Use: /skill tui-test then ask to 'run all TUI integration tests'"
+    amp --mcp-config '{"tui-test": {"command": "uvx", "args": ["mcp-tui-test"]}}'
