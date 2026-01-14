@@ -136,6 +136,10 @@ setup-mcp-tui:
     if [ ! -d "{{mcp_tui_dir}}" ]; then
         mkdir -p {{mcp_dir}}
         git clone https://github.com/GeorgePearse/mcp-tui-test.git {{mcp_tui_dir}}
+        # Fix setuptools flat-layout error (multiple top-level modules)
+        if ! grep -q 'py-modules' "{{mcp_tui_dir}}/pyproject.toml"; then
+            sed -i '/\[project.scripts\]/i [tool.setuptools]\npy-modules = ["server"]\n' "{{mcp_tui_dir}}/pyproject.toml"
+        fi
     fi
     echo "✅ mcp-tui-test ready"
 

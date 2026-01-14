@@ -28,8 +28,39 @@ just run review --stdin < file.go
 just install
 
 # Run tests
-just test
+just test                  # Unit tests (Tier 1) - fast, <1s
+just test-integration      # Integration tests (Tier 2) - real files
+just test-fuzz             # Fuzz tests (Tier 3) - 3s per target
+just test-all              # All tiers - <15s total
 ```
+
+## TUI Testing with MCP
+
+Fabbro has a TUI component that requires visual/interactive testing. We use `mcp-tui-test` for automated TUI testing via MCP (Model Context Protocol).
+
+### Setup
+
+```bash
+just setup-mcp-tui         # Clone mcp-tui-test to .mcp-servers/
+```
+
+### Running TUI Tests
+
+```bash
+just test-tui              # Start Amp with mcp-tui-test MCP server
+just amp-tui               # Start Amp with TUI testing capability (for ad-hoc use)
+```
+
+### Workflow
+
+1. Run `just test-tui` to start an Amp session with the TUI testing MCP server
+2. Load the tui-test skill: `/skill tui-test`
+3. Ask Amp to "run all TUI integration tests"
+4. The MCP server provides tools to capture screenshots, send keystrokes, and verify TUI state
+
+### MCP Server Location
+
+The `mcp-tui-test` server lives in `.mcp-servers/mcp-tui-test/` and is a Python project run via `uv`.
 
 ## Available Commands
 
