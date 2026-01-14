@@ -85,7 +85,11 @@ This structured approach ensures that `fabbro` is built on a solid foundation of
 **NEVER commit without explicit user approval.** Before running any `git add` or `git commit`:
 
 1. Run `git status` and `git diff` to understand all changes
-2. Present a clear commit plan to the user:
+2. **Check if documentation needs updating:**
+   - New CLI commands → update README.md usage section
+   - New keybindings → update docs/keybindings.md
+   - Changed behavior → update relevant spec files (@planned → @implemented)
+3. Present a clear commit plan to the user:
    ```
    I plan to create [N] commit(s):
 
@@ -95,8 +99,8 @@ This structured approach ensures that `fabbro` is built on a solid foundation of
 
    Shall I proceed?
    ```
-3. Wait for user confirmation before executing
-4. Use `git add` with specific files (avoid `-A` or `.`)
+4. Wait for user confirmation before executing
+5. Use `git add` with specific files (avoid `-A` or `.`)
 
 See `.agents/commands/commit.md` for the full commit process.
 
