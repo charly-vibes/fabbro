@@ -18,12 +18,23 @@ func main() {
 }
 ```
 
+## All Annotation Types
+
+| Syntax | Type | Description |
+|--------|------|-------------|
+| `{>> text <<}` | comment | General comment |
+| `{-- text --}` | delete | Mark for deletion |
+| `{?? text ??}` | question | Ask a question |
+| `{!! text !!}` | expand | Request more detail |
+| `{== text ==}` | keep | Mark as good/keep |
+| `{~~ text ~~}` | unclear | Mark as unclear |
+
 ## Syntax Rules
 
-- Comments start with `{>>` and end with `<<}`
+- Annotations start with opening marker and end with closing marker
 - Whitespace inside the markers is trimmed
-- Comments should be placed at the end of lines, after the code
-- Multiple comments on the same line are not supported
+- Annotations should be placed at the end of lines, after the code
+- Multiple annotations on the same line ARE supported
 
 ## Parsing
 
@@ -35,20 +46,28 @@ fabbro extracts annotations using regex pattern matching:
 
 The parser returns:
 - Line number (1-indexed)
-- Annotation type (`comment`)
-- The comment text
+- Annotation type
+- The annotation text
 
-## Future Annotation Types
+## Parser Limitations
 
-The FEM specification includes additional annotation types not yet implemented in fabbro:
+**Single-line only**: Annotations must be fully contained on a single line. Multi-line annotations are not supported.
 
-| Syntax | Type | Description |
-|--------|------|-------------|
-| `{>> text <<}` | comment | Add a comment |
-| `{-- text --}` | delete | Mark for deletion |
-| `{++ text ++}` | insert | Mark for insertion |
-| `{~~ old ~> new ~~}` | replace | Mark for replacement |
-| `{== text ==}` | highlight | Highlight text |
+**Unbalanced markers**: If an opening marker has no closing marker (or vice versa), it is left in the content unchanged.
+
+```
+text {>> unbalanced marker     → preserved as-is
+text <<} orphan close          → preserved as-is
+```
+
+**Nested markers**: Nesting annotations is undefined behavior. The parser matches from the first opening marker to the first closing marker, which may produce unexpected results:
+
+```
+{>> outer {>> inner <<} still <<}
+→ extracts "outer {>> inner" and leaves "still <<}" in content
+```
+
+**Empty annotations**: Empty annotations (`{>><<}`) are valid and produce an annotation with empty text.
 
 ## References
 

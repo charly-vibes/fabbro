@@ -192,3 +192,131 @@ Third line {?? question ??}`
 		}
 	}
 }
+
+// Edge case tests for parser limitations
+
+func TestParse_UnbalancedOpenMarkerIsPreserved(t *testing.T) {
+	content := "text with {>> unbalanced marker"
+
+	annotations, clean, err := Parse(content)
+	if err != nil {
+		t.Fatalf("Parse() returned error: %v", err)
+	}
+
+	// Should find no annotations (marker is not closed)
+	if len(annotations) != 0 {
+		t.Errorf("expected 0 annotations for unbalanced marker, got %d", len(annotations))
+	}
+
+	// Unbalanced marker should remain in clean content
+	if clean != content {
+		t.Errorf("expected unbalanced marker preserved, got %q", clean)
+	}
+}
+
+func TestParse_UnbalancedCloseMarkerIsPreserved(t *testing.T) {
+	content := "text with <<} orphan close"
+
+	annotations, clean, err := Parse(content)
+	if err != nil {
+		t.Fatalf("Parse() returned error: %v", err)
+	}
+
+	if len(annotations) != 0 {
+		t.Errorf("expected 0 annotations for orphan close, got %d", len(annotations))
+	}
+
+	if clean != content {
+		t.Errorf("expected orphan close preserved, got %q", clean)
+	}
+}
+
+func TestParse_MultipleAnnotationsOnSameLine(t *testing.T) {
+	content := "text {>> first <<} middle {>> second <<} end"
+
+	annotations, clean, err := Parse(content)
+	if err != nil {
+		t.Fatalf("Parse() returned error: %v", err)
+	}
+
+	if len(annotations) != 2 {
+		t.Fatalf("expected 2 annotations on same line, got %d", len(annotations))
+	}
+
+	// Both should be on line 1
+	for i, ann := range annotations {
+		if ann.StartLine != 1 {
+			t.Errorf("annotation %d: expected line 1, got %d", i, ann.StartLine)
+		}
+	}
+
+	// Clean should have both removed
+	if clean != "text  middle  end" {
+		t.Errorf("expected clean='text  middle  end', got %q", clean)
+	}
+}
+
+func TestParse_NestedMarkersUndefinedBehavior(t *testing.T) {
+	// Nested markers have undefined behavior - the non-greedy regex matches
+	// from the first {>> to the first <<}, which includes the nested open marker
+	content := "text {>> outer {>> inner <<} still outer <<} end"
+
+	annotations, clean, err := Parse(content)
+	if err != nil {
+		t.Fatalf("Parse() returned error: %v", err)
+	}
+
+	// Documents current behavior: matches "outer {>> inner" (first open to first close)
+	if len(annotations) != 1 {
+		t.Fatalf("expected 1 annotation for nested, got %d", len(annotations))
+	}
+
+	// The match includes the nested {>> because regex is non-greedy to first <<}
+	if annotations[0].Text != "outer {>> inner" {
+		t.Errorf("expected 'outer {>> inner', got %q", annotations[0].Text)
+	}
+
+	// Remaining text includes orphaned close marker
+	if clean != "text  still outer <<} end" {
+		t.Errorf("expected 'text  still outer <<} end', got %q", clean)
+	}
+}
+
+func TestParse_EmptyAnnotationText(t *testing.T) {
+	content := "text {>><<} with empty"
+
+	annotations, clean, err := Parse(content)
+	if err != nil {
+		t.Fatalf("Parse() returned error: %v", err)
+	}
+
+	if len(annotations) != 1 {
+		t.Fatalf("expected 1 annotation, got %d", len(annotations))
+	}
+
+	if annotations[0].Text != "" {
+		t.Errorf("expected empty text, got %q", annotations[0].Text)
+	}
+
+	if clean != "text  with empty" {
+		t.Errorf("expected clean='text  with empty', got %q", clean)
+	}
+}
+
+func TestParse_WhitespaceOnlyAnnotation(t *testing.T) {
+	content := "text {>>   <<} with spaces"
+
+	annotations, _, err := Parse(content)
+	if err != nil {
+		t.Fatalf("Parse() returned error: %v", err)
+	}
+
+	if len(annotations) != 1 {
+		t.Fatalf("expected 1 annotation, got %d", len(annotations))
+	}
+
+	// Whitespace is trimmed by the regex
+	if annotations[0].Text != "" {
+		t.Errorf("expected empty text after trim, got %q", annotations[0].Text)
+	}
+}
