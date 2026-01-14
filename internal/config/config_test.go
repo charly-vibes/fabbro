@@ -18,17 +18,31 @@ func TestIsInitialized_ReturnsFalseWhenNoFabbroDir(t *testing.T) {
 	}
 }
 
-func TestIsInitialized_ReturnsTrueWhenFabbroDirExists(t *testing.T) {
+func TestIsInitialized_ReturnsTrueWhenFullyInitialized(t *testing.T) {
 	tmpDir := t.TempDir()
 	origDir, _ := os.Getwd()
 	os.Chdir(tmpDir)
 	defer os.Chdir(origDir)
 
-	// Create the .fabbro directory
-	os.Mkdir(FabbroDir, 0755)
+	// Create both .fabbro and .fabbro/sessions directories
+	os.MkdirAll(SessionsDir, 0755)
 
 	if !IsInitialized() {
-		t.Error("expected IsInitialized() to return true when .fabbro exists")
+		t.Error("expected IsInitialized() to return true when fully initialized")
+	}
+}
+
+func TestIsInitialized_ReturnsFalseWhenSessionsDirMissing(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	// Create only .fabbro but not sessions
+	os.Mkdir(FabbroDir, 0755)
+
+	if IsInitialized() {
+		t.Error("expected IsInitialized() to return false when sessions dir missing")
 	}
 }
 
