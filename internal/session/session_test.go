@@ -159,6 +159,66 @@ func TestLoad_ReturnsErrorForMalformedFrontmatter(t *testing.T) {
 	}
 }
 
+func TestLoad_ReturnsErrorForMissingSessionID(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	sessionFile := filepath.Join(config.SessionsDir, "no-id.fem")
+	os.WriteFile(sessionFile, []byte("---\ncreated_at: 2026-01-14T10:00:00Z\n---\ncontent"), 0644)
+
+	_, err := Load("no-id")
+	if err == nil {
+		t.Error("expected Load() to return error for missing session_id")
+	}
+	if !strings.Contains(err.Error(), "missing session_id") {
+		t.Errorf("expected 'missing session_id' error, got: %v", err)
+	}
+}
+
+func TestLoad_ReturnsErrorForMissingCreatedAt(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	sessionFile := filepath.Join(config.SessionsDir, "no-time.fem")
+	os.WriteFile(sessionFile, []byte("---\nsession_id: test-123\n---\ncontent"), 0644)
+
+	_, err := Load("no-time")
+	if err == nil {
+		t.Error("expected Load() to return error for missing created_at")
+	}
+	if !strings.Contains(err.Error(), "missing created_at") {
+		t.Errorf("expected 'missing created_at' error, got: %v", err)
+	}
+}
+
+func TestLoad_ReturnsErrorForInvalidCreatedAt(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	sessionFile := filepath.Join(config.SessionsDir, "bad-time.fem")
+	os.WriteFile(sessionFile, []byte("---\nsession_id: test-123\ncreated_at: not-a-timestamp\n---\ncontent"), 0644)
+
+	_, err := Load("bad-time")
+	if err == nil {
+		t.Error("expected Load() to return error for invalid created_at")
+	}
+	if !strings.Contains(err.Error(), "malformed created_at") {
+		t.Errorf("expected 'malformed created_at' error, got: %v", err)
+	}
+}
+
 func TestCreate_ReturnsErrorWhenSessionsDirMissing(t *testing.T) {
 	tmpDir := t.TempDir()
 	origDir, _ := os.Getwd()

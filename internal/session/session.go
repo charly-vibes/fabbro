@@ -95,6 +95,7 @@ func Load(id string) (*Session, error) {
 	// Extract session_id and created_at from frontmatter
 	var sessionID string
 	var createdAt time.Time
+	var parseErr error
 
 	for _, line := range strings.Split(frontmatter, "\n") {
 		if strings.HasPrefix(line, "session_id: ") {
@@ -102,8 +103,18 @@ func Load(id string) (*Session, error) {
 		}
 		if strings.HasPrefix(line, "created_at: ") {
 			ts := strings.TrimPrefix(line, "created_at: ")
-			createdAt, _ = time.Parse(time.RFC3339, ts)
+			createdAt, parseErr = time.Parse(time.RFC3339, ts)
+			if parseErr != nil {
+				return nil, fmt.Errorf("invalid session file: malformed created_at: %w", parseErr)
+			}
 		}
+	}
+
+	if sessionID == "" {
+		return nil, fmt.Errorf("invalid session file: missing session_id")
+	}
+	if createdAt.IsZero() {
+		return nil, fmt.Errorf("invalid session file: missing created_at")
 	}
 
 	return &Session{
