@@ -490,8 +490,8 @@ func TestViewWithSelection(t *testing.T) {
 
 	view := m.View()
 
-	// Should have selection indicator
-	if !strings.Contains(view, "●") {
+	// Should have selection indicator (◆ for anchor)
+	if !strings.Contains(view, "◆") {
 		t.Error("view should show selection indicator")
 	}
 }
@@ -1004,10 +1004,55 @@ func TestMultiLineSelectionViewHighlight(t *testing.T) {
 	view := m.View()
 
 	// Should show selection indicator on multiple lines
-	// Count occurrences of selection indicator
-	count := strings.Count(view, "●")
+	// Count occurrences of selection indicators (◆ anchor + ▌ extended)
+	count := strings.Count(view, "◆") + strings.Count(view, "▌")
 	if count != 3 {
 		t.Errorf("expected 3 selection indicators, got %d", count)
+	}
+}
+
+func TestSelectionShowsLineCount(t *testing.T) {
+	sess := newTestSession("line 1\nline 2\nline 3\nline 4\nline 5")
+	m := New(sess)
+
+	// Start selection on line 2
+	m.cursor = 1
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'v'}})
+	m = newModel.(Model)
+
+	// Extend to line 4
+	m.cursor = 3
+	m.selection.cursor = 3
+
+	view := m.View()
+
+	// Title should show line count
+	if !strings.Contains(view, "[3 lines selected]") {
+		t.Errorf("view should show line count, got:\n%s", view)
+	}
+}
+
+func TestSelectionShowsAnchorIndicator(t *testing.T) {
+	sess := newTestSession("line 1\nline 2\nline 3")
+	m := New(sess)
+
+	// Start selection on line 2
+	m.cursor = 1
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'v'}})
+	m = newModel.(Model)
+
+	// Extend to line 3
+	m.cursor = 2
+	m.selection.cursor = 2
+
+	view := m.View()
+
+	// Should show anchor indicator (◆) on line 2 and extended indicator (▌) on line 3
+	if !strings.Contains(view, "◆") {
+		t.Errorf("view should show anchor indicator ◆, got:\n%s", view)
+	}
+	if !strings.Contains(view, "▌") {
+		t.Errorf("view should show extended selection indicator ▌, got:\n%s", view)
 	}
 }
 
@@ -1069,8 +1114,8 @@ func TestViewportScrollsToKeepCursorVisible(t *testing.T) {
 		t.Errorf("cursor line should be visible after scrolling up, got:\n%s", view)
 	}
 
-	// The current cursor position should be marked with >
-	if !strings.Contains(view, ">●") {
+	// The current cursor position should be marked with > and selection indicator
+	if !strings.Contains(view, ">◆") && !strings.Contains(view, ">▌") {
 		t.Errorf("current line should show cursor and selection indicator")
 	}
 }
@@ -1115,9 +1160,9 @@ func TestViewportScrollsUpWhenSelecting(t *testing.T) {
 		t.Errorf("cursor line (line 1) should be visible after scrolling up\ngot:\n%s", view)
 	}
 
-	// Cursor indicator should be visible on line 1
-	if !strings.Contains(view, ">●   1 │ line 1") {
-		t.Errorf("cursor indicator '>' should be on line 1 with selection indicator")
+	// Cursor indicator should be visible on line 1 (cursor moved from anchor, so ▌)
+	if !strings.Contains(view, ">▌   1 │ line 1") {
+		t.Errorf("cursor indicator '>' should be on line 1 with selection indicator, got:\n%s", view)
 	}
 }
 

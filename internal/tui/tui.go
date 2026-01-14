@@ -317,6 +317,11 @@ func (m Model) View() string {
 	var b strings.Builder
 
 	title := fmt.Sprintf("─── Review: %s ", m.session.ID)
+	if m.selection.active {
+		selStart, selEnd := m.selection.lines()
+		lineCount := selEnd - selStart + 1
+		title += fmt.Sprintf("[%d lines selected] ", lineCount)
+	}
 	b.WriteString(title)
 	b.WriteString(strings.Repeat("─", max(0, 50-len(title))))
 	b.WriteString("\n")
@@ -347,7 +352,11 @@ func (m Model) View() string {
 
 		selIndicator := " "
 		if m.selection.active && i >= selStart && i <= selEnd {
-			selIndicator = "●"
+			if i == m.selection.anchor {
+				selIndicator = "◆"
+			} else {
+				selIndicator = "▌"
+			}
 		}
 
 		b.WriteString(fmt.Sprintf("%s%s %s │ %s\n", cursor, selIndicator, lineNum, line))
