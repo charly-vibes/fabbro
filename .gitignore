@@ -1,4 +1,5 @@
 /fabbro
 /bin/
 /.fabbro/
+/.mcp-servers/
 coverage.out

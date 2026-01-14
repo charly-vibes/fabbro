@@ -125,12 +125,26 @@ help:
 
 # === MCP Commands ===
 
+# Directory for MCP servers
+mcp_dir := ".mcp-servers"
+mcp_tui_dir := mcp_dir / "mcp-tui-test"
+
+# Setup mcp-tui-test from source (not published to PyPI)
+setup-mcp-tui:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ ! -d "{{mcp_tui_dir}}" ]; then
+        mkdir -p {{mcp_dir}}
+        git clone https://github.com/GeorgePearse/mcp-tui-test.git {{mcp_tui_dir}}
+    fi
+    echo "✅ mcp-tui-test ready"
+
 # Start Amp with mcp-tui-test for TUI testing
-amp-tui *args:
-    amp --mcp-config '{"tui-test": {"command": "uvx", "args": ["mcp-tui-test"]}}' {{args}}
+amp-tui *args: setup-mcp-tui
+    amp --mcp-config '{"tui-test": {"command": "uv", "args": ["run", "--directory", "{{justfile_directory()}}/{{mcp_tui_dir}}", "python", "server.py"]}}' {{args}}
 
 # Run TUI integration tests via MCP (starts Amp with skill loaded)
-test-tui:
+test-tui: setup-mcp-tui
     @echo "Starting TUI integration test session..."
     @echo "Use: /skill tui-test then ask to 'run all TUI integration tests'"
-    amp --mcp-config '{"tui-test": {"command": "uvx", "args": ["mcp-tui-test"]}}'
+    amp --mcp-config '{"tui-test": {"command": "uv", "args": ["run", "--directory", "{{justfile_directory()}}/{{mcp_tui_dir}}", "python", "server.py"]}}'
