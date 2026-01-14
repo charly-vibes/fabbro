@@ -9,6 +9,7 @@ import (
 
 	"github.com/charly-vibes/fabbro/internal/config"
 	"github.com/charly-vibes/fabbro/internal/fem"
+	"github.com/charly-vibes/fabbro/internal/highlight"
 	"github.com/charly-vibes/fabbro/internal/session"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -64,9 +65,15 @@ type Model struct {
 	height         int
 	gPending       bool   // waiting for second 'g' in gg command
 	lastError      string // last error message to display
+	highlighter    *highlight.Highlighter
+	sourceFile     string
 }
 
 func New(sess *session.Session) Model {
+	return NewWithFile(sess, "")
+}
+
+func NewWithFile(sess *session.Session, sourceFile string) Model {
 	lines := strings.Split(sess.Content, "\n")
 	return Model{
 		session:     sess,
@@ -75,6 +82,8 @@ func New(sess *session.Session) Model {
 		selection:   selection{},
 		mode:        modeNormal,
 		annotations: []fem.Annotation{},
+		highlighter: highlight.New(sourceFile, sess.Content),
+		sourceFile:  sourceFile,
 	}
 }
 
@@ -404,12 +413,20 @@ func (m Model) View() string {
 			}
 		}
 
+		highlightedLine := m.highlighter.RenderLine(line)
+
 		wrapped := wrapLine(line, contentWidth)
 		for j, part := range wrapped {
-			if j == 0 {
-				b.WriteString(fmt.Sprintf("%s%s %s │ %s\n", cursor, selIndicator, lineNum, part))
+			var displayPart string
+			if j == 0 && len(wrapped) == 1 {
+				displayPart = highlightedLine
 			} else {
-				b.WriteString(fmt.Sprintf("       │ %s\n", part))
+				displayPart = m.highlighter.RenderLine(part)
+			}
+			if j == 0 {
+				b.WriteString(fmt.Sprintf("%s%s %s │ %s\n", cursor, selIndicator, lineNum, displayPart))
+			} else {
+				b.WriteString(fmt.Sprintf("       │ %s\n", displayPart))
 			}
 		}
 	}

@@ -79,6 +79,7 @@ func buildReviewCmd(stdin io.Reader, stdout io.Writer) *cobra.Command {
 			}
 
 			var content string
+			var sourceFile string
 			var err error
 
 			if stdinFlag && len(args) == 1 {
@@ -96,17 +97,18 @@ func buildReviewCmd(stdin io.Reader, stdout io.Writer) *cobra.Command {
 				}
 				content = string(data)
 			} else if len(args) == 1 {
-				info, err := os.Stat(args[0])
+				sourceFile = args[0]
+				info, err := os.Stat(sourceFile)
 				if err != nil {
 					if os.IsNotExist(err) {
-						return fmt.Errorf("file not found: %s", args[0])
+						return fmt.Errorf("file not found: %s", sourceFile)
 					}
 					return fmt.Errorf("failed to stat file: %w", err)
 				}
 				if info.Size() > maxInputBytes {
-					return fmt.Errorf("file too large: %s exceeds %d bytes", args[0], maxInputBytes)
+					return fmt.Errorf("file too large: %s exceeds %d bytes", sourceFile, maxInputBytes)
 				}
-				data, err := os.ReadFile(args[0])
+				data, err := os.ReadFile(sourceFile)
 				if err != nil {
 					return fmt.Errorf("failed to read file: %w", err)
 				}
@@ -122,7 +124,7 @@ func buildReviewCmd(stdin io.Reader, stdout io.Writer) *cobra.Command {
 
 			fmt.Fprintf(stdout, "Created session: %s\n", sess.ID)
 
-			model := tui.New(sess)
+			model := tui.NewWithFile(sess, sourceFile)
 			p := tea.NewProgram(model)
 			if _, err := p.Run(); err != nil {
 				return fmt.Errorf("TUI error: %w", err)

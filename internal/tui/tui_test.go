@@ -1237,7 +1237,8 @@ func TestViewportScrollsUpWhenSelecting(t *testing.T) {
 	}
 
 	// Cursor indicator should be visible on line 1 (cursor moved from anchor, so ▌)
-	if !strings.Contains(view, ">▌   1 │ line 1") {
+	// Note: content may have ANSI color codes, so check prefix separately
+	if !strings.Contains(view, ">▌   1 │") {
 		t.Errorf("cursor indicator '>' should be on line 1 with selection indicator, got:\n%s", view)
 	}
 }
@@ -1320,11 +1321,57 @@ func TestLongLineWraps(t *testing.T) {
 		t.Errorf("expected long line to wrap into multiple lines, got %d content lines", len(contentLines))
 	}
 
-	// No line should exceed terminal width
+	// No line should exceed terminal width (ignoring ANSI escape codes)
 	for i, line := range lines {
-		// Use rune count for proper unicode handling
-		if len([]rune(line)) > m.width {
-			t.Errorf("line %d exceeds width %d: len=%d", i, m.width, len([]rune(line)))
+		visibleLen := visibleLength(line)
+		if visibleLen > m.width {
+			t.Errorf("line %d exceeds width %d: visible len=%d", i, m.width, visibleLen)
 		}
 	}
+}
+
+func TestSyntaxHighlightingEnabled(t *testing.T) {
+	goCode := `package main
+
+func main() {
+	println("hello")
+}`
+	sess := newTestSession(goCode)
+	m := NewWithFile(sess, "test.go")
+	m.width = 80
+	m.height = 20
+
+	view := m.View()
+
+	// Should contain ANSI escape codes for syntax highlighting
+	if !strings.Contains(view, "\033[") {
+		t.Error("expected syntax highlighting (ANSI codes) in view")
+	}
+
+	// Content should still be present
+	if !strings.Contains(view, "package") {
+		t.Error("expected 'package' in view")
+	}
+	if !strings.Contains(view, "main") {
+		t.Error("expected 'main' in view")
+	}
+}
+
+func visibleLength(s string) int {
+	inEscape := false
+	count := 0
+	for _, r := range s {
+		if r == '\033' {
+			inEscape = true
+			continue
+		}
+		if inEscape {
+			if r == 'm' {
+				inEscape = false
+			}
+			continue
+		}
+		count++
+	}
+	return count
 }
