@@ -10,3 +10,19 @@ var Markers = map[string][2]string{
 	"keep":     {"{== ", " ==}"},
 	"unclear":  {"{~~ ", " ~~}"},
 }
+
+// Prompts maps annotation type to input prompt text.
+var Prompts = map[string]string{
+	"comment":  "Comment:",
+	"delete":   "Reason for deletion:",
+	"question": "Question:",
+	"expand":   "What to expand:",
+	"keep":     "Reason to keep:",
+	"unclear":  "What's unclear:",
+}
+
+// ValidAnnotationType returns true if typ is a known annotation type.
+func ValidAnnotationType(typ string) bool {
+	_, ok := Markers[typ]
+	return ok
+}

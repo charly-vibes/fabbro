@@ -34,14 +34,7 @@ func (s selection) lines() (start, end int) {
 	return s.cursor, s.anchor
 }
 
-var inputPrompts = map[string]string{
-	"comment":  "Comment:",
-	"delete":   "Reason for deletion:",
-	"question": "Question:",
-	"expand":   "What to expand:",
-	"keep":     "Reason to keep:",
-	"unclear":  "What's unclear:",
-}
+
 
 type Model struct {
 	session        *session.Session
@@ -367,7 +360,7 @@ func (m Model) View() string {
 
 	switch m.mode {
 	case modeInput:
-		prompt := inputPrompts[m.inputType]
+		prompt := fem.Prompts[m.inputType]
 		b.WriteString(fmt.Sprintf("%s %s_\n", prompt, m.input))
 	case modePalette:
 		b.WriteString("┌─ Annotations ──────────────────────────────────────┐\n")
