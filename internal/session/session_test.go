@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/charly-vibes/fabbro/internal/config"
 )
@@ -182,14 +183,34 @@ func TestGenerateID_ReturnsUniqueIDs(t *testing.T) {
 	}
 }
 
-func TestGenerateID_Returns8CharHex(t *testing.T) {
+func TestGenerateID_ReturnsDateBasedFormat(t *testing.T) {
 	id := generateID()
-	if len(id) != 8 {
-		t.Errorf("expected 8 char ID, got %d chars: %s", len(id), id)
+
+	// Format should be: YYYYMMDD-xxxx (8 + 1 + 4 = 13 chars)
+	if len(id) != 13 {
+		t.Errorf("expected 13 char ID (YYYYMMDD-xxxx), got %d chars: %s", len(id), id)
 	}
-	for _, c := range id {
+
+	// Should contain a hyphen at position 8
+	if id[8] != '-' {
+		t.Errorf("expected hyphen at position 8, got: %s", id)
+	}
+
+	// First 8 chars should be today's date in YYYYMMDD format
+	datePrefix := id[:8]
+	today := time.Now().Format("20060102")
+	if datePrefix != today {
+		t.Errorf("expected date prefix %s, got %s", today, datePrefix)
+	}
+
+	// Last 4 chars should be hex
+	suffix := id[9:]
+	if len(suffix) != 4 {
+		t.Errorf("expected 4 char suffix, got %d: %s", len(suffix), suffix)
+	}
+	for _, c := range suffix {
 		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) {
-			t.Errorf("expected hex chars only, got: %s", id)
+			t.Errorf("expected hex chars in suffix, got: %s", suffix)
 			break
 		}
 	}

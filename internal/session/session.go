@@ -19,9 +19,11 @@ type Session struct {
 }
 
 func generateID() string {
-	bytes := make([]byte, 4)
+	bytes := make([]byte, 2)
 	rand.Read(bytes)
-	return hex.EncodeToString(bytes)
+	suffix := hex.EncodeToString(bytes)
+	date := time.Now().Format("20060102")
+	return date + "-" + suffix
 }
 
 func Create(content string) (*Session, error) {
