@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/charly-vibes/fabbro/internal/config"
 	"github.com/charly-vibes/fabbro/internal/fem"
@@ -300,7 +301,7 @@ session_id: %s
 created_at: %s
 ---
 
-%s`, m.session.ID, m.session.CreatedAt.Format("2006-01-02T15:04:05Z07:00"), content)
+%s`, m.session.ID, m.session.CreatedAt.Format(time.RFC3339), content)
 
 	sessionPath := filepath.Join(config.SessionsDir, m.session.ID+".fem")
 	if err := os.WriteFile(sessionPath, []byte(fileContent), 0644); err != nil {
