@@ -451,3 +451,29 @@ func TestReviewCommandRejectsOversizedFile(t *testing.T) {
 		t.Errorf("expected 'file too large' error, got: %s", stderr.String())
 	}
 }
+
+func TestReviewCommandRejectsStdinAndFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	// Create a file
+	testFile := filepath.Join(tmpDir, "test.txt")
+	os.WriteFile(testFile, []byte("content"), 0644)
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("stdin content")
+
+	// Pass both --stdin and a file path
+	code := realMain([]string{"review", "--stdin", testFile}, stdin, &stdout, &stderr)
+
+	if code != 1 {
+		t.Errorf("expected exit code 1, got %d", code)
+	}
+	if !strings.Contains(stderr.String(), "cannot use both --stdin and a file path") {
+		t.Errorf("expected conflict error, got: %s", stderr.String())
+	}
+}

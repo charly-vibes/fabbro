@@ -81,6 +81,10 @@ func buildReviewCmd(stdin io.Reader, stdout io.Writer) *cobra.Command {
 			var content string
 			var err error
 
+			if stdinFlag && len(args) == 1 {
+				return fmt.Errorf("cannot use both --stdin and a file path")
+			}
+
 			if stdinFlag {
 				limitedReader := io.LimitReader(stdin, maxInputBytes+1)
 				data, err := io.ReadAll(limitedReader)
