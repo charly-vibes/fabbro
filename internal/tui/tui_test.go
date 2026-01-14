@@ -619,8 +619,8 @@ func TestSave(t *testing.T) {
 	}
 	m := New(sess)
 
-	// Add a comment annotation
-	m.annotations = append(m.annotations, fem.Annotation{StartLine: 0, EndLine: 0, Type: "comment", Text: "my comment"})
+	// Add a comment annotation (1-based line numbers)
+	m.annotations = append(m.annotations, fem.Annotation{StartLine: 1, EndLine: 1, Type: "comment", Text: "my comment"})
 
 	// Call save
 	if err := m.save(); err != nil {
@@ -1138,12 +1138,12 @@ func TestSaveAllAnnotationTypes(t *testing.T) {
 
 	// Add one of each annotation type
 	m.annotations = []fem.Annotation{
-		{StartLine: 0, EndLine: 0, Type: "comment", Text: "a comment"},
-		{StartLine: 1, EndLine: 1, Type: "delete", Text: "DELETE: remove"},
-		{StartLine: 2, EndLine: 2, Type: "question", Text: "why?"},
-		{StartLine: 3, EndLine: 3, Type: "expand", Text: "EXPAND: more"},
-		{StartLine: 4, EndLine: 4, Type: "keep", Text: "KEEP: good"},
-		{StartLine: 5, EndLine: 5, Type: "unclear", Text: "UNCLEAR: huh"},
+		{StartLine: 1, EndLine: 1, Type: "comment", Text: "a comment"},
+		{StartLine: 2, EndLine: 2, Type: "delete", Text: "DELETE: remove"},
+		{StartLine: 3, EndLine: 3, Type: "question", Text: "why?"},
+		{StartLine: 4, EndLine: 4, Type: "expand", Text: "EXPAND: more"},
+		{StartLine: 5, EndLine: 5, Type: "keep", Text: "KEEP: good"},
+		{StartLine: 6, EndLine: 6, Type: "unclear", Text: "UNCLEAR: huh"},
 	}
 
 	if err := m.save(); err != nil {

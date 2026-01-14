@@ -277,19 +277,21 @@ func (m Model) handleInputMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) save() error {
-	annotationsByLine := make(map[int]fem.Annotation)
+	annotationsByLine := make(map[int][]fem.Annotation)
 	for _, a := range m.annotations {
-		annotationsByLine[a.StartLine] = a
+		annotationsByLine[a.StartLine] = append(annotationsByLine[a.StartLine], a)
 	}
 
 	var result []string
 	for i, line := range m.lines {
-		if ann, ok := annotationsByLine[i]; ok {
-			marker := fem.Markers[ann.Type]
-			result = append(result, line+" "+marker[0]+ann.Text+marker[1])
-		} else {
-			result = append(result, line)
+		lineNum := i + 1
+		if anns, ok := annotationsByLine[lineNum]; ok {
+			for _, ann := range anns {
+				marker := fem.Markers[ann.Type]
+				line = line + " " + marker[0] + ann.Text + marker[1]
+			}
 		}
+		result = append(result, line)
 	}
 
 	content := strings.Join(result, "\n")
