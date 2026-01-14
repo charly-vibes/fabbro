@@ -213,6 +213,13 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.inputType = "unclear"
 		}
 
+	case "r":
+		if m.selection.active {
+			m.mode = modeInput
+			m.input = ""
+			m.inputType = "change"
+		}
+
 	case " ":
 		m.mode = modePalette
 
@@ -273,6 +280,12 @@ func (m Model) handlePaletteMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.input = ""
 			m.inputType = "unclear"
 		}
+	case "r":
+		if m.selection.active {
+			m.mode = modeInput
+			m.input = ""
+			m.inputType = "change"
+		}
 	default:
 		m.mode = modeNormal
 	}
@@ -284,12 +297,27 @@ func (m Model) handleInputMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "enter":
 		if m.input != "" {
 			start, end := m.selection.lines()
+			text := m.input
+
+			// For change annotations, prefix with line reference
+			if m.inputType == "change" {
+				startLine := start + 1 // 1-indexed for display
+				endLine := end + 1
+				var lineRef string
+				if startLine == endLine {
+					lineRef = fmt.Sprintf("[line %d] -> ", startLine)
+				} else {
+					lineRef = fmt.Sprintf("[lines %d-%d] -> ", startLine, endLine)
+				}
+				text = lineRef + m.input
+			}
+
 			for line := start; line <= end; line++ {
 				m.annotations = append(m.annotations, fem.Annotation{
 					StartLine: line,
 					EndLine:   line,
 					Type:      m.inputType,
-					Text:      m.input,
+					Text:      text,
 				})
 			}
 		}
@@ -443,7 +471,7 @@ func (m Model) View() string {
 		b.WriteString("│ [w]rite    [Q]uit                                  │\n")
 		if m.selection.active {
 			b.WriteString("├─ Annotations ──────────────────────────────────────┤\n")
-			b.WriteString("│ [c]omment  [d]elete  [q]uestion                    │\n")
+			b.WriteString("│ [c]omment  [d]elete  [q]uestion  [r]eplace         │\n")
 			b.WriteString("│ [e]xpand   [k]eep    [u]nclear                     │\n")
 		}
 		b.WriteString("│                                  [ESC] cancel      │\n")
@@ -451,7 +479,7 @@ func (m Model) View() string {
 	default:
 		b.WriteString("[v]select [SPC]palette [w]rite [Q]uit")
 		if m.selection.active {
-			b.WriteString(" │ [c]omment [d]elete [q]uestion [e]xpand [u]nclear")
+			b.WriteString(" │ [c]omment [d]elete [q]uestion [e]xpand [u]nclear [r]eplace")
 		}
 		b.WriteString("\n")
 	}

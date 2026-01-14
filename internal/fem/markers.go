@@ -9,6 +9,7 @@ var Markers = map[string][2]string{
 	"expand":   {"{!! ", " !!}"},
 	"keep":     {"{== ", " ==}"},
 	"unclear":  {"{~~ ", " ~~}"},
+	"change":   {"{++ ", " ++}"},
 }
 
 // Prompts maps annotation type to input prompt text.
@@ -19,6 +20,7 @@ var Prompts = map[string]string{
 	"expand":   "What to expand:",
 	"keep":     "Reason to keep:",
 	"unclear":  "What's unclear:",
+	"change":   "Replacement text:",
 }
 
 // ValidAnnotationType returns true if typ is a known annotation type.

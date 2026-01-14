@@ -31,6 +31,7 @@ Direct keys (normal mode with selection):
 | `q` | question | "Question:" |
 | `e` | expand | "What to expand:" |
 | `u` | unclear | "What's unclear:" |
+| `r` | change | "Replacement text:" |
 
 Palette-only keys (press `Space` first):
 

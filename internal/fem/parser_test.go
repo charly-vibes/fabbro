@@ -128,6 +128,12 @@ func TestParse_AllAnnotationTypes(t *testing.T) {
 			wantType: "unclear",
 			wantText: "UNCLEAR: confusing",
 		},
+		{
+			name:     "change",
+			input:    "text {++ [line 1] -> new content ++}",
+			wantType: "change",
+			wantText: "[line 1] -> new content",
+		},
 	}
 
 	for _, tt := range tests {

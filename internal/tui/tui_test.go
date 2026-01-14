@@ -256,6 +256,7 @@ func TestAnnotationKeybindings(t *testing.T) {
 		{'q', "question"},
 		{'e', "expand"},
 		{'u', "unclear"},
+		{'r', "change"},
 	}
 
 	for _, tt := range tests {
@@ -280,7 +281,7 @@ func TestAnnotationKeybindings(t *testing.T) {
 }
 
 func TestAnnotationKeybindingsRequireSelection(t *testing.T) {
-	keys := []rune{'c', 'd', 'q', 'e', 'u'}
+	keys := []rune{'c', 'd', 'q', 'e', 'u', 'r'}
 
 	for _, key := range keys {
 		t.Run(string(key), func(t *testing.T) {
@@ -397,6 +398,74 @@ func TestInputModeSubmitAllTypes(t *testing.T) {
 				t.Errorf("expected type %q, got %q", tt.wantType, m.annotations[0].Type)
 			}
 		})
+	}
+}
+
+func TestChangeAnnotationIncludesLineReference(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3\nline4\nline5")
+	m := New(sess)
+
+	// Select lines 2-4 (0-indexed: 1-3)
+	m.cursor = 1
+	m = sendKey(m, 'v')
+	m = sendKey(m, 'j')
+	m = sendKey(m, 'j')
+
+	// Enter change mode and type replacement
+	m = sendKey(m, 'r')
+	for _, r := range "new content" {
+		m = sendKey(m, r)
+	}
+	m = sendKeyType(m, tea.KeyEnter)
+
+	if len(m.annotations) != 3 {
+		t.Fatalf("expected 3 annotations (one per selected line), got %d", len(m.annotations))
+	}
+
+	// All annotations should have the line reference prefix
+	for i, ann := range m.annotations {
+		if ann.Type != "change" {
+			t.Errorf("annotation %d: expected type 'change', got %q", i, ann.Type)
+		}
+		if !strings.Contains(ann.Text, "->") {
+			t.Errorf("annotation %d: expected text to contain '->', got %q", i, ann.Text)
+		}
+		if !strings.Contains(ann.Text, "new content") {
+			t.Errorf("annotation %d: expected text to contain 'new content', got %q", i, ann.Text)
+		}
+	}
+
+	// First annotation should reference lines 2-4 (1-indexed)
+	if !strings.Contains(m.annotations[0].Text, "[lines 2-4]") {
+		t.Errorf("expected text to contain '[lines 2-4]', got %q", m.annotations[0].Text)
+	}
+}
+
+func TestChangeAnnotationSingleLine(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+
+	// Select single line (line 2, 0-indexed: 1)
+	m.cursor = 1
+	m = sendKey(m, 'v')
+
+	// Enter change mode and type replacement
+	m = sendKey(m, 'r')
+	for _, r := range "replaced" {
+		m = sendKey(m, r)
+	}
+	m = sendKeyType(m, tea.KeyEnter)
+
+	if len(m.annotations) != 1 {
+		t.Fatalf("expected 1 annotation, got %d", len(m.annotations))
+	}
+
+	// Should use singular "line" for single line
+	if !strings.Contains(m.annotations[0].Text, "[line 2]") {
+		t.Errorf("expected text to contain '[line 2]', got %q", m.annotations[0].Text)
+	}
+	if !strings.Contains(m.annotations[0].Text, "-> replaced") {
+		t.Errorf("expected text to contain '-> replaced', got %q", m.annotations[0].Text)
 	}
 }
 
@@ -1253,7 +1322,7 @@ func TestSaveAllAnnotationTypes(t *testing.T) {
 
 	sess := &session.Session{
 		ID:        "test-save-types",
-		Content:   "line1\nline2\nline3\nline4\nline5\nline6",
+		Content:   "line1\nline2\nline3\nline4\nline5\nline6\nline7",
 		CreatedAt: time.Date(2026, 1, 11, 12, 0, 0, 0, time.UTC),
 	}
 	m := New(sess)
@@ -1266,6 +1335,7 @@ func TestSaveAllAnnotationTypes(t *testing.T) {
 		{StartLine: 4, EndLine: 4, Type: "expand", Text: "EXPAND: more"},
 		{StartLine: 5, EndLine: 5, Type: "keep", Text: "KEEP: good"},
 		{StartLine: 6, EndLine: 6, Type: "unclear", Text: "UNCLEAR: huh"},
+		{StartLine: 7, EndLine: 7, Type: "change", Text: "[line 7] -> newcode"},
 	}
 
 	if err := m.save(); err != nil {
@@ -1288,6 +1358,7 @@ func TestSaveAllAnnotationTypes(t *testing.T) {
 		"{!! EXPAND: more !!}",
 		"{== KEEP: good ==}",
 		"{~~ UNCLEAR: huh ~~}",
+		"{++ [line 7] -> newcode ++}",
 	}
 
 	for _, exp := range expected {

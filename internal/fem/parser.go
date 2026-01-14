@@ -19,6 +19,7 @@ var patterns = map[string]*regexp.Regexp{
 	"expand":   regexp.MustCompile(`\{!!\s*(.*?)\s*!!\}`),
 	"keep":     regexp.MustCompile(`\{==\s*(.*?)\s*==\}`),
 	"unclear":  regexp.MustCompile(`\{~~\s*(.*?)\s*~~\}`),
+	"change":   regexp.MustCompile(`\{\+\+\s*(.*?)\s*\+\+\}`),
 }
 
 func Parse(content string) ([]Annotation, string, error) {

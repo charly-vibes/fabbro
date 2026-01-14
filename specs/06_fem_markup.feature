@@ -111,6 +111,30 @@ Feature: FEM Markup Language
     Then an "unclear" annotation should be extracted
     And the annotation text should be "What does this mean?"
 
+  # --- Change Annotation ---
+
+  @implemented
+  Scenario: Change annotation syntax (inline replacement suggestion)
+    Given content with the following FEM markup:
+      """
+      const x = foo(); {++ [line 1] -> const x = bar() ++}
+      """
+    When the FEM is parsed
+    Then a "change" annotation should be extracted
+    And the annotation text should be "[line 1] -> const x = bar()"
+
+  @implemented
+  Scenario: Multi-line change annotation
+    Given content with the following FEM markup:
+      """
+      old code here {++ [lines 1-3] -> new code here ++}
+      more old code
+      end of old code
+      """
+    When the FEM is parsed
+    Then a "change" annotation should be extracted
+    And the annotation text should contain "[lines 1-3] ->"
+
   # --- Emphasize Annotation ---
 
   @planned
@@ -253,5 +277,6 @@ Feature: FEM Markup Language
   # | {!! ... !!} | expand   | Request more detail            |
   # | {== ... ==} | keep     | Mark as good/preserve          |
   # | {~~ ... ~~} | unclear  | Flag as confusing              |
+  # | {++ ... ++} | change   | Suggest replacement text       |
   # | {** ... **} | emphasize| Request emphasis               |
   # | {## ... ##} | section  | Section-level feedback         |

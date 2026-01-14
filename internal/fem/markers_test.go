@@ -3,7 +3,7 @@ package fem
 import "testing"
 
 func TestAnnotationTypes_AllDefined(t *testing.T) {
-	expected := []string{"comment", "delete", "question", "expand", "keep", "unclear"}
+	expected := []string{"comment", "delete", "question", "expand", "keep", "unclear", "change"}
 
 	for _, typ := range expected {
 		if _, ok := Markers[typ]; !ok {
@@ -35,6 +35,7 @@ func TestValidAnnotationType(t *testing.T) {
 	}{
 		{"comment", true},
 		{"delete", true},
+		{"change", true},
 		{"invalid", false},
 		{"", false},
 	}

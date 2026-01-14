@@ -58,6 +58,7 @@ Feature: TUI Interaction
       | q   | question | ask a question        |
       | k   | keep     | mark as good          |
       | u   | unclear  | flag confusion        |
+      | r   | replace  | suggest replacement   |
 
   @implemented
   Scenario: Selecting action from command palette
@@ -174,6 +175,16 @@ Feature: TUI Interaction
     When I press "k" (or SPC then k)
     Then an annotation of type "keep" should be added without prompting for text
     And the selected lines should be visually marked as "keep"
+
+  @implemented
+  Scenario: Adding a change annotation (suggest replacement)
+    Given I have lines 42-45 selected
+    When I press "r" (or SPC then r)
+    Then a text input prompt should appear with label "Replacement text:"
+    When I type "const result = calculate()" and press Enter
+    Then an annotation of type "change" should be added to lines 42-45
+    And the annotation text should contain "[lines 42-45] -> const result = calculate()"
+    And the selected lines should be visually marked as having a change suggestion
 
   @implemented
   Scenario: Canceling annotation input
