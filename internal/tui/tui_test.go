@@ -1295,3 +1295,36 @@ func TestSaveAllAnnotationTypes(t *testing.T) {
 		}
 	}
 }
+
+func TestLongLineWraps(t *testing.T) {
+	longLine := strings.Repeat("x", 100)
+	sess := newTestSession(longLine)
+	m := New(sess)
+	m.width = 40
+	m.height = 20
+
+	view := m.View()
+	lines := strings.Split(view, "\n")
+
+	// Find content lines (skip header)
+	var contentLines []string
+	for _, line := range lines {
+		if strings.Contains(line, "│") && !strings.HasPrefix(line, "─") {
+			contentLines = append(contentLines, line)
+		}
+	}
+
+	// With 40 width and ~10 char prefix, content should wrap
+	// Long line should produce multiple display lines
+	if len(contentLines) < 2 {
+		t.Errorf("expected long line to wrap into multiple lines, got %d content lines", len(contentLines))
+	}
+
+	// No line should exceed terminal width
+	for i, line := range lines {
+		// Use rune count for proper unicode handling
+		if len([]rune(line)) > m.width {
+			t.Errorf("line %d exceeds width %d: len=%d", i, m.width, len([]rune(line)))
+		}
+	}
+}

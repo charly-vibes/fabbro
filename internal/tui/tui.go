@@ -34,7 +34,22 @@ func (s selection) lines() (start, end int) {
 	return s.cursor, s.anchor
 }
 
+func wrapLine(s string, width int) []string {
+	if width <= 0 || len(s) <= width {
+		return []string{s}
+	}
 
+	var result []string
+	runes := []rune(s)
+	for len(runes) > width {
+		result = append(result, string(runes[:width]))
+		runes = runes[width:]
+	}
+	if len(runes) > 0 {
+		result = append(result, string(runes))
+	}
+	return result
+}
 
 type Model struct {
 	session        *session.Session
@@ -328,14 +343,26 @@ created_at: %s
 func (m Model) View() string {
 	var b strings.Builder
 
+	width := m.width
+	if width < 20 {
+		width = 50
+	}
+
 	title := fmt.Sprintf("─── Review: %s ", m.session.ID)
 	if m.selection.active {
 		selStart, selEnd := m.selection.lines()
 		lineCount := selEnd - selStart + 1
 		title += fmt.Sprintf("[%d lines selected] ", lineCount)
 	}
-	b.WriteString(title)
-	b.WriteString(strings.Repeat("─", max(0, 50-len(title))))
+	titleRunes := []rune(title)
+	if len(titleRunes) > width {
+		titleRunes = titleRunes[:width]
+	}
+	b.WriteString(string(titleRunes))
+	remaining := width - len(titleRunes)
+	if remaining > 0 {
+		b.WriteString(strings.Repeat("─", remaining))
+	}
 	b.WriteString("\n")
 
 	visibleLines := m.height - 4
@@ -353,6 +380,12 @@ func (m Model) View() string {
 	}
 
 	selStart, selEnd := m.selection.lines()
+	prefixLen := 10 // ">◆ 123 │ " is ~10 chars
+	contentWidth := m.width - prefixLen
+	if contentWidth < 10 {
+		contentWidth = 40 // sensible fallback
+	}
+
 	for i := start; i < end; i++ {
 		lineNum := fmt.Sprintf("%3d", i+1)
 		line := m.lines[i]
@@ -371,10 +404,17 @@ func (m Model) View() string {
 			}
 		}
 
-		b.WriteString(fmt.Sprintf("%s%s %s │ %s\n", cursor, selIndicator, lineNum, line))
+		wrapped := wrapLine(line, contentWidth)
+		for j, part := range wrapped {
+			if j == 0 {
+				b.WriteString(fmt.Sprintf("%s%s %s │ %s\n", cursor, selIndicator, lineNum, part))
+			} else {
+				b.WriteString(fmt.Sprintf("       │ %s\n", part))
+			}
+		}
 	}
 
-	b.WriteString(strings.Repeat("─", 50))
+	b.WriteString(strings.Repeat("─", width))
 	b.WriteString("\n")
 
 	switch m.mode {
