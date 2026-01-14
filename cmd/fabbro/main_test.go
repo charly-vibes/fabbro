@@ -403,3 +403,51 @@ func TestReviewCommandWithNonExistentFile(t *testing.T) {
 		t.Errorf("expected exit code 1, got %d", code)
 	}
 }
+
+func TestReviewCommandRejectsOversizedStdin(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	largeInput := strings.Repeat("x", maxInputBytes+1)
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader(largeInput)
+
+	code := realMain([]string{"review", "--stdin"}, stdin, &stdout, &stderr)
+
+	if code != 1 {
+		t.Errorf("expected exit code 1, got %d", code)
+	}
+	if !strings.Contains(stderr.String(), "input too large") {
+		t.Errorf("expected 'input too large' error, got: %s", stderr.String())
+	}
+}
+
+func TestReviewCommandRejectsOversizedFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	largeFile := filepath.Join(tmpDir, "large.txt")
+	f, _ := os.Create(largeFile)
+	f.Truncate(maxInputBytes + 1)
+	f.Close()
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"review", largeFile}, stdin, &stdout, &stderr)
+
+	if code != 1 {
+		t.Errorf("expected exit code 1, got %d", code)
+	}
+	if !strings.Contains(stderr.String(), "file too large") {
+		t.Errorf("expected 'file too large' error, got: %s", stderr.String())
+	}
+}

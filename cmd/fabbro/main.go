@@ -17,6 +17,8 @@ import (
 
 var version = "dev"
 
+const maxInputBytes = 10 * 1024 * 1024 // 10MB
+
 func main() {
 	os.Exit(realMain(os.Args[1:], os.Stdin, os.Stdout, os.Stderr))
 }
@@ -80,17 +82,28 @@ func buildReviewCmd(stdin io.Reader, stdout io.Writer) *cobra.Command {
 			var err error
 
 			if stdinFlag {
-				data, err := io.ReadAll(stdin)
+				limitedReader := io.LimitReader(stdin, maxInputBytes+1)
+				data, err := io.ReadAll(limitedReader)
 				if err != nil {
 					return fmt.Errorf("failed to read stdin: %w", err)
 				}
+				if len(data) > maxInputBytes {
+					return fmt.Errorf("input too large: exceeds %d bytes", maxInputBytes)
+				}
 				content = string(data)
 			} else if len(args) == 1 {
-				data, err := os.ReadFile(args[0])
+				info, err := os.Stat(args[0])
 				if err != nil {
 					if os.IsNotExist(err) {
 						return fmt.Errorf("file not found: %s", args[0])
 					}
+					return fmt.Errorf("failed to stat file: %w", err)
+				}
+				if info.Size() > maxInputBytes {
+					return fmt.Errorf("file too large: %s exceeds %d bytes", args[0], maxInputBytes)
+				}
+				data, err := os.ReadFile(args[0])
+				if err != nil {
 					return fmt.Errorf("failed to read file: %w", err)
 				}
 				content = string(data)
