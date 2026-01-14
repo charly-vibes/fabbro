@@ -417,10 +417,16 @@ func (m Model) View() string {
 	}
 
 	selStart, selEnd := m.selection.lines()
-	prefixLen := 10 // ">◆ 123 │ " is ~10 chars
+	prefixLen := 12 // ">◆ 123 ● │ " is ~12 chars
 	contentWidth := m.width - prefixLen
 	if contentWidth < 10 {
 		contentWidth = 40 // sensible fallback
+	}
+
+	// Build annotation lookup for quick access
+	annotatedLines := make(map[int]bool)
+	for _, ann := range m.annotations {
+		annotatedLines[ann.StartLine] = true
 	}
 
 	for i := start; i < end; i++ {
@@ -441,6 +447,12 @@ func (m Model) View() string {
 			}
 		}
 
+		// Annotation indicator (1-indexed line numbers)
+		annIndicator := " "
+		if annotatedLines[i+1] {
+			annIndicator = "●"
+		}
+
 		highlightedLine := m.highlighter.RenderLine(line)
 
 		wrapped := wrapLine(line, contentWidth)
@@ -452,9 +464,9 @@ func (m Model) View() string {
 				displayPart = m.highlighter.RenderLine(part)
 			}
 			if j == 0 {
-				b.WriteString(fmt.Sprintf("%s%s %s │ %s\n", cursor, selIndicator, lineNum, displayPart))
+				b.WriteString(fmt.Sprintf("%s%s %s %s │ %s\n", cursor, selIndicator, lineNum, annIndicator, displayPart))
 			} else {
-				b.WriteString(fmt.Sprintf("       │ %s\n", displayPart))
+				b.WriteString(fmt.Sprintf("         │ %s\n", displayPart))
 			}
 		}
 	}

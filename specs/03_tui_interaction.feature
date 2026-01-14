@@ -197,6 +197,13 @@ Feature: TUI Interaction
 
   # --- Viewing Annotations ---
 
+  @implemented
+  Scenario: Visual indicator for annotated lines
+    Given I have added annotations to lines 5, 10, and 15
+    When I view the document in the TUI
+    Then lines 5, 10, and 15 should show a "●" indicator after the line number
+    And unannotated lines should show a space in the indicator column
+
   @planned
   Scenario: Viewing all annotations in session
     Given I have added 5 annotations to the document

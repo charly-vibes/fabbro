@@ -1308,7 +1308,8 @@ func TestViewportScrollsUpWhenSelecting(t *testing.T) {
 
 	// Cursor indicator should be visible on line 1 (cursor moved from anchor, so ▌)
 	// Note: content may have ANSI color codes, so check prefix separately
-	if !strings.Contains(view, ">▌   1 │") {
+	// Format: ">▌   1   │" (with annotation indicator column)
+	if !strings.Contains(view, ">▌   1   │") {
 		t.Errorf("cursor indicator '>' should be on line 1 with selection indicator, got:\n%s", view)
 	}
 }
@@ -1448,6 +1449,40 @@ func TestOverlappingAnnotationsFromDifferentSelections(t *testing.T) {
 	}
 	if line3Count != 2 {
 		t.Errorf("expected 2 annotations on line 3 (overlap), got %d", line3Count)
+	}
+}
+
+func TestAnnotatedLinesShowIndicator(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3\nline4\nline5")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	// Add annotations to lines 2 and 3 (1-indexed)
+	m.annotations = []fem.Annotation{
+		{StartLine: 2, EndLine: 2, Type: "comment", Text: "a comment"},
+		{StartLine: 3, EndLine: 3, Type: "question", Text: "why?"},
+		{StartLine: 3, EndLine: 3, Type: "expand", Text: "more"},
+	}
+
+	view := m.View()
+
+	// Line 2 should show annotation indicator (1 annotation)
+	if !strings.Contains(view, "2 ● │") {
+		t.Errorf("line 2 should show annotation indicator ●, got:\n%s", view)
+	}
+
+	// Line 3 should show indicator (2 annotations)
+	if !strings.Contains(view, "3 ● │") {
+		t.Errorf("line 3 should show annotation indicator ●, got:\n%s", view)
+	}
+
+	// Lines without annotations should not show indicator
+	if strings.Contains(view, "1 ● │") {
+		t.Errorf("line 1 should not show annotation indicator")
+	}
+	if strings.Contains(view, "4 ● │") {
+		t.Errorf("line 4 should not show annotation indicator")
 	}
 }
 
