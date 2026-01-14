@@ -40,9 +40,11 @@ fabbro apply <session-id> --json
 | Command | Description |
 |---------|-------------|
 | `fabbro init` | Initialize fabbro in the current directory (creates `.fabbro/`) |
+| `fabbro review <file>` | Start a review session with content from a file |
 | `fabbro review --stdin` | Start a review session, reading content from stdin |
 | `fabbro apply <id>` | Show annotations from a session |
 | `fabbro apply <id> --json` | Output annotations as JSON |
+| `fabbro completion <shell>` | Generate shell completion scripts (bash, zsh, fish, powershell) |
 
 See [CLI documentation](docs/cli.md) for full details.
 
@@ -54,10 +56,25 @@ See [CLI documentation](docs/cli.md) for full details.
 | `k` / `↑` | Move cursor up |
 | `v` | Toggle line selection |
 | `c` | Add comment to selected line |
-| `w` | Save and quit |
-| `q` | Quit without saving |
+| `w` | Save session |
+| `Q` | Quit |
 
 See [TUI documentation](docs/tui.md) for full details.
+
+## Shell Completion
+
+Enable tab completion for your shell:
+
+```bash
+# Bash (add to ~/.bashrc)
+source <(fabbro completion bash)
+
+# Zsh (add to ~/.zshrc)
+source <(fabbro completion zsh)
+
+# Fish (add to ~/.config/fish/config.fish)
+fabbro completion fish | source
+```
 
 ## FEM Syntax
 
