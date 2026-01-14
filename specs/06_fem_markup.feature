@@ -175,6 +175,15 @@ Feature: FEM Markup Language
     And one should be type "comment"
     And one should be type "expand"
 
+  @implemented
+  Scenario: Overlapping annotations from different selections
+    Given a TUI session with 5 lines of content
+    When I select lines 2-3 and add a "comment" annotation
+    And I select lines 3-4 and add a "question" annotation
+    Then line 2 should have 1 annotation of type "comment"
+    And line 3 should have 2 annotations (one "comment", one "question")
+    And line 4 should have 1 annotation of type "question"
+
   # --- Escaping FEM Syntax ---
 
   @planned
