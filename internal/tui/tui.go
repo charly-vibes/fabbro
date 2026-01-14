@@ -55,6 +55,7 @@ type Model struct {
 	width          int
 	height         int
 	gPending       bool   // waiting for second 'g' in gg command
+	lastError      string // last error message to display
 }
 
 func New(sess *session.Session) Model {
@@ -202,7 +203,9 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case "w":
 		if err := m.save(); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			m.lastError = err.Error()
+		} else {
+			m.lastError = ""
 		}
 	}
 	return m, nil
@@ -368,6 +371,10 @@ func (m Model) View() string {
 			b.WriteString(" │ [c]omment [d]elete [q]uestion [e]xpand [u]nclear")
 		}
 		b.WriteString("\n")
+	}
+
+	if m.lastError != "" {
+		b.WriteString(fmt.Sprintf("Error: %s\n", m.lastError))
 	}
 
 	return b.String()
