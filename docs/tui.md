@@ -29,41 +29,61 @@ The TUI launches when you run `fabbro review --stdin`. It displays the content w
 
 | Key | Action |
 |-----|--------|
-| `j` | Move cursor down one line |
-| `k` | Move cursor up one line |
-| `↓` | Move cursor down one line |
-| `↑` | Move cursor up one line |
+| `j` / `↓` | Move cursor down one line |
+| `k` / `↑` | Move cursor up one line |
+| `Ctrl+d` | Scroll down half page |
+| `Ctrl+u` | Scroll up half page |
+| `gg` | Jump to first line |
+| `G` | Jump to last line |
 
 ### Selection
 
 | Key | Action |
 |-----|--------|
 | `v` | Toggle selection on current line |
+| `Esc` | Clear selection |
 
-Selecting a line marks it for annotation. Press `v` again to deselect.
+Selecting a line marks it for annotation. You can navigate while selected to extend the selection range.
 
-### Commenting
+### Annotations (require selection)
+
+| Key | Annotation Type | Prompt |
+|-----|-----------------|--------|
+| `c` | comment | "Comment:" |
+| `d` | delete | "Reason for deletion:" |
+| `q` | question | "Question:" |
+| `e` | expand | "What to expand:" |
+| `u` | unclear | "What's unclear:" |
+
+### Command Palette
 
 | Key | Action |
 |-----|--------|
-| `c` | Enter comment mode (requires selection) |
+| `Space` | Open annotation palette (when selected) |
+| `Esc` | Close palette |
 
-When in comment mode:
+The palette provides all annotation types including `k` (keep) which is only available via palette.
+
+### Input Mode
+
+When typing an annotation:
 
 | Key | Action |
 |-----|--------|
-| Type | Add characters to comment |
+| Type | Add characters |
 | `Backspace` | Delete last character |
-| `Enter` | Save comment and return to normal mode |
-| `Esc` | Cancel comment and return to normal mode |
+| `Enter` | Submit annotation and return to normal mode |
+| `Esc` | Cancel and return to normal mode |
 
 ### Session Control
 
 | Key | Action |
 |-----|--------|
-| `w` | Save session and quit |
-| `q` | Quit without saving |
+| `w` | Save session |
+| `Q` | Quit without saving (uppercase) |
 | `Ctrl+C` | Quit without saving |
+
+**Note:** `q` (lowercase) is the question annotation, `Q` (uppercase) quits.
 
 ## Workflow
 

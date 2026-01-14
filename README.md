@@ -54,8 +54,15 @@ See [CLI documentation](docs/cli.md) for full details.
 |-----|--------|
 | `j` / `↓` | Move cursor down |
 | `k` / `↑` | Move cursor up |
+| `gg` / `G` | Jump to first/last line |
+| `Ctrl+d` / `Ctrl+u` | Scroll half page down/up |
 | `v` | Toggle line selection |
-| `c` | Add comment to selected line |
+| `Space` | Open annotation palette (when selected) |
+| `c` | Comment (when selected) |
+| `d` | Delete annotation (when selected) |
+| `q` | Question annotation (when selected) |
+| `e` | Expand annotation (when selected) |
+| `u` | Unclear annotation (when selected) |
 | `w` | Save session |
 | `Q` | Quit |
 

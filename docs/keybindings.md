@@ -22,14 +22,21 @@ This is the **authoritative source** for fabbro TUI keybindings.
 
 ## Annotations (require selection)
 
+Direct keys (normal mode with selection):
+
 | Key | Annotation Type | Prompt |
 |-----|-----------------|--------|
 | `c` | comment | "Comment:" |
-| `d` | delete | "Reason:" |
+| `d` | delete | "Reason for deletion:" |
 | `q` | question | "Question:" |
-| `e` | expand | "Expand:" |
-| `k` | keep | (no prompt) |
-| `u` | unclear | "Unclear:" |
+| `e` | expand | "What to expand:" |
+| `u` | unclear | "What's unclear:" |
+
+Palette-only keys (press `Space` first):
+
+| Key | Annotation Type | Prompt |
+|-----|-----------------|--------|
+| `k` | keep | "Reason to keep:" |
 
 ## Command Palette
 

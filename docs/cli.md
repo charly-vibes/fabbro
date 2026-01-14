@@ -33,9 +33,11 @@ fabbro review --stdin
 
 **Flags:**
 
-| Flag | Required | Description |
-|------|----------|-------------|
-| `--stdin` | Yes | Read content from standard input |
+| Flag | Description |
+|------|-------------|
+| `--stdin` | Read content from standard input |
+
+You must provide either a file path or `--stdin`, but not both.
 
 **Example:**
 
