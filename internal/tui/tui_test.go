@@ -162,6 +162,37 @@ func TestLowercaseQDoesNotQuit(t *testing.T) {
 	}
 }
 
+func TestWriteKeySavesButDoesNotQuit(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	sess := &session.Session{
+		ID:        "test-write-no-quit",
+		Content:   "line1\nline2",
+		CreatedAt: time.Date(2026, 1, 11, 12, 0, 0, 0, time.UTC),
+	}
+	m := New(sess)
+
+	// Press w to save
+	newModel, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'w'}})
+	m = newModel.(Model)
+
+	// w should NOT quit
+	if cmd != nil {
+		t.Error("w should save but not quit; expected nil cmd")
+	}
+
+	// Verify file was saved
+	sessionPath := filepath.Join(config.SessionsDir, "test-write-no-quit.fem")
+	if _, err := os.Stat(sessionPath); os.IsNotExist(err) {
+		t.Error("expected session file to be saved")
+	}
+}
+
 func TestEnterCommentMode(t *testing.T) {
 	sess := newTestSession("line1\nline2")
 	m := New(sess)
@@ -476,13 +507,30 @@ func TestViewSmallHeight(t *testing.T) {
 }
 
 func TestWriteCommand(t *testing.T) {
-	sess := newTestSession("line1")
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	sess := &session.Session{
+		ID:        "test-write-cmd",
+		Content:   "line1",
+		CreatedAt: time.Date(2026, 1, 11, 12, 0, 0, 0, time.UTC),
+	}
 	m := New(sess)
 
-	// w command should return quit
+	// w command should save but NOT quit
 	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'w'}})
-	if cmd == nil {
-		t.Error("expected quit command after w")
+	if cmd != nil {
+		t.Error("w should save without quitting; expected nil cmd")
+	}
+
+	// Verify file was saved
+	sessionPath := filepath.Join(config.SessionsDir, "test-write-cmd.fem")
+	if _, err := os.Stat(sessionPath); os.IsNotExist(err) {
+		t.Error("expected session file to be saved")
 	}
 }
 
@@ -963,6 +1011,89 @@ func TestSaveErrorHandling(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "failed to save session") {
 		t.Errorf("expected error to contain 'failed to save session', got: %v", err)
+	}
+}
+
+func TestViewportScrollsToKeepCursorVisible(t *testing.T) {
+	// Create document with 50 lines
+	var lines []string
+	for i := 1; i <= 50; i++ {
+		lines = append(lines, fmt.Sprintf("line %d", i))
+	}
+	content := strings.Join(lines, "\n")
+
+	sess := newTestSession(content)
+	m := New(sess)
+	m.width = 80
+	m.height = 20 // 16 visible lines (height - 4 for UI)
+
+	// Position cursor at line 40 (last visible line when viewport is at bottom)
+	m.cursor = 40
+
+	// Start selection
+	m = sendKey(m, 'v')
+
+	// Move up 5 lines - cursor should be visible and selection should show
+	for i := 0; i < 5; i++ {
+		m = sendKey(m, 'k')
+	}
+
+	view := m.View()
+
+	// The cursor line (35) should be visible in the output
+	if !strings.Contains(view, "line 36") { // line 36 because 0-indexed line 35
+		t.Errorf("cursor line should be visible after scrolling up, got:\n%s", view)
+	}
+
+	// The current cursor position should be marked with >
+	if !strings.Contains(view, ">●") {
+		t.Errorf("current line should show cursor and selection indicator")
+	}
+}
+
+func TestViewportScrollsUpWhenSelecting(t *testing.T) {
+	// Bug scenario: start at line 0, scroll down to bottom of initial viewport,
+	// start selection, then scroll up - viewport should follow cursor
+	var lines []string
+	for i := 1; i <= 50; i++ {
+		lines = append(lines, fmt.Sprintf("line %d content here", i))
+	}
+	content := strings.Join(lines, "\n")
+
+	sess := newTestSession(content)
+	m := New(sess)
+	m.width = 80
+	m.height = 20 // 16 visible lines (height - 4 for UI)
+
+	// Navigate to line 15 (last visible line in initial viewport: 0-15)
+	for i := 0; i < 15; i++ {
+		m = sendKey(m, 'j')
+	}
+	if m.cursor != 15 {
+		t.Fatalf("expected cursor at 15, got %d", m.cursor)
+	}
+
+	// Start selection at line 15
+	m = sendKey(m, 'v')
+
+	// Move up 15 lines to get back to line 0
+	for i := 0; i < 15; i++ {
+		m = sendKey(m, 'k')
+	}
+	if m.cursor != 0 {
+		t.Fatalf("expected cursor at 0, got %d", m.cursor)
+	}
+
+	view := m.View()
+
+	// Line 1 (cursor at index 0) MUST be visible
+	if !strings.Contains(view, "line 1 content here") {
+		t.Errorf("cursor line (line 1) should be visible after scrolling up\ngot:\n%s", view)
+	}
+
+	// Cursor indicator should be visible on line 1
+	if !strings.Contains(view, ">●   1 │ line 1") {
+		t.Errorf("cursor indicator '>' should be on line 1 with selection indicator")
 	}
 }
 

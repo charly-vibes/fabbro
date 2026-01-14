@@ -203,7 +203,6 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if err := m.save(); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		}
-		return m, tea.Quit
 	}
 	return m, nil
 }
