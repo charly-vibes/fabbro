@@ -4,97 +4,201 @@ description: Iterate on existing implementation plans with updates and research
 
 # Iterate Implementation Plan
 
-Update existing implementation plans based on user feedback, grounded in codebase reality.
+Update an existing implementation plan based on feedback, grounded in codebase reality.
 
 ## When Invoked
 
-1. **If NO plan file provided**: Ask for the plan path (`ls plans/` to list)
-2. **If plan file provided but NO feedback**: Ask what changes to make
-3. **If BOTH provided**: Proceed directly
+**Three scenarios:**
+
+1. **No plan file provided**: Ask for the plan path (list available plans in `plans/`)
+2. **Plan file provided but NO feedback**: Ask what changes to make
+3. **Both provided**: Proceed directly with updates
 
 ## Process
 
 ### Step 1: Understand Current Plan
 
-1. Read the existing plan file completely
-2. Understand the structure, phases, and scope
-3. Note the success criteria and implementation approach
+1. **Read the existing plan file completely** (no limit/offset)
+2. Understand the overall structure and approach
+3. Note the phases, success criteria, and implementation decisions
+4. Check for existing checkmarks (work already completed)
+5. Identify what worked and what needs changing
 
-### Step 2: Research If Needed
+### Step 2: Understand Requested Changes
+
+**Listen carefully to what the user wants:**
+- Are they adding new requirements?
+- Changing the approach?
+- Adding/removing phases?
+- Adjusting scope?
+- Fixing errors or omissions?
+
+**Ask clarifying questions if unclear:**
+- Use AskUserQuestion tool for ambiguous requests
+- Confirm understanding before making changes
+- Get specific about what success looks like
+
+### Step 3: Research If Needed
 
 **Only if changes require new technical understanding:**
 
 1. Create a todo list for research tasks
 2. Search for relevant patterns in the codebase
-3. Check `research/` for related documentation
-4. Read relevant spec files in `specs/`
+3. Read files that will be affected by changes
+4. Check for existing documentation or specs
+5. Validate feasibility of requested changes
 
-### Step 3: Confirm Understanding
+**Use parallel research when possible** - run multiple searches/reads simultaneously.
 
-Before making changes, confirm:
+**Skip research if:**
+- Changes are straightforward (adding success criteria, clarifying wording)
+- You already understand the technical context
+- Changes are scope/organizational, not technical
+
+### Step 4: Confirm Understanding
+
+**Before making changes, confirm with the user:**
 
 ```
 Based on your feedback, I understand you want to:
 - [Change 1 with specific detail]
 - [Change 2 with specific detail]
 
+[If research was done:]
 My research found:
 - [Relevant code pattern or constraint]
+- [Relevant existing implementation]
 
 I plan to update the plan by:
-1. [Specific modification]
-2. [Another modification]
+1. [Specific modification to plan section X]
+2. [Specific modification to plan section Y]
 
 Does this align with your intent?
 ```
 
-Get user confirmation before proceeding.
+**Wait for confirmation before proceeding.**
 
-### Step 4: Update the Plan
+### Step 5: Update the Plan
 
-1. Make focused, precise edits to the existing plan
-2. Maintain existing structure unless explicitly changing it
-3. Update success criteria if needed
-4. Ensure consistency:
-   - If adding a phase, follow existing pattern
-   - If modifying scope, update "Out of Scope" section
-   - Maintain automated vs manual success criteria distinction
+1. **Make focused, precise edits** to the existing plan
+2. **Maintain existing structure** unless explicitly changing it
+3. **Update success criteria** if scope changed
+4. **Add new phases** following existing pattern
+5. **Preserve completed work** - don't remove checkmarks or completed phases
 
-### Step 5: Present Changes
+**Ensure consistency:**
+- If adding a phase, match the format of existing phases
+- If modifying scope, update "Out of Scope" section
+- If changing approach, update affected phases and success criteria
+- Maintain automated vs manual success criteria distinction
+- Update "Related" section if new specs/research referenced
+
+**Use Edit tool for surgical changes:**
+- Change specific sections, don't rewrite whole file
+- Preserve good content
+- Keep version history implicit (plan files don't need changelog)
+
+### Step 6: Present Changes
 
 ```
 I've updated the plan at `plans/[filename].md`
 
-Changes made:
-- [Specific change 1]
-- [Specific change 2]
+**Changes made:**
+1. [Specific change 1 - section affected]
+2. [Specific change 2 - section affected]
+3. [Specific change 3 - section affected]
+
+**Why these changes:**
+[Brief rationale tying back to user's feedback]
+
+**Impact:**
+- [How this affects implementation effort, time, or approach]
+- [Any new risks or dependencies]
 
 Would you like any further adjustments?
 ```
 
+### Step 7: Iterate If Needed
+
+If user has more feedback:
+- Repeat from Step 2
+- Continue until plan is approved
+- Track iterations with todo list if multiple rounds
+
 ## Guidelines
 
 1. **Be Skeptical**: Question vague feedback, verify technical feasibility
-2. **Be Surgical**: Precise edits, preserve good content
-3. **Be Thorough**: Read entire plan, research only what's necessary
+2. **Be Surgical**: Make precise edits, preserve good content
+3. **Be Thorough**: Read entire plan, understand context before changing
 4. **Be Interactive**: Confirm understanding before making changes
 5. **No Open Questions**: Ask immediately if changes raise questions
+6. **Respect Completed Work**: Don't undo or modify completed phases without good reason
+7. **Maintain Quality**: Updated plan should still be specific, actionable, and complete
 
-## Example Flows
+## Common Iteration Scenarios
 
-**Scenario 1: Everything upfront**
-```
-User: /iterate_plan plans/2025-01-10-feature.md - add phase for error handling
-```
+### Adding a New Phase
 
-**Scenario 2: Plan file only**
-```
-User: /iterate_plan plans/2025-01-10-feature.md
-Agent: I've found the plan. What changes would you like to make?
-```
+**User feedback:** "We also need to add API caching"
 
-**Scenario 3: No arguments**
-```
-User: /iterate_plan
-Agent: Which plan would you like to update? (ls plans/ to list)
-```
+**Process:**
+1. Understand where in sequence this phase belongs
+2. Research existing caching patterns in codebase
+3. Draft new phase following existing format
+4. Update dependencies between phases if needed
+5. Add to success criteria and testing strategy
+
+### Changing Approach
+
+**User feedback:** "Let's use Redis instead of in-memory caching"
+
+**Process:**
+1. Research Redis usage patterns in codebase
+2. Identify all phases affected by this change
+3. Update implementation approach in affected phases
+4. Update success criteria (Redis-specific checks)
+5. Update risks & mitigations section
+
+### Adding Details
+
+**User feedback:** "The authentication phase is too vague"
+
+**Process:**
+1. Identify what's unclear or missing
+2. Research authentication implementation patterns
+3. Add specific file paths and changes
+4. Add detailed test requirements
+5. Make success criteria more specific
+
+### Removing Scope
+
+**User feedback:** "Let's skip the admin UI for now"
+
+**Process:**
+1. Identify all phases related to admin UI
+2. Move removed work to "Out of Scope" section
+3. Remove dependencies on removed phases
+4. Verify remaining phases still make sense
+5. Update overall timeline/effort estimate
+
+### Splitting a Phase
+
+**User feedback:** "Phase 3 is too large, can we break it up?"
+
+**Process:**
+1. Identify logical split points in the phase
+2. Create Phase 3a and 3b (or 3 and 4)
+3. Divide success criteria appropriately
+4. Add dependencies if one must come before the other
+5. Renumber subsequent phases
+
+### Correcting Errors
+
+**User feedback:** "That approach won't work with our auth system"
+
+**Process:**
+1. Understand the constraint or conflict
+2. Research the correct approach
+3. Update affected phases with correct approach
+4. Verify no other phases have same error
+5. Update risks section if this revealed gaps

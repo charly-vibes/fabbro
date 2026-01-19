@@ -2,104 +2,172 @@
 description: Create handoff document for transferring work to another session
 ---
 
-# Create Handoff
+# Create Handoff Document
 
 Create a concise handoff document to transfer context to another agent session. The goal is to compact and summarize your context without losing key details.
 
 ## Process
 
-### 1. Gather Metadata
+### Step 1: Gather Session Context
+
+Collect from your current session:
+
+1. **Tasks worked on**: What was attempted, completed, or blocked
+2. **Decisions made**: Key choices and their rationale
+3. **Problems encountered**: Bugs, blockers, unexpected situations
+4. **Learnings**: Insights about the codebase, patterns, gotchas
+5. **Artifacts created**: Files, commits, PRs, issues
+
+### Step 2: Get Current Git State
 
 ```bash
 # Get current state
 git branch --show-current
 git rev-parse --short HEAD
-date -Iseconds
+git status --short
+git log --oneline -5
+
+# Get date for filename
+date +%Y-%m-%d_%H-%M-%S
 ```
 
-### 2. Determine Filepath
+### Step 3: Create Handoff File
 
-Create file at `handoffs/YYYY-MM-DD_HH-MM-SS_description.md`:
-- If working on a beads issue: `handoffs/YYYY-MM-DD_HH-MM-SS_bd-XXXX_description.md`
-- Example: `handoffs/2026-01-11_14-30-00_bd-a1b2_implement-fem-parser.md`
-- Without issue: `handoffs/2026-01-11_14-30-00_setup-project-structure.md`
-
-### 3. Write Handoff Document
-
-Use this template:
+Save to `handoffs/YYYY-MM-DD_HH-MM-SS_description.md`:
 
 ```markdown
 ---
-date: [ISO timestamp with timezone]
-git_commit: [short hash]
+date: [ISO timestamp]
+git_commit: [short hash from step 2]
 branch: [branch name]
-beads_issue: [bd-XXXX if applicable]
 status: handoff
 ---
 
-# Handoff: [brief description]
+# Handoff: [Brief Description of Work]
 
-## Task(s)
+## Summary
 
-[Description of tasks worked on with status: completed, in-progress, or planned]
+[2-3 sentences: What was the goal? How far did we get? What's the state?]
 
-If working from a plan: reference `plans/YYYY-MM-DD-description.md` and note which phase.
+## Tasks
 
-## Critical References
+### Completed
+- [Task 1 that was finished]
+- [Task 2 that was finished]
 
-[2-3 most important files/docs that must be read to continue]
+### In Progress
+- [Task that was started but not finished]
+  - **Status**: [Where it stands]
+  - **Blocked by**: [If applicable]
 
-## Recent Changes
+### Not Started
+- [Task that was planned but not begun]
 
-[Files modified in `path/to/file.ext:line` format]
+## Critical Context
 
-## Learnings
+### Key Decisions Made
+1. [Decision 1]: [Rationale]
+2. [Decision 2]: [Rationale]
 
-[Important discoveries: patterns, bug root causes, gotchas]
+### Learnings / Gotchas
+- [Learning 1 with file:line reference if applicable]
+- [Gotcha about the codebase that future sessions should know]
 
-## Artifacts
+### Problems Encountered
+- [Problem 1]: [How it was resolved or current state]
 
-[Exhaustive list of files created/updated as paths]
+## Files Changed
+
+List all files modified during this session:
+
+```
+path/to/file1.ext:line-range  - [what changed]
+path/to/file2.ext:line-range  - [what changed]
+```
+
+## Artifacts Created
+
+- [x] Commit: `abc1234` - "commit message"
+- [x] File: `path/to/new/file.ext`
+- [ ] PR: #123 (draft/ready)
+- [ ] Issue: #456
 
 ## Next Steps
 
-[Prioritized list of what to do next]
+**Priority order for resuming work:**
 
-## Notes
+1. [Highest priority next action]
+   - Files: [relevant files]
+   - Approach: [brief description]
 
-[Other useful context that doesn't fit above]
+2. [Second priority action]
+   - Files: [relevant files]
+   - Approach: [brief description]
+
+3. [Third priority action]
+
+## Open Questions
+
+- [Question that couldn't be resolved this session]
+- [Question for the user to consider]
+
+## References
+
+- Plan: `plans/YYYY-MM-DD-name.md` (if applicable)
+- Research: `research/YYYY-MM-DD-topic.md` (if applicable)
+- Related handoffs: `handoffs/YYYY-MM-DD_earlier.md` (if continuing previous work)
 ```
 
-### 4. Update Beads (if applicable)
-
-If working on a tracked issue:
-
-```bash
-# Add comment to issue with handoff reference
-bd comments add bd-XXXX "Handoff created: handoffs/YYYY-MM-DD_HH-MM-SS_description.md"
-
-# Sync beads
-bd sync
-```
-
-### 5. Commit and Respond
+### Step 4: Commit the Handoff
 
 ```bash
 git add handoffs/
-git commit -m "Add handoff: [brief description]"
+git commit -m "docs: add handoff for [brief description]"
 ```
 
-Respond to user:
+### Step 5: Report to User
 
 ```
-Handoff created! Resume in a new session with:
+Handoff created at: handoffs/YYYY-MM-DD_HH-MM-SS_description.md
 
+To resume in a new session:
 /resume_handoff handoffs/YYYY-MM-DD_HH-MM-SS_description.md
+
+Key items for next session:
+1. [Most important next step]
+2. [Second priority]
 ```
 
 ## Guidelines
 
-- **More information, not less** - this is the minimum structure
-- **Be precise** - include file:line references
-- **Avoid large code blocks** - prefer file references
-- **Reference beads issues** - link to `bd-XXXX` when applicable
+1. **Be thorough but concise**: Include everything needed, nothing more
+2. **Use file:line references**: Make it easy to find relevant code
+3. **Capture the "why"**: Decisions without rationale lose value
+4. **Note blockers explicitly**: Don't bury blockers in prose
+5. **Order next steps by priority**: Most important first
+6. **Include open questions**: Unresolved issues are valuable context
+7. **Reference related docs**: Link to plans, research, specs
+
+## When to Create Handoffs
+
+**Always create a handoff when:**
+- Ending a session with incomplete work
+- Work will be continued by a different agent/session
+- Complex context that would be lost
+- Multiple sessions expected for a task
+
+**Skip handoffs when:**
+- Task is fully complete
+- Context is trivial (simple, isolated change)
+- User explicitly says no handoff needed
+
+## Handoff Quality Checklist
+
+Before finishing:
+- [ ] Git state captured (branch, commit)
+- [ ] All modified files listed
+- [ ] Key decisions documented with rationale
+- [ ] Blockers explicitly called out
+- [ ] Next steps prioritized and actionable
+- [ ] References to related docs included
+- [ ] Open questions listed

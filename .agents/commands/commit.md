@@ -2,58 +2,136 @@
 description: Create git commits with user approval and no Claude attribution
 ---
 
-# Commit Changes
+# Commit Changes with Review
 
 Create git commits for changes made during this session.
 
+## CRITICAL RULES
+
+1. **NEVER commit without describing what will be committed first**
+2. **NEVER use `git add -A` or `git add .`**
+3. **ALWAYS review conversation history to write accurate commit messages**
+4. **ALWAYS make multiple logical commits instead of one large commit**
+5. **NEVER add co-author or AI attribution** (commits authored by human only)
+
 ## Process
 
-1. **Review what changed:**
-   - Review the conversation history
-   - Run `git status` to see current changes
-   - Run `git diff` to understand modifications
-   - Consider whether changes should be one or multiple commits
+### Step 1: Review What Changed
 
-2. **Plan your commit(s):**
-   - Identify which files belong together
-   - Draft clear, descriptive commit messages
-   - Use imperative mood ("Add feature" not "Added feature")
-   - Focus on why, not just what
+```bash
+# Show all changes
+git status
 
-3. **Present your plan:**
-   ```
-   I plan to create [N] commit(s):
+# Review each file
+git diff path/to/file1
+git diff path/to/file2
+```
 
-   Commit 1: [message]
-   - file1.ext
-   - file2.ext
+### Step 2: Describe Changes to User
 
-   Commit 2: [message]
-   - file3.ext
+Present a structured description:
 
-   Shall I proceed?
-   ```
+```
+I've made changes to the following files:
 
-4. **Execute upon confirmation:**
-   - Use `git add` with specific files (avoid `-A` or `.`)
-   - Create commits with planned messages
-   - Show result: `git log --oneline -n [number]`
+1. src/components/Login.tsx
+   - Added OAuth provider selection
+   - Implemented token refresh logic
+   - Added error boundary for auth failures
 
-5. **Sync with beads (if applicable):**
-   - If working on a tracked issue: `bd sync`
-   - Push if instructed: `git push`
+2. src/utils/auth.ts
+   - Created validateToken helper
+   - Added token expiry checking
 
-## Important
+3. tests/auth.test.ts
+   - Added tests for new OAuth flow
+   - Added tests for token validation
 
-- **NEVER** add co-author information or Claude attribution
-- Commits should be authored solely by the user
-- Do not include "Generated with Claude" messages
-- Do not add "Co-Authored-By" lines
-- Write commit messages as if the user wrote them
+These changes can be grouped into logical commits:
 
-## Remember
+Commit 1: "Add OAuth provider selection to login"
+- src/components/Login.tsx
+- src/utils/auth.ts
 
-- You have full context of what was done
-- Group related changes together
-- Keep commits focused and atomic
-- The user trusts your judgment
+Commit 2: "Add token validation and refresh"
+- src/utils/auth.ts (additional changes)
+- tests/auth.test.ts
+
+Shall I proceed with these commits?
+```
+
+### Step 3: Wait for Confirmation
+
+**Do not proceed until the user confirms or provides guidance.**
+
+### Step 4: Execute Commits
+
+For each approved commit:
+
+```bash
+# Add specific files only
+git add src/components/Login.tsx
+git add src/utils/auth.ts
+
+# Create commit with descriptive message
+git commit -m "add(auth): OAuth provider selection in login
+
+Added UI for selecting OAuth provider (Google, GitHub, Microsoft).
+Implemented provider-specific configuration and redirect handling.
+
+- LoginForm component now displays provider buttons
+- auth.ts handles provider-specific OAuth flows
+- Error states for unsupported providers"
+
+# Verify
+git log --oneline -1
+```
+
+### Step 5: Repeat for Additional Commits
+
+Continue with remaining logical groups of changes.
+
+## Commit Message Format
+
+```
+<type>(<scope>): <short description>
+
+<detailed description of what and why>
+
+- Bullet points for key changes
+- Focus on the 'why' not just the 'what'
+```
+
+**Types:** add, update, fix, refactor, docs, test, chore
+
+## Examples of Good vs Bad
+
+### Bad Approach
+```bash
+git add -A
+git commit -m "updates"
+```
+
+### Good Approach
+```bash
+git add src/auth/oauth.ts
+git add src/auth/providers.ts
+git commit -m "add(auth): OAuth provider abstraction
+
+Created provider interface and implementations for Google, GitHub.
+Each provider handles its own authorization URLs and token exchange.
+
+- BaseProvider interface defines contract
+- GoogleProvider and GitHubProvider implementations
+- Provider registry for runtime selection"
+```
+
+## Verification Checklist
+
+Before each commit:
+- [ ] Reviewed git diff for each file
+- [ ] Grouped changes logically
+- [ ] Written descriptive commit message with context
+- [ ] Used explicit file paths in git add
+- [ ] No AI attribution in commit message
+- [ ] Commit message explains why, not just what
