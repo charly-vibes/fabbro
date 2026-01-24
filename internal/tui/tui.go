@@ -407,15 +407,6 @@ func (m Model) View() string {
 		visibleLines = 10
 	}
 
-	start := 0
-	if m.cursor >= visibleLines {
-		start = m.cursor - visibleLines + 1
-	}
-	end := start + visibleLines
-	if end > len(m.lines) {
-		end = len(m.lines)
-	}
-
 	selStart, selEnd := m.selection.lines()
 	prefixLen := 12 // ">◆ 123 ● │ " is ~12 chars
 	contentWidth := m.width - prefixLen
@@ -427,6 +418,30 @@ func (m Model) View() string {
 	annotatedLines := make(map[int]bool)
 	for _, ann := range m.annotations {
 		annotatedLines[ann.StartLine] = true
+	}
+
+	// Calculate start and end accounting for wrapped lines consuming multiple screen rows
+	start := 0
+	if m.cursor > 0 {
+		// Find start such that cursor is visible within visibleLines screen rows
+		screenRows := 0
+		for i := m.cursor; i >= 0; i-- {
+			wrapped := wrapLine(m.lines[i], contentWidth)
+			if screenRows+len(wrapped) > visibleLines {
+				start = i + 1
+				break
+			}
+			screenRows += len(wrapped)
+		}
+	}
+
+	// Calculate end based on screen rows
+	screenRows := 0
+	end := start
+	for end < len(m.lines) && screenRows < visibleLines {
+		wrapped := wrapLine(m.lines[end], contentWidth)
+		screenRows += len(wrapped)
+		end++
 	}
 
 	for i := start; i < end; i++ {
