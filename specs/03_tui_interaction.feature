@@ -265,7 +265,7 @@ Feature: TUI Interaction
 
   # --- Direct Content Editing ---
 
-  @planned
+  @implemented
   Scenario: Opening inline editor for direct content changes
     Given I have lines 42-45 selected
     When I press "i" (or SPC then i)
@@ -273,15 +273,16 @@ Feature: TUI Interaction
     And it should show the selected content
     And I should be able to edit the text directly
 
-  @planned
+  @implemented
   Scenario: Saving inline edit
     Given the inline editor is open with modified content
-    When I press Ctrl+Enter (or Escape then confirm)
+    When I press Ctrl+S (or Ctrl+Enter)
     Then a "change" annotation should be created
     And the annotation should contain my edited version as the replacement
+    And the annotation replacement contains \\n for new lines
     And the inline editor should close
 
-  @planned
+  @implemented
   Scenario: Canceling inline edit
     Given the inline editor is open
     When I press Escape twice (or Ctrl+C)

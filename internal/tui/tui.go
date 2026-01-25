@@ -11,6 +11,7 @@ import (
 	"github.com/charly-vibes/fabbro/internal/fem"
 	"github.com/charly-vibes/fabbro/internal/highlight"
 	"github.com/charly-vibes/fabbro/internal/session"
+	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -20,7 +21,14 @@ const (
 	modeNormal mode = iota
 	modeInput
 	modePalette
+	modeEditor
 )
+
+type editorState struct {
+	ta         textarea.Model
+	start, end int  // 0-indexed line range being edited
+	escPending bool // true after first Esc press
+}
 
 type clearMessageMsg struct{}
 
@@ -76,6 +84,7 @@ type Model struct {
 	lastMessage    string // last success message to display
 	highlighter    *highlight.Highlighter
 	sourceFile     string
+	editor         *editorState // non-nil when in editor mode
 }
 
 func New(sess *session.Session) Model {
@@ -121,6 +130,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.handleInputMode(msg)
 		case modePalette:
 			return m.handlePaletteMode(msg)
+		case modeEditor:
+			return m.handleEditorMode(msg)
 		default:
 			return m.handleNormalMode(msg)
 		}
@@ -237,6 +248,11 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.inputType = "change"
 		}
 
+	case "i":
+		if m.selection.active {
+			m.openEditor()
+		}
+
 	case " ":
 		m.mode = modePalette
 
@@ -306,6 +322,10 @@ func (m Model) handlePaletteMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.input = ""
 			m.inputType = "change"
 		}
+	case "i":
+		if m.selection.active {
+			m.openEditor()
+		}
 	default:
 		m.mode = modeNormal
 	}
@@ -362,6 +382,100 @@ func (m Model) handleInputMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	}
 	return m, nil
+}
+
+func (m *Model) openEditor() {
+	start, end := m.selection.lines()
+	content := strings.Join(m.lines[start:end+1], "\n")
+
+	ta := textarea.New()
+	ta.SetValue(content)
+	ta.Focus()
+	ta.Prompt = ""
+	ta.CharLimit = 0
+	ta.ShowLineNumbers = false
+
+	m.editor = &editorState{
+		ta:    ta,
+		start: start,
+		end:   end,
+	}
+	m.mode = modeEditor
+}
+
+func (m Model) handleEditorMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.editor == nil {
+		m.mode = modeNormal
+		return m, nil
+	}
+
+	switch msg.Type {
+	case tea.KeyEsc:
+		if m.editor.escPending {
+			// Second Esc - cancel and exit
+			m.editor = nil
+			m.mode = modeNormal
+			return m, nil
+		}
+		// First Esc - set pending
+		m.editor.escPending = true
+		return m, nil
+
+	case tea.KeyCtrlS:
+		// Save the edited content as a change annotation
+		m.saveEditorContent()
+		return m, nil
+
+	case tea.KeyCtrlC:
+		// Immediate cancel
+		m.editor = nil
+		m.mode = modeNormal
+		return m, nil
+	}
+
+	// Reset escPending on any other key
+	m.editor.escPending = false
+
+	// Delegate to textarea
+	var cmd tea.Cmd
+	m.editor.ta, cmd = m.editor.ta.Update(msg)
+	return m, cmd
+}
+
+func (m *Model) saveEditorContent() {
+	if m.editor == nil {
+		return
+	}
+
+	edited := m.editor.ta.Value()
+	// Encode newlines as literal \n for storage
+	encoded := strings.ReplaceAll(edited, "\n", "\\n")
+
+	// Format the change prefix
+	startLine := m.editor.start + 1 // 1-indexed
+	endLine := m.editor.end + 1
+	var prefix string
+	if startLine == endLine {
+		prefix = fmt.Sprintf("[line %d] -> ", startLine)
+	} else {
+		prefix = fmt.Sprintf("[lines %d-%d] -> ", startLine, endLine)
+	}
+	text := prefix + encoded
+
+	// Add annotation for each line in the range
+	for line := m.editor.start; line <= m.editor.end; line++ {
+		m.annotations = append(m.annotations, fem.Annotation{
+			StartLine: line + 1, // 1-indexed
+			EndLine:   line + 1,
+			Type:      "change",
+			Text:      text,
+		})
+	}
+
+	// Clear editor and selection
+	m.editor = nil
+	m.mode = modeNormal
+	m.selection = selection{}
 }
 
 func (m Model) save() error {
@@ -513,20 +627,43 @@ func (m Model) View() string {
 	case modeInput:
 		prompt := fem.Prompts[m.inputType]
 		b.WriteString(fmt.Sprintf("%s %s_\n", prompt, m.input))
+	case modeEditor:
+		b.WriteString("┌─ Edit selection (Ctrl+S save, Esc Esc cancel) ─────┐\n")
+		if m.editor != nil {
+			// Render textarea content in the panel
+			taView := m.editor.ta.View()
+			taLines := strings.Split(taView, "\n")
+			innerWidth := width - 4 // account for "│ " and " │"
+			maxLines := 6           // limit editor height
+			for i, line := range taLines {
+				if i >= maxLines {
+					b.WriteString("│ ...                                                │\n")
+					break
+				}
+				// Pad or truncate line to fit
+				lineRunes := []rune(line)
+				if len(lineRunes) > innerWidth {
+					lineRunes = lineRunes[:innerWidth]
+				}
+				padding := innerWidth - len(lineRunes)
+				b.WriteString(fmt.Sprintf("│ %s%s │\n", string(lineRunes), strings.Repeat(" ", padding)))
+			}
+		}
+		b.WriteString("└────────────────────────────────────────────────────┘\n")
 	case modePalette:
 		b.WriteString("┌─ Commands ─────────────────────────────────────────┐\n")
 		b.WriteString("│ [w]rite    [Q]uit                                  │\n")
 		if m.selection.active {
 			b.WriteString("├─ Annotations ──────────────────────────────────────┤\n")
 			b.WriteString("│ [c]omment  [d]elete  [q]uestion  [r]eplace         │\n")
-			b.WriteString("│ [e]xpand   [k]eep    [u]nclear                     │\n")
+			b.WriteString("│ [e]xpand   [k]eep    [u]nclear   [i]nline-edit     │\n")
 		}
 		b.WriteString("│                                  [ESC] cancel      │\n")
 		b.WriteString("└────────────────────────────────────────────────────┘\n")
 	default:
 		b.WriteString("[v]select [SPC]palette [w]rite [Q]uit")
 		if m.selection.active {
-			b.WriteString(" │ [c]omment [d]elete [q]uestion [e]xpand [u]nclear [r]eplace")
+			b.WriteString(" │ [c]omment [d]elete [q]uestion [e]xpand [u]nclear [r]eplace [i]nline")
 		}
 		b.WriteString("\n")
 	}

@@ -1620,6 +1620,196 @@ func main() {
 	}
 }
 
+// --- Inline Editor Tests ---
+
+func TestPressI_WithSelection_EntersEditorMode(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3\nline4")
+	m := New(sess)
+
+	// Select lines 1-2 (0-indexed)
+	m.cursor = 1
+	m = sendKey(m, 'v')
+	m = sendKey(m, 'j') // now selection is 1-2
+
+	// Press i to enter editor mode
+	m = sendKey(m, 'i')
+
+	if m.mode != modeEditor {
+		t.Errorf("expected modeEditor, got %d", m.mode)
+	}
+	if m.editor == nil {
+		t.Fatal("expected editor to be initialized")
+	}
+	if m.editor.start != 1 || m.editor.end != 2 {
+		t.Errorf("expected editor range 1-2, got %d-%d", m.editor.start, m.editor.end)
+	}
+
+	// Textarea should contain the selected lines
+	expectedContent := "line2\nline3"
+	if m.editor.ta.Value() != expectedContent {
+		t.Errorf("expected textarea content %q, got %q", expectedContent, m.editor.ta.Value())
+	}
+}
+
+func TestPressI_WithoutSelection_DoesNothing(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+
+	// No selection, press i
+	m = sendKey(m, 'i')
+
+	if m.mode != modeNormal {
+		t.Errorf("expected modeNormal, got %d", m.mode)
+	}
+	if m.editor != nil {
+		t.Error("expected editor to be nil when no selection")
+	}
+}
+
+func TestEditor_Save_CreatesChangeAnnotation(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3\nline4")
+	m := New(sess)
+
+	// Select line 1 (0-indexed)
+	m.cursor = 1
+	m = sendKey(m, 'v')
+	m = sendKey(m, 'i')
+
+	// Simulate editing - set textarea value directly
+	m.editor.ta.SetValue("modified line2")
+
+	// Save with ctrl+s (more reliable than ctrl+enter)
+	m = sendKeyType(m, tea.KeyCtrlS)
+
+	if m.mode != modeNormal {
+		t.Errorf("expected modeNormal after save, got %d", m.mode)
+	}
+	if m.editor != nil {
+		t.Error("expected editor to be nil after save")
+	}
+	if len(m.annotations) != 1 {
+		t.Fatalf("expected 1 annotation, got %d", len(m.annotations))
+	}
+
+	ann := m.annotations[0]
+	if ann.Type != "change" {
+		t.Errorf("expected annotation type 'change', got %q", ann.Type)
+	}
+	if ann.StartLine != 2 { // 1-indexed
+		t.Errorf("expected annotation on line 2, got %d", ann.StartLine)
+	}
+	// Text should contain the modified content
+	if !strings.Contains(ann.Text, "modified line2") {
+		t.Errorf("expected annotation text to contain 'modified line2', got %q", ann.Text)
+	}
+}
+
+func TestEditor_Save_MultiLine_EncodesNewlines(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3\nline4")
+	m := New(sess)
+
+	// Select lines 1-2 (0-indexed)
+	m.cursor = 1
+	m = sendKey(m, 'v')
+	m = sendKey(m, 'j')
+	m = sendKey(m, 'i')
+
+	// Edit to have newlines
+	m.editor.ta.SetValue("new line2\nnew line3")
+
+	// Save
+	m = sendKeyType(m, tea.KeyCtrlS)
+
+	if len(m.annotations) != 2 { // one per selected line
+		t.Fatalf("expected 2 annotations (one per line), got %d", len(m.annotations))
+	}
+
+	// Check that newlines are encoded as \\n in the text
+	ann := m.annotations[0]
+	if !strings.Contains(ann.Text, "\\n") {
+		t.Errorf("expected newlines to be encoded as \\\\n, got %q", ann.Text)
+	}
+}
+
+func TestEditor_Cancel_EscTwice(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+
+	// Select and enter editor
+	m.cursor = 1
+	m = sendKey(m, 'v')
+	m = sendKey(m, 'i')
+
+	if m.mode != modeEditor {
+		t.Fatal("expected to be in editor mode")
+	}
+
+	// First Esc - should set escPending
+	m = sendKeyType(m, tea.KeyEsc)
+	if m.mode != modeEditor {
+		t.Error("expected to still be in editor mode after first Esc")
+	}
+	if !m.editor.escPending {
+		t.Error("expected escPending to be true after first Esc")
+	}
+
+	// Second Esc - should cancel and exit
+	m = sendKeyType(m, tea.KeyEsc)
+	if m.mode != modeNormal {
+		t.Errorf("expected modeNormal after second Esc, got %d", m.mode)
+	}
+	if m.editor != nil {
+		t.Error("expected editor to be nil after cancel")
+	}
+	if len(m.annotations) != 0 {
+		t.Error("expected no annotations after cancel")
+	}
+}
+
+func TestEditor_EscPending_ResetsOnTyping(t *testing.T) {
+	sess := newTestSession("line1\nline2")
+	m := New(sess)
+
+	// Select and enter editor
+	m.cursor = 0
+	m = sendKey(m, 'v')
+	m = sendKey(m, 'i')
+
+	// First Esc
+	m = sendKeyType(m, tea.KeyEsc)
+	if !m.editor.escPending {
+		t.Fatal("expected escPending after first Esc")
+	}
+
+	// Type something - should reset escPending
+	m = sendKey(m, 'a')
+	if m.editor.escPending {
+		t.Error("expected escPending to be reset after typing")
+	}
+	if m.mode != modeEditor {
+		t.Error("expected to still be in editor mode")
+	}
+}
+
+func TestView_InEditorMode_ShowsEditorPanel(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+	m.width = 80
+	m.height = 30
+
+	// Select and enter editor
+	m.cursor = 1
+	m = sendKey(m, 'v')
+	m = sendKey(m, 'i')
+
+	view := m.View()
+
+	// Should show editor panel with instructions
+	if !strings.Contains(view, "Edit") {
+		t.Errorf("expected editor panel to show 'Edit', got:\n%s", view)
+	}
+}
+
 func visibleLength(s string) int {
 	inEscape := false
 	count := 0
