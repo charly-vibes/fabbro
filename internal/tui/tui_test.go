@@ -916,6 +916,109 @@ func TestGPendingClearedByOtherKey(t *testing.T) {
 	}
 }
 
+func TestZZCentersCursor(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3\nline4\nline5\nline6\nline7\nline8\nline9\nline10")
+	m := New(sess)
+	m.height = 10 // visibleLines = 10 - 4 = 6
+	m.cursor = 5  // cursor at line 6 (0-indexed)
+
+	// z sets pending
+	m = sendKey(m, 'z')
+	if !m.zPending {
+		t.Error("expected zPending after z")
+	}
+
+	// Second z centers viewport
+	m = sendKey(m, 'z')
+	if m.zPending {
+		t.Error("zPending should be cleared after zz")
+	}
+	// visibleLines = 6, cursor = 5, viewportTop should be 5 - 6/2 = 2
+	if m.viewportTop != 2 {
+		t.Errorf("expected viewportTop at 2 after zz, got %d", m.viewportTop)
+	}
+}
+
+func TestZTMovesCursorToTop(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3\nline4\nline5\nline6\nline7\nline8\nline9\nline10")
+	m := New(sess)
+	m.height = 10
+	m.cursor = 5
+
+	// zt moves cursor line to top of viewport
+	m = sendKey(m, 'z')
+	m = sendKey(m, 't')
+
+	// viewportTop should equal cursor
+	if m.viewportTop != 5 {
+		t.Errorf("expected viewportTop at 5 after zt, got %d", m.viewportTop)
+	}
+}
+
+func TestZBMovesCursorToBottom(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3\nline4\nline5\nline6\nline7\nline8\nline9\nline10")
+	m := New(sess)
+	m.height = 10 // visibleLines = 6
+	m.cursor = 5
+
+	// zb moves cursor line to bottom of viewport
+	m = sendKey(m, 'z')
+	m = sendKey(m, 'b')
+
+	// visibleLines = 6, cursor = 5, viewportTop should be 5 - 6 + 1 = 0
+	if m.viewportTop != 0 {
+		t.Errorf("expected viewportTop at 0 after zb, got %d", m.viewportTop)
+	}
+}
+
+func TestViewportResetOnCursorMove(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3\nline4\nline5")
+	m := New(sess)
+	m.height = 10
+	m.cursor = 2
+	m.viewportTop = 1 // explicitly set viewport
+
+	// Moving cursor should reset viewportTop to auto-follow (-1)
+	m = sendKey(m, 'j')
+
+	if m.viewportTop != -1 {
+		t.Errorf("expected viewportTop reset to -1 after cursor move, got %d", m.viewportTop)
+	}
+}
+
+func TestZPendingClearedByOtherKey(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+
+	// z sets pending
+	m = sendKey(m, 'z')
+	if !m.zPending {
+		t.Error("expected zPending after z")
+	}
+
+	// 'x' (unrecognized for z-prefix) clears pending
+	m = sendKey(m, 'x')
+	if m.zPending {
+		t.Error("zPending should be cleared by other key")
+	}
+}
+
+func TestViewportClampsAtBoundaries(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+	m.height = 10 // visibleLines = 6
+	m.cursor = 0  // at top
+
+	// zz at top should clamp viewportTop to 0
+	m = sendKey(m, 'z')
+	m = sendKey(m, 'z')
+
+	// cursor=0, visibleLines=6, 0 - 6/2 = -3 -> clamped to 0
+	if m.viewportTop != 0 {
+		t.Errorf("expected viewportTop clamped to 0, got %d", m.viewportTop)
+	}
+}
+
 func TestPaletteModeOpen(t *testing.T) {
 	sess := newTestSession("line1\nline2")
 	m := New(sess)

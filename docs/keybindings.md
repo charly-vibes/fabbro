@@ -12,6 +12,9 @@ This is the **authoritative source** for fabbro TUI keybindings.
 | `Ctrl+u` | Scroll up half page |
 | `gg` | Jump to first line |
 | `G` | Jump to last line |
+| `zz` | Center cursor line in viewport |
+| `zt` | Move cursor line to top of viewport |
+| `zb` | Move cursor line to bottom of viewport |
 
 ## Selection
 

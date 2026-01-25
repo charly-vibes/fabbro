@@ -80,6 +80,8 @@ type Model struct {
 	width          int
 	height         int
 	gPending       bool   // waiting for second 'g' in gg command
+	zPending       bool   // waiting for second key in z commands (zz, zt, zb)
+	viewportTop    int    // explicit viewport start line (-1 means auto-follow cursor)
 	lastError      string // last error message to display
 	lastMessage    string // last success message to display
 	highlighter    *highlight.Highlighter
@@ -102,6 +104,7 @@ func NewWithFile(sess *session.Session, sourceFile string) Model {
 		annotations: []fem.Annotation{},
 		highlighter: highlight.New(sourceFile, sess.Content),
 		sourceFile:  sourceFile,
+		viewportTop: -1, // auto-follow cursor
 	}
 }
 
@@ -145,9 +148,35 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.gPending = false
 		if msg.String() == "g" {
 			m.cursor = 0
+			m.viewportTop = -1 // reset to auto-follow
 			return m, nil
 		}
 		// Fall through to handle the key normally
+	}
+
+	// Handle z-pending state (viewport centering)
+	if m.zPending {
+		m.zPending = false
+		visibleLines := m.height - 4
+		if visibleLines < 5 {
+			visibleLines = 10
+		}
+		switch msg.String() {
+		case "z": // zz - center cursor in viewport
+			m.viewportTop = m.cursor - visibleLines/2
+		case "t": // zt - cursor at top of viewport
+			m.viewportTop = m.cursor
+		case "b": // zb - cursor at bottom of viewport
+			m.viewportTop = m.cursor - visibleLines + 1
+		}
+		// Clamp viewportTop to valid range
+		if m.viewportTop < 0 {
+			m.viewportTop = 0
+		}
+		if m.viewportTop > len(m.lines)-1 {
+			m.viewportTop = len(m.lines) - 1
+		}
+		return m, nil
 	}
 
 	switch msg.String() {
@@ -157,6 +186,7 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "j", "down":
 		if m.cursor < len(m.lines)-1 {
 			m.cursor++
+			m.viewportTop = -1 // reset to auto-follow on cursor movement
 			if m.selection.active {
 				m.selection.cursor = m.cursor
 			}
@@ -165,6 +195,7 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "k", "up":
 		if m.cursor > 0 {
 			m.cursor--
+			m.viewportTop = -1 // reset to auto-follow on cursor movement
 			if m.selection.active {
 				m.selection.cursor = m.cursor
 			}
@@ -179,6 +210,7 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.cursor > len(m.lines)-1 {
 			m.cursor = len(m.lines) - 1
 		}
+		m.viewportTop = -1 // reset to auto-follow on cursor movement
 
 	case "ctrl+u":
 		halfPage := (m.height - 4) / 2
@@ -189,12 +221,17 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.cursor < 0 {
 			m.cursor = 0
 		}
+		m.viewportTop = -1 // reset to auto-follow on cursor movement
 
 	case "g":
 		m.gPending = true
 
 	case "G":
 		m.cursor = len(m.lines) - 1
+		m.viewportTop = -1 // reset to auto-follow
+
+	case "z":
+		m.zPending = true
 
 	case "esc":
 		m.selection = selection{}
@@ -556,8 +593,17 @@ func (m Model) View() string {
 
 	// Calculate start and end accounting for wrapped lines consuming multiple screen rows
 	start := 0
-	if m.cursor > 0 {
-		// Find start such that cursor is visible within visibleLines screen rows
+	if m.viewportTop >= 0 {
+		// Use explicit viewport position (set by zz, zt, zb)
+		start = m.viewportTop
+		if start < 0 {
+			start = 0
+		}
+		if start >= len(m.lines) {
+			start = len(m.lines) - 1
+		}
+	} else if m.cursor > 0 {
+		// Auto-follow: Find start such that cursor is visible within visibleLines screen rows
 		screenRows := 0
 		for i := m.cursor; i >= 0; i-- {
 			wrapped := wrapLine(m.lines[i], contentWidth)

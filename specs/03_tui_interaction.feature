@@ -36,7 +36,7 @@ Feature: TUI Interaction
     When I press "G"
     Then the cursor should jump to the last line
 
-  @planned
+  @implemented
   Scenario: Center cursor in viewport
     Given the cursor is on line 50
     When I press "zz"
