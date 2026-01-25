@@ -33,6 +33,9 @@ cat file.go | fabbro review --stdin
 
 # Extract annotations as JSON
 fabbro apply <session-id> --json
+
+# Or find session by source file (useful for agents)
+fabbro apply --file plans/my-plan.md --json
 ```
 
 ## Commands
@@ -44,6 +47,7 @@ fabbro apply <session-id> --json
 | `fabbro review --stdin` | Start a review session, reading content from stdin |
 | `fabbro apply <id>` | Show annotations from a session |
 | `fabbro apply <id> --json` | Output annotations as JSON |
+| `fabbro apply --file <path>` | Find and apply latest session for a source file |
 | `fabbro completion <shell>` | Generate shell completion scripts (bash, zsh, fish, powershell) |
 
 See [CLI documentation](docs/cli.md) for full details.

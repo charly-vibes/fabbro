@@ -30,7 +30,7 @@ func TestTracerBullet(t *testing.T) {
 
 	// 2. Create session with known content
 	content := "First line\nSecond line\nThird line"
-	sess, err := session.Create(content)
+	sess, err := session.Create(content, "")
 	if err != nil {
 		t.Fatalf("Create session failed: %v", err)
 	}
@@ -217,7 +217,7 @@ func TestApplyCommandWithJSON(t *testing.T) {
 	config.Init()
 
 	// Create a session with FEM content
-	sess, _ := session.Create("Test content")
+	sess, _ := session.Create("Test content", "")
 	femContent := `---
 session_id: ` + sess.ID + `
 created_at: 2026-01-11T22:00:00Z
@@ -255,7 +255,7 @@ func TestApplyCommandWithoutJSON(t *testing.T) {
 
 	config.Init()
 
-	sess, _ := session.Create("Test content")
+	sess, _ := session.Create("Test content", "")
 	femContent := `---
 session_id: ` + sess.ID + `
 created_at: 2026-01-11T22:00:00Z
@@ -280,6 +280,103 @@ Test content {>> a comment <<}`
 	}
 	if !strings.Contains(stdout.String(), "Annotations:") {
 		t.Error("expected output to contain 'Annotations:'")
+	}
+}
+
+func TestApplyCommandByFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	// Create a session with source file
+	sess, _ := session.Create("Test content", "plans/my-plan.md")
+	femContent := `---
+session_id: ` + sess.ID + `
+created_at: 2026-01-11T22:00:00Z
+source_file: 'plans/my-plan.md'
+---
+
+Test content {>> a comment <<}`
+
+	sessionPath := filepath.Join(config.SessionsDir, sess.ID+".fem")
+	os.WriteFile(sessionPath, []byte(femContent), 0644)
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"apply", "--file", "plans/my-plan.md", "--json"}, stdin, &stdout, &stderr)
+
+	if code != 0 {
+		t.Errorf("expected exit code 0, got %d. stderr: %s", code, stderr.String())
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal([]byte(stdout.String()), &result); err != nil {
+		t.Fatalf("failed to parse JSON output: %v", err)
+	}
+
+	if result["sessionId"] != sess.ID {
+		t.Errorf("expected sessionId=%s, got %v", sess.ID, result["sessionId"])
+	}
+	if result["sourceFile"] != "plans/my-plan.md" {
+		t.Errorf("expected sourceFile=plans/my-plan.md, got %v", result["sourceFile"])
+	}
+}
+
+func TestApplyCommandByFileNotFound(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"apply", "--file", "nonexistent.md"}, stdin, &stdout, &stderr)
+
+	if code != 1 {
+		t.Errorf("expected exit code 1, got %d", code)
+	}
+}
+
+func TestApplyCommandMutualExclusivity(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"apply", "session-123", "--file", "doc.md"}, stdin, &stdout, &stderr)
+
+	if code != 1 {
+		t.Errorf("expected exit code 1, got %d", code)
+	}
+}
+
+func TestApplyCommandNoInput(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"apply"}, stdin, &stdout, &stderr)
+
+	if code != 1 {
+		t.Errorf("expected exit code 1, got %d", code)
 	}
 }
 

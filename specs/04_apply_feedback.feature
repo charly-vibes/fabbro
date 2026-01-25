@@ -194,3 +194,44 @@ Feature: Apply Feedback
     When I run the command `fabbro apply <session-id> --json --pretty`
     Then the JSON should be formatted with indentation
     And the output should be human-readable
+
+  # --- File-Based Session Lookup ---
+
+  @implemented
+  Scenario: Apply by source file path
+    Given a session was created from file "plans/my-plan.md"
+    When I run the command `fabbro apply --file plans/my-plan.md --json`
+    Then the output should be the annotations from that session
+    And the JSON should contain "sourceFile": "plans/my-plan.md"
+
+  @implemented
+  Scenario: Apply by file returns latest session
+    Given a session "session-old" was created from file "doc.md" at 10:00
+    And a session "session-new" was created from file "doc.md" at 11:00
+    When I run the command `fabbro apply --file doc.md --json`
+    Then the output should be from session "session-new"
+
+  @implemented
+  Scenario: Apply by file not found
+    Given no session was created from file "unknown.md"
+    When I run the command `fabbro apply --file unknown.md`
+    Then an error message should indicate no session found for that file
+    And the command should exit with code 1
+
+  @implemented
+  Scenario: Cannot use both session ID and --file
+    When I run the command `fabbro apply session-123 --file doc.md`
+    Then an error message should indicate mutual exclusivity
+    And the command should exit with code 1
+
+  @implemented
+  Scenario: JSON output includes sourceFile
+    Given a session was created from file "README.md"
+    When I run the command `fabbro apply <session-id> --json`
+    Then the JSON should contain "sourceFile": "README.md"
+
+  @implemented
+  Scenario: stdin session has empty sourceFile
+    Given a session was created from stdin
+    When I run the command `fabbro apply <session-id> --json`
+    Then the JSON should contain "sourceFile": ""

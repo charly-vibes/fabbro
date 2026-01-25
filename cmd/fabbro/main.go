@@ -117,7 +117,7 @@ func buildReviewCmd(stdin io.Reader, stdout io.Writer) *cobra.Command {
 				return fmt.Errorf("no input provided. Use --stdin or provide a file path")
 			}
 
-			sess, err := session.Create(content)
+			sess, err := session.Create(content, sourceFile)
 			if err != nil {
 				return fmt.Errorf("failed to create session: %w", err)
 			}
@@ -139,32 +139,53 @@ func buildReviewCmd(stdin io.Reader, stdout io.Writer) *cobra.Command {
 
 func buildApplyCmd(stdout io.Writer) *cobra.Command {
 	var jsonFlag bool
+	var fileFlag string
 	cmd := &cobra.Command{
 		Use:   "apply [session-id]",
 		Short: "Apply annotations from a session",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if !config.IsInitialized() {
 				return fmt.Errorf("fabbro not initialized. Run 'fabbro init' first")
 			}
 
-			sessionID := args[0]
-			sess, err := session.Load(sessionID)
-			if err != nil {
-				return fmt.Errorf("failed to load session %q: %w", sessionID, err)
+			// Validate mutual exclusivity
+			if fileFlag != "" && len(args) == 1 {
+				return fmt.Errorf("cannot use both session-id and --file")
+			}
+			if fileFlag == "" && len(args) == 0 {
+				return fmt.Errorf("must provide either session-id or --file")
+			}
+
+			var sess *session.Session
+			var err error
+
+			if fileFlag != "" {
+				sess, err = session.FindBySourceFile(fileFlag)
+				if err != nil {
+					return fmt.Errorf("failed to find session for file %q: %w", fileFlag, err)
+				}
+			} else {
+				sessionID := args[0]
+				sess, err = session.Load(sessionID)
+				if err != nil {
+					return fmt.Errorf("failed to load session %q: %w", sessionID, err)
+				}
 			}
 
 			annotations, _, err := fem.Parse(sess.Content)
 			if err != nil {
-				return fmt.Errorf("failed to parse FEM in session %q: %w", sessionID, err)
+				return fmt.Errorf("failed to parse FEM in session %q: %w", sess.ID, err)
 			}
 
 			if jsonFlag {
 				output := struct {
 					SessionID   string           `json:"sessionId"`
+					SourceFile  string           `json:"sourceFile"`
 					Annotations []fem.Annotation `json:"annotations"`
 				}{
 					SessionID:   sess.ID,
+					SourceFile:  sess.SourceFile,
 					Annotations: annotations,
 				}
 
@@ -174,6 +195,9 @@ func buildApplyCmd(stdout io.Writer) *cobra.Command {
 			}
 
 			fmt.Fprintf(stdout, "Session: %s\n", sess.ID)
+			if sess.SourceFile != "" {
+				fmt.Fprintf(stdout, "Source: %s\n", sess.SourceFile)
+			}
 			fmt.Fprintf(stdout, "Annotations: %d\n", len(annotations))
 			for _, a := range annotations {
 				if a.StartLine == a.EndLine {
@@ -186,5 +210,6 @@ func buildApplyCmd(stdout io.Writer) *cobra.Command {
 		},
 	}
 	cmd.Flags().BoolVar(&jsonFlag, "json", false, "Output as JSON")
+	cmd.Flags().StringVar(&fileFlag, "file", "", "Find session by source file path")
 	return cmd
 }

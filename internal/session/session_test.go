@@ -20,7 +20,7 @@ func TestCreate_CreatesSessionFile(t *testing.T) {
 	config.Init()
 
 	content := "Hello, world!"
-	session, err := Create(content)
+	session, err := Create(content, "")
 	if err != nil {
 		t.Fatalf("Create() returned error: %v", err)
 	}
@@ -49,7 +49,7 @@ func TestCreate_FileContainsFrontmatterAndContent(t *testing.T) {
 	config.Init()
 
 	content := "Line one\nLine two\nLine three"
-	session, _ := Create(content)
+	session, _ := Create(content, "")
 
 	sessionFile := filepath.Join(config.SessionsDir, session.ID+".fem")
 	data, err := os.ReadFile(sessionFile)
@@ -87,7 +87,7 @@ func TestLoad_LoadsExistingSession(t *testing.T) {
 	config.Init()
 
 	content := "Test content for loading"
-	created, _ := Create(content)
+	created, _ := Create(content, "")
 
 	loaded, err := Load(created.ID)
 	if err != nil {
@@ -226,7 +226,7 @@ func TestCreate_ReturnsErrorWhenSessionsDirMissing(t *testing.T) {
 	defer os.Chdir(origDir)
 
 	// Don't initialize - sessions dir doesn't exist
-	_, err := Create("content")
+	_, err := Create("content", "")
 	if err == nil {
 		t.Error("expected Create() to return error when sessions dir missing")
 	}
@@ -243,6 +243,188 @@ func TestGenerateID_ReturnsUniqueIDs(t *testing.T) {
 			t.Errorf("generateID() returned duplicate ID: %s", id)
 		}
 		ids[id] = true
+	}
+}
+
+func TestCreate_StoresSourceFileInFrontmatter(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	content := "Test content"
+	sourceFile := "plans/my-plan.md"
+	sess, err := Create(content, sourceFile)
+	if err != nil {
+		t.Fatalf("Create() returned error: %v", err)
+	}
+
+	if sess.SourceFile != sourceFile {
+		t.Errorf("expected SourceFile=%q, got %q", sourceFile, sess.SourceFile)
+	}
+
+	// Check file contains source_file in frontmatter
+	sessionFile := filepath.Join(config.SessionsDir, sess.ID+".fem")
+	data, err := os.ReadFile(sessionFile)
+	if err != nil {
+		t.Fatalf("failed to read session file: %v", err)
+	}
+
+	if !strings.Contains(string(data), "source_file: 'plans/my-plan.md'") {
+		t.Errorf("expected frontmatter to contain source_file, got:\n%s", string(data))
+	}
+}
+
+func TestCreate_OmitsSourceFileWhenEmpty(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	sess, _ := Create("content", "")
+
+	sessionFile := filepath.Join(config.SessionsDir, sess.ID+".fem")
+	data, _ := os.ReadFile(sessionFile)
+
+	if strings.Contains(string(data), "source_file:") {
+		t.Errorf("expected frontmatter to NOT contain source_file for stdin, got:\n%s", string(data))
+	}
+}
+
+func TestLoad_ParsesSourceFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	sourceFile := "docs/readme.md"
+	created, _ := Create("content", sourceFile)
+
+	loaded, err := Load(created.ID)
+	if err != nil {
+		t.Fatalf("Load() returned error: %v", err)
+	}
+
+	if loaded.SourceFile != sourceFile {
+		t.Errorf("expected SourceFile=%q, got %q", sourceFile, loaded.SourceFile)
+	}
+}
+
+func TestLoad_HandlesLegacySessionsWithoutSourceFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	// Write legacy session file without source_file
+	sessionFile := filepath.Join(config.SessionsDir, "legacy-session.fem")
+	os.WriteFile(sessionFile, []byte("---\nsession_id: legacy-session\ncreated_at: 2026-01-14T10:00:00Z\n---\ncontent"), 0644)
+
+	loaded, err := Load("legacy-session")
+	if err != nil {
+		t.Fatalf("Load() returned error: %v", err)
+	}
+
+	if loaded.SourceFile != "" {
+		t.Errorf("expected empty SourceFile for legacy session, got %q", loaded.SourceFile)
+	}
+}
+
+func TestFindBySourceFile_ReturnsMatchingSession(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	sourceFile := "plans/test-plan.md"
+	created, _ := Create("content", sourceFile)
+
+	found, err := FindBySourceFile(sourceFile)
+	if err != nil {
+		t.Fatalf("FindBySourceFile() returned error: %v", err)
+	}
+
+	if found.ID != created.ID {
+		t.Errorf("expected ID=%s, got %s", created.ID, found.ID)
+	}
+}
+
+func TestFindBySourceFile_ReturnsLatestSession(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	sourceFile := "doc.md"
+
+	// Create older session
+	older, _ := Create("old content", sourceFile)
+	time.Sleep(1100 * time.Millisecond) // Ensure different timestamps (RFC3339 is second-precision)
+
+	// Create newer session
+	newer, _ := Create("new content", sourceFile)
+
+	found, err := FindBySourceFile(sourceFile)
+	if err != nil {
+		t.Fatalf("FindBySourceFile() returned error: %v", err)
+	}
+
+	if found.ID == older.ID {
+		t.Errorf("expected latest session %s, got older %s", newer.ID, found.ID)
+	}
+	if found.ID != newer.ID {
+		t.Errorf("expected ID=%s, got %s", newer.ID, found.ID)
+	}
+}
+
+func TestFindBySourceFile_ReturnsErrorWhenNotFound(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	_, err := FindBySourceFile("nonexistent.md")
+	if err == nil {
+		t.Error("expected FindBySourceFile() to return error for nonexistent file")
+	}
+	if !strings.Contains(err.Error(), "no session found") {
+		t.Errorf("expected 'no session found' error, got: %v", err)
+	}
+}
+
+func TestFindBySourceFile_NormalizesPath(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	// Create session with one path format
+	Create("content", "docs/readme.md")
+
+	// Find with slightly different format
+	found, err := FindBySourceFile("./docs/readme.md")
+	if err != nil {
+		t.Fatalf("FindBySourceFile() should normalize path, got error: %v", err)
+	}
+
+	if found.SourceFile != "docs/readme.md" {
+		t.Errorf("expected SourceFile='docs/readme.md', got %q", found.SourceFile)
 	}
 }
 
