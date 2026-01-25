@@ -205,15 +205,21 @@ func TestWriteKeySavesButDoesNotQuit(t *testing.T) {
 	newModel, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'w'}})
 	m = newModel.(Model)
 
-	// w should NOT quit
-	if cmd != nil {
-		t.Error("w should save but not quit; expected nil cmd")
+	// w should NOT quit (cmd is for clearing message, not quitting)
+	// Check that it's not a tea.Quit by verifying the model hasn't exited
+	if m.lastMessage != "Saved!" {
+		t.Error("expected 'Saved!' message after w")
 	}
 
 	// Verify file was saved
 	sessionPath := filepath.Join(config.SessionsDir, "test-write-no-quit.fem")
 	if _, err := os.Stat(sessionPath); os.IsNotExist(err) {
 		t.Error("expected session file to be saved")
+	}
+
+	// Verify a command was returned (for clearing the message)
+	if cmd == nil {
+		t.Error("expected cmd to clear message after save")
 	}
 }
 
@@ -614,16 +620,84 @@ func TestWriteCommand(t *testing.T) {
 	}
 	m := New(sess)
 
-	// w command should save but NOT quit
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'w'}})
-	if cmd != nil {
-		t.Error("w should save without quitting; expected nil cmd")
+	// w command should save and return a cmd (for clearing message)
+	newModel, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'w'}})
+	m = newModel.(Model)
+
+	// Verify success message is set
+	if m.lastMessage != "Saved!" {
+		t.Error("expected 'Saved!' message after w")
+	}
+
+	// Verify a command was returned (for clearing the message)
+	if cmd == nil {
+		t.Error("expected cmd to clear message after save")
 	}
 
 	// Verify file was saved
 	sessionPath := filepath.Join(config.SessionsDir, "test-write-cmd.fem")
 	if _, err := os.Stat(sessionPath); os.IsNotExist(err) {
 		t.Error("expected session file to be saved")
+	}
+}
+
+func TestWriteCommandShowsSavedMessage(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	sess := &session.Session{
+		ID:        "test-save-msg",
+		Content:   "line1",
+		CreatedAt: time.Date(2026, 1, 11, 12, 0, 0, 0, time.UTC),
+	}
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	// Press w to save
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'w'}})
+	m = newModel.(Model)
+
+	// View should contain success message
+	view := m.View()
+	if !strings.Contains(view, "✓ Saved!") {
+		t.Errorf("expected view to contain '✓ Saved!', got:\n%s", view)
+	}
+}
+
+func TestClearMessageClearsLastMessage(t *testing.T) {
+	sess := newTestSession("line1")
+	m := New(sess)
+	m.lastMessage = "Test message"
+
+	// Simulate clearMessageMsg
+	newModel, _ := m.Update(clearMessageMsg{})
+	m = newModel.(Model)
+
+	if m.lastMessage != "" {
+		t.Errorf("expected lastMessage to be cleared, got %q", m.lastMessage)
+	}
+}
+
+func TestKeyPressClearsMessages(t *testing.T) {
+	sess := newTestSession("line1\nline2")
+	m := New(sess)
+	m.lastMessage = "Some message"
+	m.lastError = "Some error"
+
+	// Any key press should clear messages
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
+	m = newModel.(Model)
+
+	if m.lastMessage != "" {
+		t.Errorf("expected lastMessage to be cleared on key press, got %q", m.lastMessage)
+	}
+	if m.lastError != "" {
+		t.Errorf("expected lastError to be cleared on key press, got %q", m.lastError)
 	}
 }
 

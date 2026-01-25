@@ -22,6 +22,14 @@ const (
 	modePalette
 )
 
+type clearMessageMsg struct{}
+
+func clearMessageAfter(d time.Duration) tea.Cmd {
+	return tea.Tick(d, func(time.Time) tea.Msg {
+		return clearMessageMsg{}
+	})
+}
+
 type selection struct {
 	active bool
 	anchor int // where selection started
@@ -65,6 +73,7 @@ type Model struct {
 	height         int
 	gPending       bool   // waiting for second 'g' in gg command
 	lastError      string // last error message to display
+	lastMessage    string // last success message to display
 	highlighter    *highlight.Highlighter
 	sourceFile     string
 }
@@ -98,7 +107,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 		return m, nil
 
+	case clearMessageMsg:
+		m.lastMessage = ""
+		return m, nil
+
 	case tea.KeyMsg:
+		// Clear messages on any key press
+		m.lastError = ""
+		m.lastMessage = ""
+
 		switch m.mode {
 		case modeInput:
 			return m.handleInputMode(msg)
@@ -226,9 +243,10 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "w":
 		if err := m.save(); err != nil {
 			m.lastError = err.Error()
-		} else {
-			m.lastError = ""
+			return m, nil
 		}
+		m.lastMessage = "Saved!"
+		return m, clearMessageAfter(2 * time.Second)
 	}
 	return m, nil
 }
@@ -238,10 +256,12 @@ func (m Model) handlePaletteMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "w":
 		if err := m.save(); err != nil {
 			m.lastError = err.Error()
-		} else {
-			m.lastError = ""
+			m.mode = modeNormal
+			return m, nil
 		}
+		m.lastMessage = "Saved!"
 		m.mode = modeNormal
+		return m, clearMessageAfter(2 * time.Second)
 	case "Q":
 		return m, tea.Quit
 	case "c":
@@ -513,6 +533,9 @@ func (m Model) View() string {
 
 	if m.lastError != "" {
 		b.WriteString(fmt.Sprintf("Error: %s\n", m.lastError))
+	}
+	if m.lastMessage != "" {
+		b.WriteString(fmt.Sprintf("✓ %s\n", m.lastMessage))
 	}
 
 	return b.String()
