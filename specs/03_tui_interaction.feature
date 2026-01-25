@@ -37,6 +37,16 @@ Feature: TUI Interaction
     Then the cursor should jump to the last line
 
   @planned
+  Scenario: Center cursor in viewport
+    Given the cursor is on line 50
+    When I press "zz"
+    Then the viewport should scroll to center line 50 vertically
+    When I press "zt"
+    Then the viewport should scroll to place line 50 at the top
+    When I press "zb"
+    Then the viewport should scroll to place line 50 at the bottom
+
+  @planned
   Scenario: Search within document
     When I press "/"
     Then a search prompt should appear
@@ -195,6 +205,22 @@ Feature: TUI Interaction
     And no annotation should be added
     And the selection should remain
 
+  @planned
+  Scenario: Text input wraps when content is long
+    Given an annotation prompt is open
+    When I type text that exceeds the input width
+    Then the text should wrap to the next line
+    And all content should remain visible
+
+  @planned
+  Scenario: Adding newlines in annotation input
+    Given an annotation prompt is open
+    When I press Shift+Enter
+    Then a newline should be inserted in the input
+    And I should be able to continue typing on the new line
+    When I press Enter (without Shift)
+    Then the annotation should be submitted with the multiline content
+
   # --- Viewing Annotations ---
 
   @implemented
@@ -236,6 +262,31 @@ Feature: TUI Interaction
     When I right-click
     Then a context menu should appear with annotation options
     And the menu should match the SPC command palette options
+
+  # --- Direct Content Editing ---
+
+  @planned
+  Scenario: Opening inline editor for direct content changes
+    Given I have lines 42-45 selected
+    When I press "i" (or SPC then i)
+    Then an inline text editor should open
+    And it should show the selected content
+    And I should be able to edit the text directly
+
+  @planned
+  Scenario: Saving inline edit
+    Given the inline editor is open with modified content
+    When I press Ctrl+Enter (or Escape then confirm)
+    Then a "change" annotation should be created
+    And the annotation should contain my edited version as the replacement
+    And the inline editor should close
+
+  @planned
+  Scenario: Canceling inline edit
+    Given the inline editor is open
+    When I press Escape twice (or Ctrl+C)
+    Then the inline editor should close
+    And no annotation should be created
 
   # --- Saving and Exiting ---
 
