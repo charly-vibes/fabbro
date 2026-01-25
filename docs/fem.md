@@ -1,4 +1,4 @@
-# FEM (First Editor Markup) Syntax
+# FEM (Fabbro Editing Markup) Syntax
 
 FEM is a lightweight inline markup syntax for annotating text. fabbro uses FEM to embed review comments directly in source files.
 

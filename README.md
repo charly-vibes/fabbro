@@ -4,7 +4,7 @@ A local-first code review annotation tool with a terminal UI.
 
 ## Overview
 
-fabbro lets you annotate code for review using [FEM (First Editor Markup)](docs/fem.md) syntax. It's designed to work with AI coding assistants like Claude Code, enabling structured feedback loops between human reviewers and AI.
+fabbro lets you annotate code for review using [FEM (Fabbro Editing Markup)](docs/fem.md) syntax. It's designed to work with AI coding assistants like Claude Code, enabling structured feedback loops between human reviewers and AI.
 
 ## Installation
 
@@ -89,7 +89,7 @@ fabbro completion fish | source
 
 ## FEM Syntax
 
-fabbro uses First Editor Markup for annotations:
+fabbro uses Fabbro Editing Markup for annotations:
 
 ```
 {>> This is a comment <<}
