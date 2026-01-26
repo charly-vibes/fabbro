@@ -45,6 +45,7 @@ func buildRootCmd(stdin io.Reader, stdout io.Writer) *cobra.Command {
 	rootCmd.AddCommand(buildInitCmd(stdout))
 	rootCmd.AddCommand(buildReviewCmd(stdin, stdout))
 	rootCmd.AddCommand(buildApplyCmd(stdout))
+	rootCmd.AddCommand(buildSessionCmd(stdout))
 
 	return rootCmd
 }
@@ -211,5 +212,69 @@ func buildApplyCmd(stdout io.Writer) *cobra.Command {
 	}
 	cmd.Flags().BoolVar(&jsonFlag, "json", false, "Output as JSON")
 	cmd.Flags().StringVar(&fileFlag, "file", "", "Find session by source file path")
+	return cmd
+}
+
+func buildSessionCmd(stdout io.Writer) *cobra.Command {
+	sessionCmd := &cobra.Command{
+		Use:   "session",
+		Short: "Manage editing sessions",
+	}
+
+	sessionCmd.AddCommand(buildSessionListCmd(stdout))
+	return sessionCmd
+}
+
+func buildSessionListCmd(stdout io.Writer) *cobra.Command {
+	var jsonFlag bool
+	cmd := &cobra.Command{
+		Use:   "list",
+		Short: "List all editing sessions",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if !config.IsInitialized() {
+				return fmt.Errorf("fabbro not initialized. Run 'fabbro init' first")
+			}
+
+			sessions, err := session.List()
+			if err != nil {
+				return fmt.Errorf("failed to list sessions: %w", err)
+			}
+
+			if jsonFlag {
+				type sessionOutput struct {
+					ID         string `json:"id"`
+					CreatedAt  string `json:"createdAt"`
+					SourceFile string `json:"sourceFile,omitempty"`
+				}
+				output := make([]sessionOutput, len(sessions))
+				for i, s := range sessions {
+					output[i] = sessionOutput{
+						ID:         s.ID,
+						CreatedAt:  s.CreatedAt.Format("2006-01-02 15:04:05"),
+						SourceFile: s.SourceFile,
+					}
+				}
+				enc := json.NewEncoder(stdout)
+				enc.SetIndent("", "  ")
+				return enc.Encode(output)
+			}
+
+			if len(sessions) == 0 {
+				fmt.Fprintln(stdout, "No sessions found.")
+				return nil
+			}
+
+			for _, s := range sessions {
+				date := s.CreatedAt.Format("2006-01-02 15:04")
+				if s.SourceFile != "" {
+					fmt.Fprintf(stdout, "%s  %s  %s\n", s.ID, date, s.SourceFile)
+				} else {
+					fmt.Fprintf(stdout, "%s  %s  (stdin)\n", s.ID, date)
+				}
+			}
+			return nil
+		},
+	}
+	cmd.Flags().BoolVar(&jsonFlag, "json", false, "Output as JSON")
 	return cmd
 }

@@ -428,6 +428,99 @@ func TestFindBySourceFile_NormalizesPath(t *testing.T) {
 	}
 }
 
+func TestList_ReturnsEmptyForNoSessions(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	sessions, err := List()
+	if err != nil {
+		t.Fatalf("List() returned error: %v", err)
+	}
+
+	if len(sessions) != 0 {
+		t.Errorf("expected 0 sessions, got %d", len(sessions))
+	}
+}
+
+func TestList_ReturnsAllSessions(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	Create("content1", "file1.go")
+	Create("content2", "file2.go")
+	Create("content3", "")
+
+	sessions, err := List()
+	if err != nil {
+		t.Fatalf("List() returned error: %v", err)
+	}
+
+	if len(sessions) != 3 {
+		t.Errorf("expected 3 sessions, got %d", len(sessions))
+	}
+}
+
+func TestList_SortsNewestFirst(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	older, _ := Create("old", "old.go")
+	time.Sleep(1100 * time.Millisecond)
+	newer, _ := Create("new", "new.go")
+
+	sessions, err := List()
+	if err != nil {
+		t.Fatalf("List() returned error: %v", err)
+	}
+
+	if len(sessions) != 2 {
+		t.Fatalf("expected 2 sessions, got %d", len(sessions))
+	}
+
+	if sessions[0].ID != newer.ID {
+		t.Errorf("expected newest first, got %s (expected %s)", sessions[0].ID, newer.ID)
+	}
+	if sessions[1].ID != older.ID {
+		t.Errorf("expected oldest second, got %s (expected %s)", sessions[1].ID, older.ID)
+	}
+}
+
+func TestList_SkipsMalformedSessions(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	Create("valid", "valid.go")
+
+	// Write malformed session file
+	sessionFile := filepath.Join(config.SessionsDir, "malformed.fem")
+	os.WriteFile(sessionFile, []byte("no frontmatter"), 0644)
+
+	sessions, err := List()
+	if err != nil {
+		t.Fatalf("List() returned error: %v", err)
+	}
+
+	if len(sessions) != 1 {
+		t.Errorf("expected 1 valid session, got %d", len(sessions))
+	}
+}
+
 func TestGenerateID_ReturnsDateBasedFormat(t *testing.T) {
 	id, err := generateID()
 	if err != nil {

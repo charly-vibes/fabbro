@@ -162,6 +162,42 @@ func unquoteYAMLString(s string) string {
 	return strings.ReplaceAll(s, "''", "'")
 }
 
+// List returns all sessions sorted by creation date (newest first).
+func List() ([]*Session, error) {
+	entries, err := os.ReadDir(config.SessionsDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return []*Session{}, nil
+		}
+		return nil, fmt.Errorf("failed to read sessions directory: %w", err)
+	}
+
+	var sessions []*Session
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".fem") {
+			continue
+		}
+
+		sessionID := strings.TrimSuffix(entry.Name(), ".fem")
+		sess, err := Load(sessionID)
+		if err != nil {
+			continue
+		}
+		sessions = append(sessions, sess)
+	}
+
+	// Sort by creation date, newest first
+	for i := 0; i < len(sessions)-1; i++ {
+		for j := i + 1; j < len(sessions); j++ {
+			if sessions[j].CreatedAt.After(sessions[i].CreatedAt) {
+				sessions[i], sessions[j] = sessions[j], sessions[i]
+			}
+		}
+	}
+
+	return sessions, nil
+}
+
 // FindBySourceFile finds the latest session created from the given source file.
 // Returns an error if no matching session is found.
 func FindBySourceFile(sourceFile string) (*Session, error) {
