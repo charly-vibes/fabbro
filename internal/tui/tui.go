@@ -109,6 +109,7 @@ type Model struct {
 	paletteKind    string       // "commands" or "annPick"
 	paletteItems   []int        // annotation indices for picker
 	paletteCursor  int          // current selection in picker
+	lastCtrlC      time.Time    // timestamp of last CTRL+C press for double-tap quit
 }
 
 func New(sess *session.Session) Model {
@@ -221,8 +222,14 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	switch msg.String() {
-	case "Q", "ctrl+c":
-		return m, tea.Quit
+	case "ctrl+c":
+		now := time.Now()
+		if !m.lastCtrlC.IsZero() && now.Sub(m.lastCtrlC) < 2*time.Second {
+			return m, tea.Quit
+		}
+		m.lastCtrlC = now
+		m.lastMessage = "Press CTRL+C again to quit"
+		return m, clearMessageAfter(2 * time.Second)
 
 	case "j", "down":
 		if m.cursor < len(m.lines)-1 {
@@ -840,7 +847,7 @@ func (m Model) View() string {
 			b.WriteString("└────────────────────────────────────────────────────┘\n")
 		} else {
 			b.WriteString("┌─ Commands ─────────────────────────────────────────┐\n")
-			b.WriteString("│ [w]rite    [Q]uit                                  │\n")
+			b.WriteString("│ [w]rite                                            │\n")
 			if m.selection.active {
 				b.WriteString("├─ Annotations ──────────────────────────────────────┤\n")
 				b.WriteString("│ [c]omment  [d]elete  [q]uestion  [r]eplace         │\n")
@@ -850,7 +857,7 @@ func (m Model) View() string {
 			b.WriteString("└────────────────────────────────────────────────────┘\n")
 		}
 	default:
-		b.WriteString("[v]select [SPC]palette [w]rite [Q]uit")
+		b.WriteString("[v]sel [SPC]cmd [w]rite [^C^C]quit")
 		if m.selection.active {
 			b.WriteString(" │ [c]omment [d]elete [q]uestion [e]xpand [u]nclear [r]eplace [i]nline")
 		}

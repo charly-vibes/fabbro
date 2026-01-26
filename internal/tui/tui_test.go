@@ -162,16 +162,31 @@ func TestNormalModeQuit(t *testing.T) {
 	sess := newTestSession("content")
 	m := New(sess)
 
-	// Quit with Q (shift+q)
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'Q'}})
+	// First ctrl+c shows warning, does not quit
+	newModel, cmd := m.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
+	m = newModel.(Model)
 	if cmd == nil {
-		t.Error("expected quit command from Q, got nil")
+		t.Error("expected message clear command from first ctrl+c, got nil")
+	}
+	if m.lastMessage != "Press CTRL+C again to quit" {
+		t.Errorf("expected warning message, got %q", m.lastMessage)
 	}
 
-	// Quit with ctrl+c
+	// Second ctrl+c within 2 seconds quits
 	_, cmd = m.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
 	if cmd == nil {
-		t.Error("expected quit command from ctrl+c, got nil")
+		t.Error("expected quit command from second ctrl+c, got nil")
+	}
+}
+
+func TestQKeyDoesNotQuit(t *testing.T) {
+	sess := newTestSession("content")
+	m := New(sess)
+
+	// Q should NOT quit anymore
+	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'Q'}})
+	if cmd != nil {
+		t.Error("Q key should not quit")
 	}
 }
 
@@ -594,7 +609,7 @@ func TestView(t *testing.T) {
 	}
 
 	// Should contain help text
-	if !strings.Contains(view, "[v]select") {
+	if !strings.Contains(view, "[v]sel") {
 		t.Error("view should contain help text in normal mode")
 	}
 }
