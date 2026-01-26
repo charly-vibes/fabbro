@@ -60,11 +60,18 @@ text {>> unbalanced marker     → preserved as-is
 text <<} orphan close          → preserved as-is
 ```
 
-**Nested markers**: Nesting annotations is undefined behavior. The parser matches from the first opening marker to the first closing marker, which may produce unexpected results:
+**Nested markers**: Nesting annotations is invalid. The parser detects nested markers and skips the outer annotation, preserving the original text:
 
 ```
 {>> outer {>> inner <<} still <<}
-→ extracts "outer {>> inner" and leaves "still <<}" in content
+→ skipped (contains nested {>>), line preserved unchanged
+```
+
+If different annotation types are nested, the inner annotation is extracted but the malformed outer is left intact:
+
+```
+{>> outer {-- delete --} comment <<}
+→ extracts "delete" annotation, leaves "{>> outer  comment <<}" in content
 ```
 
 **Empty annotations**: Empty annotations (`{>><<}`) are valid and produce an annotation with empty text.

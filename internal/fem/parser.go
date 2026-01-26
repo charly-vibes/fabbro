@@ -12,6 +12,10 @@ type Annotation struct {
 	EndLine   int    `json:"endLine"`
 }
 
+// annotationTypes defines the processing order (deterministic, not map iteration).
+var annotationTypes = []string{"comment", "delete", "question", "expand", "keep", "unclear", "change"}
+
+// patterns maps annotation type to its regex pattern.
 var patterns = map[string]*regexp.Regexp{
 	"comment":  regexp.MustCompile(`\{>>\s*(.*?)\s*<<\}`),
 	"delete":   regexp.MustCompile(`\{--\s*(.*?)\s*--\}`),
@@ -22,6 +26,20 @@ var patterns = map[string]*regexp.Regexp{
 	"change":   regexp.MustCompile(`\{\+\+\s*(.*?)\s*\+\+\}`),
 }
 
+// openingMarkers are the opening delimiters for all annotation types.
+// Used to detect nested markers (which are invalid).
+var openingMarkers = []string{"{>>", "{--", "{??", "{!!", "{==", "{~~", "{++"}
+
+// containsNestedMarker returns true if text contains any opening marker.
+func containsNestedMarker(text string) bool {
+	for _, marker := range openingMarkers {
+		if strings.Contains(text, marker) {
+			return true
+		}
+	}
+	return false
+}
+
 func Parse(content string) ([]Annotation, string, error) {
 	lines := strings.Split(content, "\n")
 	var annotations []Annotation
@@ -30,12 +48,18 @@ func Parse(content string) ([]Annotation, string, error) {
 	for i, line := range lines {
 		cleanLine := line
 
-		for annotationType, pattern := range patterns {
+		for _, annotationType := range annotationTypes {
+			pattern := patterns[annotationType]
 			matches := pattern.FindAllStringSubmatch(line, -1)
-			cleanLine = pattern.ReplaceAllString(cleanLine, "")
 
 			for _, match := range matches {
 				if len(match) >= 2 {
+					// Skip annotations with nested markers (invalid syntax)
+					if containsNestedMarker(match[1]) {
+						continue
+					}
+					// Only remove from cleanLine if we're accepting this annotation
+					cleanLine = pattern.ReplaceAllString(cleanLine, "")
 					lineNum := i + 1
 					annotations = append(annotations, Annotation{
 						Type:      annotationType,

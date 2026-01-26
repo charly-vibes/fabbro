@@ -262,9 +262,8 @@ func TestParse_MultipleAnnotationsOnSameLine(t *testing.T) {
 	}
 }
 
-func TestParse_NestedMarkersUndefinedBehavior(t *testing.T) {
-	// Nested markers have undefined behavior - the non-greedy regex matches
-	// from the first {>> to the first <<}, which includes the nested open marker
+func TestParse_NestedMarkersAreSkipped(t *testing.T) {
+	// Nested markers are detected and skipped - the line is preserved unchanged
 	content := "text {>> outer {>> inner <<} still outer <<} end"
 
 	annotations, clean, err := Parse(content)
@@ -272,19 +271,44 @@ func TestParse_NestedMarkersUndefinedBehavior(t *testing.T) {
 		t.Fatalf("Parse() returned error: %v", err)
 	}
 
-	// Documents current behavior: matches "outer {>> inner" (first open to first close)
+	// Nested annotation is skipped entirely
+	if len(annotations) != 0 {
+		t.Fatalf("expected 0 annotations for nested markers, got %d", len(annotations))
+	}
+
+	// Original line is preserved unchanged (no corruption)
+	if clean != content {
+		t.Errorf("expected line preserved unchanged, got %q", clean)
+	}
+}
+
+func TestParse_NestedDifferentTypes_InnerExtracted(t *testing.T) {
+	// When different types are nested, the outer is skipped but inner is extracted
+	content := "text {>> outer {-- delete inside --} comment <<} end"
+
+	annotations, clean, err := Parse(content)
+	if err != nil {
+		t.Fatalf("Parse() returned error: %v", err)
+	}
+
+	// The outer comment contains {-- so it's skipped
+	// But the inner delete annotation is valid and extracted
 	if len(annotations) != 1 {
-		t.Fatalf("expected 1 annotation for nested, got %d", len(annotations))
+		t.Fatalf("expected 1 annotation (inner delete), got %d", len(annotations))
 	}
 
-	// The match includes the nested {>> because regex is non-greedy to first <<}
-	if annotations[0].Text != "outer {>> inner" {
-		t.Errorf("expected 'outer {>> inner', got %q", annotations[0].Text)
+	if annotations[0].Type != "delete" {
+		t.Errorf("expected type 'delete', got %q", annotations[0].Type)
 	}
 
-	// Remaining text includes orphaned close marker
-	if clean != "text  still outer <<} end" {
-		t.Errorf("expected 'text  still outer <<} end', got %q", clean)
+	if annotations[0].Text != "delete inside" {
+		t.Errorf("expected text 'delete inside', got %q", annotations[0].Text)
+	}
+
+	// The delete annotation is removed, but the malformed outer comment remains
+	expected := "text {>> outer  comment <<} end"
+	if clean != expected {
+		t.Errorf("expected %q, got %q", expected, clean)
 	}
 }
 
