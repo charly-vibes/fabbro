@@ -116,6 +116,10 @@ func New(sess *session.Session) Model {
 }
 
 func NewWithFile(sess *session.Session, sourceFile string) Model {
+	return NewWithAnnotations(sess, sourceFile, []fem.Annotation{})
+}
+
+func NewWithAnnotations(sess *session.Session, sourceFile string, annotations []fem.Annotation) Model {
 	lines := strings.Split(sess.Content, "\n")
 	return Model{
 		session:     sess,
@@ -123,7 +127,7 @@ func NewWithFile(sess *session.Session, sourceFile string) Model {
 		cursor:      0,
 		selection:   selection{},
 		mode:        modeNormal,
-		annotations: []fem.Annotation{},
+		annotations: annotations,
 		highlighter: highlight.New(sourceFile, sess.Content),
 		sourceFile:  sourceFile,
 		viewportTop: -1, // auto-follow cursor

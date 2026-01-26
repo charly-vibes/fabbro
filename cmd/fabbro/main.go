@@ -222,6 +222,7 @@ func buildSessionCmd(stdout io.Writer) *cobra.Command {
 	}
 
 	sessionCmd.AddCommand(buildSessionListCmd(stdout))
+	sessionCmd.AddCommand(buildSessionResumeCmd(stdout))
 	return sessionCmd
 }
 
@@ -277,4 +278,40 @@ func buildSessionListCmd(stdout io.Writer) *cobra.Command {
 	}
 	cmd.Flags().BoolVar(&jsonFlag, "json", false, "Output as JSON")
 	return cmd
+}
+
+func buildSessionResumeCmd(stdout io.Writer) *cobra.Command {
+	return &cobra.Command{
+		Use:   "resume <session-id>",
+		Short: "Resume a previous editing session",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if !config.IsInitialized() {
+				return fmt.Errorf("fabbro not initialized. Run 'fabbro init' first")
+			}
+
+			sessionID := args[0]
+			sess, err := session.Load(sessionID)
+			if err != nil {
+				return fmt.Errorf("failed to load session %q: %w", sessionID, err)
+			}
+
+			annotations, cleanContent, err := fem.Parse(sess.Content)
+			if err != nil {
+				return fmt.Errorf("failed to parse session content: %w", err)
+			}
+
+			sess.Content = cleanContent
+
+			fmt.Fprintf(stdout, "Resuming session: %s\n", sess.ID)
+
+			model := tui.NewWithAnnotations(sess, sess.SourceFile, annotations)
+			p := tea.NewProgram(model)
+			if _, err := p.Run(); err != nil {
+				return fmt.Errorf("TUI error: %w", err)
+			}
+
+			return nil
+		},
+	}
 }
