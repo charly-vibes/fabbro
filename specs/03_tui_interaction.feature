@@ -205,14 +205,14 @@ Feature: TUI Interaction
     And no annotation should be added
     And the selection should remain
 
-  @planned
+  @implemented
   Scenario: Text input wraps when content is long
     Given an annotation prompt is open
     When I type text that exceeds the input width
     Then the text should wrap to the next line
     And all content should remain visible
 
-  @planned
+  @implemented
   Scenario: Adding newlines in annotation input
     Given an annotation prompt is open
     When I press Shift+Enter

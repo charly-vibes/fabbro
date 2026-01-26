@@ -93,8 +93,8 @@ type Model struct {
 	cursor         int
 	selection      selection
 	mode           mode
-	input          string
-	inputType      string // annotation type being entered: "comment", "delete", etc.
+	inputType      string          // annotation type being entered: "comment", "delete", etc.
+	inputTA        *textarea.Model // textarea for annotation input (text wrapping + multiline)
 	annotations    []fem.Annotation
 	width          int
 	height         int
@@ -132,6 +132,21 @@ func NewWithFile(sess *session.Session, sourceFile string) Model {
 
 func (m Model) Init() tea.Cmd {
 	return tea.EnterAltScreen
+}
+
+func (m *Model) openInputMode(annType string) {
+	ta := textarea.New()
+	ta.Focus()
+	ta.Prompt = ""
+	ta.CharLimit = 0
+	ta.ShowLineNumbers = false
+	ta.SetWidth(60)
+	ta.SetHeight(3)
+	ta.KeyMap.InsertNewline.SetKeys("shift+enter", "ctrl+m")
+
+	m.inputTA = &ta
+	m.inputType = annType
+	m.mode = modeInput
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -267,46 +282,34 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case "c":
 		if m.selection.active {
-			m.mode = modeInput
-			m.input = ""
-			m.inputType = "comment"
+			m.openInputMode("comment")
 		}
 
 	case "d":
 		if m.selection.active {
-			m.mode = modeInput
-			m.input = ""
-			m.inputType = "delete"
+			m.openInputMode("delete")
 		}
 
 	case "q":
 		if m.selection.active {
-			m.mode = modeInput
-			m.input = ""
-			m.inputType = "question"
+			m.openInputMode("question")
 		}
 
 	case "e":
 		if m.selection.active {
-			m.mode = modeInput
-			m.input = ""
-			m.inputType = "expand"
+			m.openInputMode("expand")
 		} else {
 			m.tryEditAnnotation()
 		}
 
 	case "u":
 		if m.selection.active {
-			m.mode = modeInput
-			m.input = ""
-			m.inputType = "unclear"
+			m.openInputMode("unclear")
 		}
 
 	case "r":
 		if m.selection.active {
-			m.mode = modeInput
-			m.input = ""
-			m.inputType = "change"
+			m.openInputMode("change")
 		}
 
 	case "i":
@@ -349,45 +352,31 @@ func (m Model) handlePaletteMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	case "c":
 		if m.selection.active {
-			m.mode = modeInput
-			m.input = ""
-			m.inputType = "comment"
+			m.openInputMode("comment")
 		}
 	case "d":
 		if m.selection.active {
-			m.mode = modeInput
-			m.input = ""
-			m.inputType = "delete"
+			m.openInputMode("delete")
 		}
 	case "q":
 		if m.selection.active {
-			m.mode = modeInput
-			m.input = ""
-			m.inputType = "question"
+			m.openInputMode("question")
 		}
 	case "e":
 		if m.selection.active {
-			m.mode = modeInput
-			m.input = ""
-			m.inputType = "expand"
+			m.openInputMode("expand")
 		}
 	case "k":
 		if m.selection.active {
-			m.mode = modeInput
-			m.input = ""
-			m.inputType = "keep"
+			m.openInputMode("keep")
 		}
 	case "u":
 		if m.selection.active {
-			m.mode = modeInput
-			m.input = ""
-			m.inputType = "unclear"
+			m.openInputMode("unclear")
 		}
 	case "r":
 		if m.selection.active {
-			m.mode = modeInput
-			m.input = ""
-			m.inputType = "change"
+			m.openInputMode("change")
 		}
 	case "i":
 		if m.selection.active {
@@ -432,15 +421,20 @@ func (m Model) handleAnnotationPicker(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleInputMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
-	case "enter":
-		if m.input != "" {
-			start, end := m.selection.lines()
-			text := m.input
+	if m.inputTA == nil {
+		m.mode = modeNormal
+		return m, nil
+	}
 
-			// For change annotations, prefix with line reference
+	switch msg.Type {
+	case tea.KeyEnter:
+		inputValue := strings.TrimSpace(m.inputTA.Value())
+		if inputValue != "" {
+			start, end := m.selection.lines()
+			text := encodeAnnText(inputValue)
+
 			if m.inputType == "change" {
-				startLine := start + 1 // 1-indexed for display
+				startLine := start + 1
 				endLine := end + 1
 				var lineRef string
 				if startLine == endLine {
@@ -448,12 +442,12 @@ func (m Model) handleInputMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				} else {
 					lineRef = fmt.Sprintf("[lines %d-%d] -> ", startLine, endLine)
 				}
-				text = lineRef + m.input
+				text = lineRef + text
 			}
 
 			for line := start; line <= end; line++ {
 				m.annotations = append(m.annotations, fem.Annotation{
-					StartLine: line + 1, // 1-indexed for storage
+					StartLine: line + 1,
 					EndLine:   line + 1,
 					Type:      m.inputType,
 					Text:      text,
@@ -461,26 +455,21 @@ func (m Model) handleInputMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 		m.mode = modeNormal
-		m.input = ""
+		m.inputTA = nil
 		m.inputType = ""
 		m.selection = selection{}
+		return m, nil
 
-	case "esc":
+	case tea.KeyEsc:
 		m.mode = modeNormal
-		m.input = ""
+		m.inputTA = nil
 		m.inputType = ""
-
-	case "backspace":
-		if len(m.input) > 0 {
-			m.input = m.input[:len(m.input)-1]
-		}
-
-	default:
-		if len(msg.String()) == 1 {
-			m.input += msg.String()
-		}
+		return m, nil
 	}
-	return m, nil
+
+	var cmd tea.Cmd
+	*m.inputTA, cmd = m.inputTA.Update(msg)
+	return m, cmd
 }
 
 func (m *Model) tryEditAnnotation() {
@@ -785,7 +774,26 @@ func (m Model) View() string {
 	switch m.mode {
 	case modeInput:
 		prompt := fem.Prompts[m.inputType]
-		b.WriteString(fmt.Sprintf("%s %s_\n", prompt, m.input))
+		b.WriteString(fmt.Sprintf("┌─ %s (Shift+Enter for newline, Enter to submit) ────┐\n", prompt))
+		if m.inputTA != nil {
+			taView := m.inputTA.View()
+			taLines := strings.Split(taView, "\n")
+			innerWidth := width - 4
+			maxLines := 4
+			for i, line := range taLines {
+				if i >= maxLines {
+					b.WriteString("│ ...                                                │\n")
+					break
+				}
+				lineRunes := []rune(line)
+				if len(lineRunes) > innerWidth {
+					lineRunes = lineRunes[:innerWidth]
+				}
+				padding := innerWidth - len(lineRunes)
+				b.WriteString(fmt.Sprintf("│ %s%s │\n", string(lineRunes), strings.Repeat(" ", padding)))
+			}
+		}
+		b.WriteString("└────────────────────────────────────────────────────┘\n")
 	case modeEditor:
 		b.WriteString("┌─ Edit selection (Ctrl+S save, Esc Esc cancel) ─────┐\n")
 		if m.editor != nil {

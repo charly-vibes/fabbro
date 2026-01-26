@@ -244,8 +244,11 @@ func TestEnterCommentMode(t *testing.T) {
 	if m.mode != modeInput {
 		t.Errorf("expected modeInput, got %d", m.mode)
 	}
-	if m.input != "" {
-		t.Errorf("expected empty input, got %q", m.input)
+	if m.inputTA == nil {
+		t.Fatal("expected inputTA to be initialized")
+	}
+	if m.inputTA.Value() != "" {
+		t.Errorf("expected empty input, got %q", m.inputTA.Value())
 	}
 	if m.inputType != "comment" {
 		t.Errorf("expected inputType 'comment', got %q", m.inputType)
@@ -322,18 +325,22 @@ func TestInputModeTyping(t *testing.T) {
 	m = sendKey(m, 'v')
 	m = sendKey(m, 'c')
 
+	if m.inputTA == nil {
+		t.Fatal("expected inputTA to be initialized")
+	}
+
 	// Type some text
 	for _, r := range "hello" {
 		m = sendKey(m, r)
 	}
-	if m.input != "hello" {
-		t.Errorf("expected input 'hello', got %q", m.input)
+	if m.inputTA.Value() != "hello" {
+		t.Errorf("expected input 'hello', got %q", m.inputTA.Value())
 	}
 
 	// Backspace
 	m = sendKeyType(m, tea.KeyBackspace)
-	if m.input != "hell" {
-		t.Errorf("expected input 'hell' after backspace, got %q", m.input)
+	if m.inputTA.Value() != "hell" {
+		t.Errorf("expected input 'hell' after backspace, got %q", m.inputTA.Value())
 	}
 }
 
@@ -368,6 +375,58 @@ func TestInputModeSubmit(t *testing.T) {
 	}
 	if m.inputType != "" {
 		t.Error("expected inputType cleared after submit")
+	}
+}
+
+func TestInputModeMultiline(t *testing.T) {
+	sess := newTestSession("line1")
+	m := New(sess)
+
+	// Select and enter comment mode
+	m = sendKey(m, 'v')
+	m = sendKey(m, 'c')
+
+	if m.inputTA == nil {
+		t.Fatal("expected inputTA to be initialized")
+	}
+
+	// Type first line
+	for _, r := range "first" {
+		m = sendKey(m, r)
+	}
+
+	// Shift+Enter to insert newline
+	newM, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'\n'}, Alt: false})
+	m = newM.(Model)
+
+	// Type second line
+	for _, r := range "second" {
+		m = sendKey(m, r)
+	}
+
+	// Should still be in input mode
+	if m.mode != modeInput {
+		t.Error("expected to remain in input mode after Shift+Enter")
+	}
+
+	// Value should contain both lines
+	val := m.inputTA.Value()
+	if !strings.Contains(val, "first") || !strings.Contains(val, "second") {
+		t.Errorf("expected multiline content, got %q", val)
+	}
+
+	// Submit with Enter
+	m = sendKeyType(m, tea.KeyEnter)
+
+	if m.mode != modeNormal {
+		t.Error("expected return to normal mode after enter")
+	}
+	if len(m.annotations) != 1 {
+		t.Errorf("expected 1 annotation, got %d", len(m.annotations))
+	}
+	// Newlines are encoded as \n in the annotation text
+	if !strings.Contains(m.annotations[0].Text, "\\n") {
+		t.Errorf("expected encoded newline in annotation text, got %q", m.annotations[0].Text)
 	}
 }
 
@@ -508,8 +567,8 @@ func TestInputModeEscape(t *testing.T) {
 	if m.mode != modeNormal {
 		t.Error("expected return to normal mode after escape")
 	}
-	if m.input != "" {
-		t.Error("expected input cleared after escape")
+	if m.inputTA != nil {
+		t.Error("expected inputTA cleared after escape")
 	}
 	if len(m.annotations) != 0 {
 		t.Error("expected no annotation after escape")
@@ -545,14 +604,23 @@ func TestViewInputMode(t *testing.T) {
 	m := New(sess)
 	m.width = 80
 	m.height = 20
-	m.mode = modeInput
-	m.inputType = "comment"
-	m.input = "typing"
+
+	// Start selection and enter comment mode
+	m = sendKey(m, 'v')
+	m = sendKey(m, 'c')
+
+	// Type some text
+	for _, r := range "typing" {
+		m = sendKey(m, r)
+	}
 
 	view := m.View()
 
-	if !strings.Contains(view, "Comment: typing") {
-		t.Error("view should show comment input in input mode")
+	if !strings.Contains(view, "Comment:") {
+		t.Error("view should show Comment: prompt in input mode")
+	}
+	if !strings.Contains(view, "typing") {
+		t.Error("view should show typed text in input mode")
 	}
 }
 
@@ -711,12 +779,15 @@ func TestBackspaceOnEmptyInput(t *testing.T) {
 
 	// Backspace on empty input should not panic
 	m = sendKeyType(m, tea.KeyBackspace)
-	if m.input != "" {
+	if m.inputTA == nil {
+		t.Fatal("expected inputTA to be initialized")
+	}
+	if m.inputTA.Value() != "" {
 		t.Error("input should remain empty")
 	}
 }
 
-func TestMultiCharKeyIgnored(t *testing.T) {
+func TestMultiCharKeyHandled(t *testing.T) {
 	sess := newTestSession("line1")
 	m := New(sess)
 
@@ -724,11 +795,15 @@ func TestMultiCharKeyIgnored(t *testing.T) {
 	m = sendKey(m, 'v')
 	m = sendKey(m, 'c')
 
-	// Multi-char key messages should be ignored
+	// Multi-char key messages are now handled by textarea
 	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'a', 'b'}})
 	m = newModel.(Model)
-	if m.input != "" {
-		t.Error("multi-char key should be ignored")
+	if m.inputTA == nil {
+		t.Fatal("expected inputTA to be initialized")
+	}
+	// textarea handles multi-rune input
+	if m.inputTA.Value() != "ab" {
+		t.Errorf("expected 'ab', got %q", m.inputTA.Value())
 	}
 }
 
