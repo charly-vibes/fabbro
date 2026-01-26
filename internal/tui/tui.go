@@ -456,14 +456,12 @@ func (m Model) handleInputMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				text = lineRef + text
 			}
 
-			for line := start; line <= end; line++ {
-				m.annotations = append(m.annotations, fem.Annotation{
-					StartLine: line + 1,
-					EndLine:   line + 1,
-					Type:      m.inputType,
-					Text:      text,
-				})
-			}
+			m.annotations = append(m.annotations, fem.Annotation{
+				StartLine: start + 1,
+				EndLine:   end + 1,
+				Type:      m.inputType,
+				Text:      text,
+			})
 		}
 		m.mode = modeNormal
 		m.inputTA = nil

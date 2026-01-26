@@ -498,26 +498,25 @@ func TestChangeAnnotationIncludesLineReference(t *testing.T) {
 	}
 	m = sendKeyType(m, tea.KeyEnter)
 
-	if len(m.annotations) != 3 {
-		t.Fatalf("expected 3 annotations (one per selected line), got %d", len(m.annotations))
+	if len(m.annotations) != 1 {
+		t.Fatalf("expected 1 annotation for multi-line selection, got %d", len(m.annotations))
 	}
 
-	// All annotations should have the line reference prefix
-	for i, ann := range m.annotations {
-		if ann.Type != "change" {
-			t.Errorf("annotation %d: expected type 'change', got %q", i, ann.Type)
-		}
-		if !strings.Contains(ann.Text, "->") {
-			t.Errorf("annotation %d: expected text to contain '->', got %q", i, ann.Text)
-		}
-		if !strings.Contains(ann.Text, "new content") {
-			t.Errorf("annotation %d: expected text to contain 'new content', got %q", i, ann.Text)
-		}
+	ann := m.annotations[0]
+	if ann.Type != "change" {
+		t.Errorf("expected type 'change', got %q", ann.Type)
 	}
-
-	// First annotation should reference lines 2-4 (1-indexed)
-	if !strings.Contains(m.annotations[0].Text, "[lines 2-4]") {
-		t.Errorf("expected text to contain '[lines 2-4]', got %q", m.annotations[0].Text)
+	if ann.StartLine != 2 || ann.EndLine != 4 {
+		t.Errorf("expected StartLine=2, EndLine=4, got StartLine=%d, EndLine=%d", ann.StartLine, ann.EndLine)
+	}
+	if !strings.Contains(ann.Text, "->") {
+		t.Errorf("expected text to contain '->', got %q", ann.Text)
+	}
+	if !strings.Contains(ann.Text, "new content") {
+		t.Errorf("expected text to contain 'new content', got %q", ann.Text)
+	}
+	if !strings.Contains(ann.Text, "[lines 2-4]") {
+		t.Errorf("expected text to contain '[lines 2-4]', got %q", ann.Text)
 	}
 }
 
@@ -1389,20 +1388,21 @@ func TestMultiLineSelectionAnnotation(t *testing.T) {
 	}
 	m = sendKeyType(m, tea.KeyEnter)
 
-	// Should have 3 annotations (one per line)
-	if len(m.annotations) != 3 {
-		t.Errorf("expected 3 annotations for multi-line selection, got %d", len(m.annotations))
+	// Should have 1 annotation spanning the range (not one per line)
+	if len(m.annotations) != 1 {
+		t.Errorf("expected 1 annotation for multi-line selection, got %d", len(m.annotations))
 	}
 
-	// All should be for 1-indexed lines 2, 3, 4
-	expectedLines := []int{2, 3, 4}
-	for i, ann := range m.annotations {
-		if ann.StartLine != expectedLines[i] {
-			t.Errorf("expected annotation %d at line %d, got %d", i, expectedLines[i], ann.StartLine)
-		}
-		if ann.Type != "comment" {
-			t.Errorf("expected type 'comment', got %q", ann.Type)
-		}
+	// Should span 1-indexed lines 2-4
+	ann := m.annotations[0]
+	if ann.StartLine != 2 {
+		t.Errorf("expected StartLine 2, got %d", ann.StartLine)
+	}
+	if ann.EndLine != 4 {
+		t.Errorf("expected EndLine 4, got %d", ann.EndLine)
+	}
+	if ann.Type != "comment" {
+		t.Errorf("expected type 'comment', got %q", ann.Type)
 	}
 }
 
@@ -1701,21 +1701,18 @@ func TestOverlappingAnnotationsFromDifferentSelections(t *testing.T) {
 	}
 	m = sendKeyType(m, tea.KeyEnter)
 
-	// Should have 4 annotations: lines 2,3 from first + lines 3,4 from second
-	// (0-indexed cursor 1,2 = 1-indexed lines 2,3; cursor 2,3 = lines 3,4)
-	if len(m.annotations) != 4 {
-		t.Fatalf("expected 4 annotations, got %d", len(m.annotations))
+	// Should have 2 annotations: one spanning lines 2-3, one spanning lines 3-4
+	if len(m.annotations) != 2 {
+		t.Fatalf("expected 2 annotations (one per selection), got %d", len(m.annotations))
 	}
 
-	// Line 3 (1-indexed) should have 2 annotations (overlap)
-	line3Count := 0
-	for _, ann := range m.annotations {
-		if ann.StartLine == 3 { // 1-indexed
-			line3Count++
-		}
+	// First annotation: lines 2-3
+	if m.annotations[0].StartLine != 2 || m.annotations[0].EndLine != 3 {
+		t.Errorf("first annotation: expected lines 2-3, got %d-%d", m.annotations[0].StartLine, m.annotations[0].EndLine)
 	}
-	if line3Count != 2 {
-		t.Errorf("expected 2 annotations on line 3 (overlap), got %d", line3Count)
+	// Second annotation: lines 3-4 (overlaps with first on line 3)
+	if m.annotations[1].StartLine != 3 || m.annotations[1].EndLine != 4 {
+		t.Errorf("second annotation: expected lines 3-4, got %d-%d", m.annotations[1].StartLine, m.annotations[1].EndLine)
 	}
 }
 

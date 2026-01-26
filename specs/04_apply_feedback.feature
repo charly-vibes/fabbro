@@ -142,9 +142,9 @@ Feature: Apply Feedback
     Then line numbers in annotations should match the original content
     And line numbers should NOT include the frontmatter offset
 
-  @planned
+  @implemented
   Scenario: Multi-line annotations span correct range
-    # Currently only single-line annotations (startLine == endLine)
+    # Multi-line selections create a single annotation with StartLine != EndLine
     Given a session exists with an annotation spanning lines 42-50
     When I run the command `fabbro apply <session-id> --json`
     Then the annotation should have startLine 42 and endLine 50
