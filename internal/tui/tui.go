@@ -28,6 +28,7 @@ type editorState struct {
 	ta         textarea.Model
 	start, end int  // 0-indexed line range being edited
 	escPending bool // true after first Esc press
+	annIndex   int  // -1 if new annotation, >=0 if editing existing
 }
 
 type clearMessageMsg struct{}
@@ -49,6 +50,24 @@ func (s selection) lines() (start, end int) {
 		return s.anchor, s.cursor
 	}
 	return s.cursor, s.anchor
+}
+
+func (m *Model) annotationsOnLine(lineNum int) []int {
+	var indices []int
+	for i, ann := range m.annotations {
+		if ann.StartLine <= lineNum && lineNum <= ann.EndLine {
+			indices = append(indices, i)
+		}
+	}
+	return indices
+}
+
+func decodeAnnText(s string) string {
+	return strings.ReplaceAll(s, "\\n", "\n")
+}
+
+func encodeAnnText(s string) string {
+	return strings.ReplaceAll(s, "\n", "\\n")
 }
 
 func wrapLine(s string, width int) []string {
@@ -87,6 +106,9 @@ type Model struct {
 	highlighter    *highlight.Highlighter
 	sourceFile     string
 	editor         *editorState // non-nil when in editor mode
+	paletteKind    string       // "commands" or "annPick"
+	paletteItems   []int        // annotation indices for picker
+	paletteCursor  int          // current selection in picker
 }
 
 func New(sess *session.Session) Model {
@@ -269,6 +291,8 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.mode = modeInput
 			m.input = ""
 			m.inputType = "expand"
+		} else {
+			m.tryEditAnnotation()
 		}
 
 	case "u":
@@ -305,6 +329,12 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handlePaletteMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	// Annotation picker mode
+	if m.paletteKind == "annPick" {
+		return m.handleAnnotationPicker(msg)
+	}
+
+	// Standard command palette
 	switch msg.String() {
 	case "w":
 		if err := m.save(); err != nil {
@@ -369,6 +399,38 @@ func (m Model) handlePaletteMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+func (m Model) handleAnnotationPicker(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "j", "down":
+		if m.paletteCursor < len(m.paletteItems)-1 {
+			m.paletteCursor++
+		}
+	case "k", "up":
+		if m.paletteCursor > 0 {
+			m.paletteCursor--
+		}
+	case "enter":
+		if len(m.paletteItems) > 0 {
+			annIndex := m.paletteItems[m.paletteCursor]
+			m.paletteKind = ""
+			m.paletteItems = nil
+			m.paletteCursor = 0
+			m.openEditorForAnnotation(annIndex)
+		}
+	case "esc":
+		m.mode = modeNormal
+		m.paletteKind = ""
+		m.paletteItems = nil
+		m.paletteCursor = 0
+	default:
+		m.mode = modeNormal
+		m.paletteKind = ""
+		m.paletteItems = nil
+		m.paletteCursor = 0
+	}
+	return m, nil
+}
+
 func (m Model) handleInputMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "enter":
@@ -421,6 +483,47 @@ func (m Model) handleInputMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+func (m *Model) tryEditAnnotation() {
+	cursorLine := m.cursor + 1 // 1-indexed
+	indices := m.annotationsOnLine(cursorLine)
+
+	if len(indices) == 0 {
+		m.lastError = "No annotation on this line"
+		return
+	}
+
+	if len(indices) == 1 {
+		m.openEditorForAnnotation(indices[0])
+		return
+	}
+
+	// Multiple annotations: open picker
+	m.mode = modePalette
+	m.paletteKind = "annPick"
+	m.paletteItems = indices
+	m.paletteCursor = 0
+}
+
+func (m *Model) openEditorForAnnotation(annIndex int) {
+	ann := m.annotations[annIndex]
+	content := decodeAnnText(ann.Text)
+
+	ta := textarea.New()
+	ta.SetValue(content)
+	ta.Focus()
+	ta.Prompt = ""
+	ta.CharLimit = 0
+	ta.ShowLineNumbers = false
+
+	m.editor = &editorState{
+		ta:       ta,
+		start:    ann.StartLine - 1, // 0-indexed
+		end:      ann.EndLine - 1,
+		annIndex: annIndex,
+	}
+	m.mode = modeEditor
+}
+
 func (m *Model) openEditor() {
 	start, end := m.selection.lines()
 	content := strings.Join(m.lines[start:end+1], "\n")
@@ -433,9 +536,10 @@ func (m *Model) openEditor() {
 	ta.ShowLineNumbers = false
 
 	m.editor = &editorState{
-		ta:    ta,
-		start: start,
-		end:   end,
+		ta:       ta,
+		start:    start,
+		end:      end,
+		annIndex: -1, // new annotation
 	}
 	m.mode = modeEditor
 }
@@ -485,8 +589,17 @@ func (m *Model) saveEditorContent() {
 	}
 
 	edited := m.editor.ta.Value()
-	// Encode newlines as literal \n for storage
-	encoded := strings.ReplaceAll(edited, "\n", "\\n")
+
+	// Editing existing annotation
+	if m.editor.annIndex >= 0 {
+		m.annotations[m.editor.annIndex].Text = encodeAnnText(edited)
+		m.editor = nil
+		m.mode = modeNormal
+		return
+	}
+
+	// New annotation: encode newlines and format as change annotation
+	encoded := encodeAnnText(edited)
 
 	// Format the change prefix
 	startLine := m.editor.start + 1 // 1-indexed
@@ -697,15 +810,33 @@ func (m Model) View() string {
 		}
 		b.WriteString("└────────────────────────────────────────────────────┘\n")
 	case modePalette:
-		b.WriteString("┌─ Commands ─────────────────────────────────────────┐\n")
-		b.WriteString("│ [w]rite    [Q]uit                                  │\n")
-		if m.selection.active {
-			b.WriteString("├─ Annotations ──────────────────────────────────────┤\n")
-			b.WriteString("│ [c]omment  [d]elete  [q]uestion  [r]eplace         │\n")
-			b.WriteString("│ [e]xpand   [k]eep    [u]nclear   [i]nline-edit     │\n")
+		if m.paletteKind == "annPick" {
+			b.WriteString("┌─ Select annotation to edit ───────────────────────┐\n")
+			for i, idx := range m.paletteItems {
+				ann := m.annotations[idx]
+				cursor := " "
+				if i == m.paletteCursor {
+					cursor = ">"
+				}
+				preview := ann.Text
+				if len(preview) > 30 {
+					preview = preview[:27] + "..."
+				}
+				b.WriteString(fmt.Sprintf("│%s %-10s [%d-%d] %s\n", cursor, ann.Type, ann.StartLine, ann.EndLine, preview))
+			}
+			b.WriteString("│                    j/k move, Enter select, Esc cancel │\n")
+			b.WriteString("└────────────────────────────────────────────────────┘\n")
+		} else {
+			b.WriteString("┌─ Commands ─────────────────────────────────────────┐\n")
+			b.WriteString("│ [w]rite    [Q]uit                                  │\n")
+			if m.selection.active {
+				b.WriteString("├─ Annotations ──────────────────────────────────────┤\n")
+				b.WriteString("│ [c]omment  [d]elete  [q]uestion  [r]eplace         │\n")
+				b.WriteString("│ [e]xpand   [k]eep    [u]nclear   [i]nline-edit     │\n")
+			}
+			b.WriteString("│                                  [ESC] cancel      │\n")
+			b.WriteString("└────────────────────────────────────────────────────┘\n")
 		}
-		b.WriteString("│                                  [ESC] cancel      │\n")
-		b.WriteString("└────────────────────────────────────────────────────┘\n")
 	default:
 		b.WriteString("[v]select [SPC]palette [w]rite [Q]uit")
 		if m.selection.active {

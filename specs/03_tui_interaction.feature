@@ -221,6 +221,57 @@ Feature: TUI Interaction
     When I press Enter (without Shift)
     Then the annotation should be submitted with the multiline content
 
+  # --- Editing Existing Annotations ---
+
+  @implemented
+  Scenario: Editing annotation text on current line
+    Given I have added a comment annotation on line 42
+    And the cursor is on line 42
+    When I press "e" (with no selection active)
+    Then an editor should open with the annotation text pre-filled
+    When I modify the text and press Ctrl+S
+    Then the annotation text should be updated
+    And the editor should close
+
+  @implemented
+  Scenario: Picking annotation when multiple exist on same line
+    Given I have added a comment annotation on line 42
+    And I have added a question annotation on line 42
+    And the cursor is on line 42
+    When I press "e" (with no selection active)
+    Then an annotation picker should appear
+    And it should list both annotations with their types and preview text
+    When I select one and press Enter
+    Then the editor should open with that annotation's text
+
+  @planned
+  Scenario: Editing annotation range
+    Given I have added a comment annotation on lines 42-45
+    And the cursor is on line 42
+    When I press "R" (with no selection active)
+    Then the selection should activate on lines 42-45 (the annotation's range)
+    When I extend the selection to line 50 using j/k
+    And I press Enter
+    Then the annotation range should be updated to lines 42-50
+    And the selection should be cleared
+
+  @implemented
+  Scenario: Canceling annotation edit
+    Given I have added a comment annotation on line 42
+    And the cursor is on line 42
+    When I press "e" to edit the annotation
+    And the editor opens with the annotation text
+    When I press Escape twice to cancel
+    Then the editor should close
+    And the annotation should remain unchanged
+
+  @implemented
+  Scenario: No annotation on current line
+    Given the cursor is on line 42
+    And there are no annotations on line 42
+    When I press "e" (with no selection active)
+    Then an error message should display "No annotation on this line"
+
   # --- Viewing Annotations ---
 
   @implemented

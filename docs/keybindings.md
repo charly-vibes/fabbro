@@ -73,6 +73,17 @@ Palette-only keys (press `Space` first):
 - **Vim-inspired**: Navigation uses `hjkl` style, `gg`/`G` for jumps
 - **Helix-inspired**: `Space` opens discoverable command palette
 
+## Editing Existing Annotations
+
+| Key | Action |
+|-----|--------|
+| `e` (no selection) | Edit annotation at cursor line |
+| In picker: `j`/`k` | Navigate annotation list |
+| In picker: `Enter` | Select annotation to edit |
+| In picker: `Esc` | Cancel picker |
+
+When multiple annotations exist on the same line, a picker opens to select which one to edit.
+
 ## Not Yet Implemented
 
 The following are planned but not yet implemented:
@@ -82,4 +93,5 @@ The following are planned but not yet implemented:
 - Mouse support
 - Confirmation prompt on unsaved exit
 - `a` annotations list panel
+- `R` edit annotation range (adjust start/end lines)
 - Text objects (`ap`, `ab`, `as`)

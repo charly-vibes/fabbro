@@ -1913,6 +1913,217 @@ func TestView_InEditorMode_ShowsEditorPanel(t *testing.T) {
 	}
 }
 
+// --- Edit Existing Annotation Tests ---
+
+func TestPressE_WithoutSelection_OnAnnotatedLine_OpensEditor(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+
+	// Add an annotation on line 2 (1-indexed)
+	m.annotations = append(m.annotations, fem.Annotation{
+		Type:      "comment",
+		Text:      "existing comment",
+		StartLine: 2,
+		EndLine:   2,
+	})
+
+	// Move cursor to line 1 (0-indexed, which is line 2 in 1-indexed)
+	m.cursor = 1
+
+	// Press e without selection
+	m = sendKey(m, 'e')
+
+	if m.mode != modeEditor {
+		t.Errorf("expected modeEditor, got %d", m.mode)
+	}
+	if m.editor == nil {
+		t.Fatal("expected editor to be initialized")
+	}
+	if m.editor.annIndex != 0 {
+		t.Errorf("expected annIndex 0, got %d", m.editor.annIndex)
+	}
+	// Editor should contain the annotation text (decoded)
+	if m.editor.ta.Value() != "existing comment" {
+		t.Errorf("expected textarea 'existing comment', got %q", m.editor.ta.Value())
+	}
+}
+
+func TestPressE_WithoutSelection_NoAnnotation_ShowsError(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+
+	// No annotations, cursor on line 1
+	m.cursor = 1
+
+	// Press e without selection
+	m = sendKey(m, 'e')
+
+	if m.mode != modeNormal {
+		t.Errorf("expected to stay in modeNormal, got %d", m.mode)
+	}
+	if m.lastError != "No annotation on this line" {
+		t.Errorf("expected error message, got %q", m.lastError)
+	}
+}
+
+func TestPressE_WithSelection_CreatesExpandAnnotation(t *testing.T) {
+	sess := newTestSession("line1\nline2")
+	m := New(sess)
+
+	// Select a line first
+	m = sendKey(m, 'v')
+
+	// Press e - should create expand annotation (existing behavior)
+	m = sendKey(m, 'e')
+
+	if m.mode != modeInput {
+		t.Errorf("expected modeInput for expand annotation, got %d", m.mode)
+	}
+	if m.inputType != "expand" {
+		t.Errorf("expected inputType 'expand', got %q", m.inputType)
+	}
+}
+
+func TestEditAnnotation_Save_UpdatesExistingAnnotation(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+
+	// Add an annotation
+	m.annotations = append(m.annotations, fem.Annotation{
+		Type:      "comment",
+		Text:      "original",
+		StartLine: 2,
+		EndLine:   2,
+	})
+
+	// Move to annotated line and press e
+	m.cursor = 1
+	m = sendKey(m, 'e')
+
+	// Modify the text
+	m.editor.ta.SetValue("updated comment")
+
+	// Save
+	m = sendKeyType(m, tea.KeyCtrlS)
+
+	if m.mode != modeNormal {
+		t.Errorf("expected modeNormal after save, got %d", m.mode)
+	}
+	if len(m.annotations) != 1 {
+		t.Fatalf("expected 1 annotation (updated), got %d", len(m.annotations))
+	}
+	if m.annotations[0].Text != "updated comment" {
+		t.Errorf("expected annotation text 'updated comment', got %q", m.annotations[0].Text)
+	}
+}
+
+func TestEditAnnotation_Cancel_KeepsOriginal(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+
+	// Add an annotation
+	m.annotations = append(m.annotations, fem.Annotation{
+		Type:      "comment",
+		Text:      "original",
+		StartLine: 2,
+		EndLine:   2,
+	})
+
+	// Move to annotated line and press e
+	m.cursor = 1
+	m = sendKey(m, 'e')
+
+	// Modify the text
+	m.editor.ta.SetValue("modified")
+
+	// Cancel with Esc Esc
+	m = sendKeyType(m, tea.KeyEsc)
+	m = sendKeyType(m, tea.KeyEsc)
+
+	if m.mode != modeNormal {
+		t.Errorf("expected modeNormal after cancel, got %d", m.mode)
+	}
+	if m.annotations[0].Text != "original" {
+		t.Errorf("expected annotation to remain 'original', got %q", m.annotations[0].Text)
+	}
+}
+
+func TestPressE_MultipleAnnotations_OpensPicker(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+
+	// Add two annotations on the same line
+	m.annotations = append(m.annotations, fem.Annotation{
+		Type:      "comment",
+		Text:      "first comment",
+		StartLine: 2,
+		EndLine:   2,
+	})
+	m.annotations = append(m.annotations, fem.Annotation{
+		Type:      "question",
+		Text:      "a question",
+		StartLine: 2,
+		EndLine:   2,
+	})
+
+	// Move cursor to line 1 (0-indexed)
+	m.cursor = 1
+
+	// Press e without selection
+	m = sendKey(m, 'e')
+
+	if m.mode != modePalette {
+		t.Errorf("expected modePalette for annotation picker, got %d", m.mode)
+	}
+	if m.paletteKind != "annPick" {
+		t.Errorf("expected paletteKind 'annPick', got %q", m.paletteKind)
+	}
+	if len(m.paletteItems) != 2 {
+		t.Errorf("expected 2 palette items, got %d", len(m.paletteItems))
+	}
+}
+
+func TestAnnotationPicker_SelectAndEdit(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+
+	// Add two annotations
+	m.annotations = append(m.annotations, fem.Annotation{
+		Type:      "comment",
+		Text:      "first",
+		StartLine: 2,
+		EndLine:   2,
+	})
+	m.annotations = append(m.annotations, fem.Annotation{
+		Type:      "question",
+		Text:      "second",
+		StartLine: 2,
+		EndLine:   2,
+	})
+
+	m.cursor = 1
+	m = sendKey(m, 'e') // opens picker
+
+	// Move down to second item
+	m = sendKey(m, 'j')
+	if m.paletteCursor != 1 {
+		t.Errorf("expected paletteCursor 1, got %d", m.paletteCursor)
+	}
+
+	// Select with enter
+	m = sendKeyType(m, tea.KeyEnter)
+
+	if m.mode != modeEditor {
+		t.Errorf("expected modeEditor after selection, got %d", m.mode)
+	}
+	if m.editor.annIndex != 1 {
+		t.Errorf("expected annIndex 1, got %d", m.editor.annIndex)
+	}
+	if m.editor.ta.Value() != "second" {
+		t.Errorf("expected 'second' in editor, got %q", m.editor.ta.Value())
+	}
+}
+
 func visibleLength(s string) int {
 	inEscape := false
 	count := 0
