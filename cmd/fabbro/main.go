@@ -46,8 +46,48 @@ func buildRootCmd(stdin io.Reader, stdout io.Writer) *cobra.Command {
 	rootCmd.AddCommand(buildReviewCmd(stdin, stdout))
 	rootCmd.AddCommand(buildApplyCmd(stdout))
 	rootCmd.AddCommand(buildSessionCmd(stdout))
+	rootCmd.AddCommand(buildCompletionCmd())
 
 	return rootCmd
+}
+
+func buildCompletionCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "completion [bash|zsh|fish|powershell]",
+		Short: "Generate shell completion scripts",
+		Long: `Generate shell completion scripts for fabbro.
+
+To load completions:
+
+Bash:
+  source <(fabbro completion bash)
+
+Zsh:
+  source <(fabbro completion zsh)
+
+Fish:
+  fabbro completion fish | source
+
+PowerShell:
+  fabbro completion powershell | Out-String | Invoke-Expression
+`,
+		Args:      cobra.ExactArgs(1),
+		ValidArgs: []string{"bash", "zsh", "fish", "powershell"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			switch args[0] {
+			case "bash":
+				return cmd.Root().GenBashCompletion(cmd.OutOrStdout())
+			case "zsh":
+				return cmd.Root().GenZshCompletion(cmd.OutOrStdout())
+			case "fish":
+				return cmd.Root().GenFishCompletion(cmd.OutOrStdout(), true)
+			case "powershell":
+				return cmd.Root().GenPowerShellCompletionWithDesc(cmd.OutOrStdout())
+			default:
+				return fmt.Errorf("unsupported shell: %s", args[0])
+			}
+		},
+	}
 }
 
 func buildInitCmd(stdout io.Writer) *cobra.Command {

@@ -574,3 +574,34 @@ func TestReviewCommandRejectsStdinAndFile(t *testing.T) {
 		t.Errorf("expected conflict error, got: %s", stderr.String())
 	}
 }
+
+func TestCompletionCommand(t *testing.T) {
+	shells := []string{"bash", "zsh", "fish", "powershell"}
+
+	for _, shell := range shells {
+		t.Run(shell, func(t *testing.T) {
+			var stdout, stderr strings.Builder
+			stdin := strings.NewReader("")
+
+			code := realMain([]string{"completion", shell}, stdin, &stdout, &stderr)
+
+			if code != 0 {
+				t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
+			}
+			if stdout.Len() == 0 {
+				t.Error("expected completion output, got empty")
+			}
+		})
+	}
+}
+
+func TestCompletionCommandInvalidShell(t *testing.T) {
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"completion", "invalid"}, stdin, &stdout, &stderr)
+
+	if code != 1 {
+		t.Errorf("expected exit code 1, got %d", code)
+	}
+}
