@@ -102,3 +102,51 @@ func TestInit_CreatesPrivateDirectories(t *testing.T) {
 		t.Errorf("expected SessionsDir permissions 0700, got %04o", mode)
 	}
 }
+
+func TestFindProjectRoot_ReturnsRootFromCwd(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	os.MkdirAll(SessionsDir, 0700)
+
+	root, err := FindProjectRoot()
+	if err != nil {
+		t.Fatalf("FindProjectRoot() returned error: %v", err)
+	}
+	if root != tmpDir {
+		t.Errorf("expected root %q, got %q", tmpDir, root)
+	}
+}
+
+func TestFindProjectRoot_ReturnsRootFromSubdir(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	defer os.Chdir(origDir)
+
+	os.MkdirAll(filepath.Join(tmpDir, SessionsDir), 0700)
+	subdir := filepath.Join(tmpDir, "src", "pkg")
+	os.MkdirAll(subdir, 0755)
+	os.Chdir(subdir)
+
+	root, err := FindProjectRoot()
+	if err != nil {
+		t.Fatalf("FindProjectRoot() returned error: %v", err)
+	}
+	if root != tmpDir {
+		t.Errorf("expected root %q, got %q", tmpDir, root)
+	}
+}
+
+func TestFindProjectRoot_ReturnsErrorWhenNotFound(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	_, err := FindProjectRoot()
+	if err == nil {
+		t.Error("expected FindProjectRoot() to return error when no .fabbro exists")
+	}
+}

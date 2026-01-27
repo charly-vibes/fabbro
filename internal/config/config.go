@@ -1,18 +1,47 @@
 package config
 
-import "os"
+import (
+	"errors"
+	"os"
+	"path/filepath"
+)
 
 const FabbroDir = ".fabbro"
 const SessionsDir = ".fabbro/sessions"
 
+var ErrNotInitialized = errors.New("not a fabbro project (no .fabbro directory found)")
+
+func FindProjectRoot() (string, error) {
+	dir, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	for {
+		sessionsPath := filepath.Join(dir, SessionsDir)
+		if info, err := os.Stat(sessionsPath); err == nil && info.IsDir() {
+			return dir, nil
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return "", ErrNotInitialized
+		}
+		dir = parent
+	}
+}
+
 func IsInitialized() bool {
-	if _, err := os.Stat(FabbroDir); err != nil {
-		return false
+	_, err := FindProjectRoot()
+	return err == nil
+}
+
+func GetSessionsDir() (string, error) {
+	root, err := FindProjectRoot()
+	if err != nil {
+		return "", err
 	}
-	if _, err := os.Stat(SessionsDir); err != nil {
-		return false
-	}
-	return true
+	return filepath.Join(root, SessionsDir), nil
 }
 
 func Init() error {

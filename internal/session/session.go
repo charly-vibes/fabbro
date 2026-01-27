@@ -47,6 +47,11 @@ func quoteYAMLString(s string) string {
 }
 
 func Create(content string, sourceFile string) (*Session, error) {
+	sessionsDir, err := config.GetSessionsDir()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find project root: %w", err)
+	}
+
 	var session *Session
 	var sessionPath string
 
@@ -58,7 +63,7 @@ func Create(content string, sourceFile string) (*Session, error) {
 			return nil, err
 		}
 
-		sessionPath = filepath.Join(config.SessionsDir, id+".fem")
+		sessionPath = filepath.Join(sessionsDir, id+".fem")
 
 		if _, err := os.Stat(sessionPath); os.IsNotExist(err) {
 			session = &Session{
@@ -96,7 +101,11 @@ created_at: %s
 }
 
 func Load(id string) (*Session, error) {
-	sessionPath := filepath.Join(config.SessionsDir, id+".fem")
+	sessionsDir, err := config.GetSessionsDir()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find project root: %w", err)
+	}
+	sessionPath := filepath.Join(sessionsDir, id+".fem")
 	data, err := os.ReadFile(sessionPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read session file: %w", err)
@@ -164,7 +173,11 @@ func unquoteYAMLString(s string) string {
 
 // List returns all sessions sorted by creation date (newest first).
 func List() ([]*Session, error) {
-	entries, err := os.ReadDir(config.SessionsDir)
+	sessionsDir, err := config.GetSessionsDir()
+	if err != nil {
+		return []*Session{}, nil
+	}
+	entries, err := os.ReadDir(sessionsDir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return []*Session{}, nil
@@ -206,7 +219,11 @@ func FindBySourceFile(sourceFile string) (*Session, error) {
 		return nil, fmt.Errorf("no session found for empty source file")
 	}
 
-	entries, err := os.ReadDir(config.SessionsDir)
+	sessionsDir, err := config.GetSessionsDir()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find project root: %w", err)
+	}
+	entries, err := os.ReadDir(sessionsDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read sessions directory: %w", err)
 	}

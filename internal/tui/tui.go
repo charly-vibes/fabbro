@@ -674,7 +674,11 @@ created_at: %s
 
 %s`, m.session.ID, m.session.CreatedAt.Format(time.RFC3339), content)
 
-	sessionPath := filepath.Join(config.SessionsDir, m.session.ID+".fem")
+	sessionsDir, err := config.GetSessionsDir()
+	if err != nil {
+		return fmt.Errorf("failed to find project root: %w", err)
+	}
+	sessionPath := filepath.Join(sessionsDir, m.session.ID+".fem")
 	if err := os.WriteFile(sessionPath, []byte(fileContent), 0600); err != nil {
 		return fmt.Errorf("failed to save session: %w", err)
 	}
