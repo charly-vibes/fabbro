@@ -48,6 +48,8 @@ fabbro apply --file plans/my-plan.md --json
 | `fabbro apply <id>` | Show annotations from a session |
 | `fabbro apply <id> --json` | Output annotations as JSON |
 | `fabbro apply --file <path>` | Find and apply latest session for a source file |
+| `fabbro session list` | List all editing sessions |
+| `fabbro session resume <id>` | Resume a previous editing session |
 | `fabbro completion <shell>` | Generate shell completion scripts (bash, zsh, fish, powershell) |
 
 See [CLI documentation](docs/cli.md) for full details.
@@ -67,8 +69,9 @@ See [CLI documentation](docs/cli.md) for full details.
 | `q` | Question annotation (when selected) |
 | `e` | Expand annotation (when selected) |
 | `u` | Unclear annotation (when selected) |
+| `r` | Change/replacement annotation (when selected) |
 | `w` | Save session |
-| `Q` | Quit |
+| `Ctrl+C Ctrl+C` | Quit (with confirmation) |
 
 See [TUI documentation](docs/tui.md) for full details.
 

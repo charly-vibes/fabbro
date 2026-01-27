@@ -28,6 +28,7 @@ func main() {
 | `{!! text !!}` | expand | Request more detail |
 | `{== text ==}` | keep | Mark as good/keep |
 | `{~~ text ~~}` | unclear | Mark as unclear |
+| `{++ text ++}` | change | Replacement text |
 
 ## Syntax Rules
 

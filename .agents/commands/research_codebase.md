@@ -30,9 +30,9 @@ Ask:
 I'm ready to research the codebase. What would you like me to document?
 
 Examples:
-- "How does authentication work?"
-- "What's the structure of the API layer?"
-- "How do we handle database migrations?"
+- "How does the FEM parser work?"
+- "What's the structure of the TUI layer?"
+- "How do sessions get created and loaded?"
 - "What patterns does the codebase use for X?"
 ```
 
@@ -47,16 +47,18 @@ Break down what's being asked:
 
 ### Step 2: Create Research Plan
 
-Use a todo list to track research tasks:
+Track research with beads if there's an associated issue:
 
+```bash
+bd update <issue-id> --status=in_progress
 ```
-Research: [Topic]
+
+Mental checklist:
 - [ ] Find entry points
 - [ ] Trace main flows
 - [ ] Document data structures
 - [ ] Note dependencies
 - [ ] Compile examples
-```
 
 ### Step 3: Investigate Systematically
 
@@ -72,13 +74,13 @@ Research: [Topic]
 **Common research patterns:**
 
 **For "How does X work?"**
-1. Find the entry point (command, route, event)
+1. Find the entry point (command, package, function)
 2. Trace the flow through the code
 3. Document each step
 4. Note key data transformations
 
 **For "What's the structure of X?"**
-1. List all files/modules in the area
+1. List all files/packages in the area
 2. Document the purpose of each
 3. Map dependencies between them
 4. Show the hierarchy
@@ -94,17 +96,11 @@ Research: [Topic]
 Create a research document at `research/YYYY-MM-DD-topic.md`:
 
 ```markdown
----
-date: [ISO timestamp]
-topic: "[Research Question]"
-status: complete
----
+# [Topic] Research
 
-# Research: [Topic]
-
-## Question
-
-[The original research question]
+**Date:** YYYY-MM-DD  
+**Issue:** fabbro-xxx (if applicable)  
+**Question:** [The research question being answered]
 
 ## Summary
 
@@ -114,23 +110,17 @@ status: complete
 
 ### [Component/Area 1]
 
-**Location:** `path/to/files/`
+**Location:** `internal/component/`
 
 **Purpose:** [What this does]
 
 **Key files:**
-- `file1.ts` - [Purpose]
-- `file2.ts` - [Purpose]
+- `file.go` - [Purpose]
+- `file_test.go` - [Purpose]
 
 **How it works:**
 1. [Step 1 with code reference]
 2. [Step 2 with code reference]
-3. [Step 3 with code reference]
-
-**Data flow:**
-```
-Input → [Component A] → [Component B] → Output
-```
 
 ### [Component/Area 2]
 
@@ -138,32 +128,24 @@ Input → [Component A] → [Component B] → Output
 
 ## Code References
 
-Key locations for this topic:
-
 | File | Lines | Description |
 |------|-------|-------------|
-| `path/to/file.ts` | 45-67 | Entry point |
-| `path/to/other.ts` | 12-34 | Core logic |
+| `internal/pkg/file.go` | 45-67 | Entry point |
+| `cmd/fabbro/main.go` | 12-34 | CLI wiring |
 
 ## Examples
 
-### Example 1: [Scenario]
-
-```typescript
-// Actual code from codebase showing usage
-// path/to/example.ts:15-25
-```
-
-### Example 2: [Another Scenario]
-
-```typescript
-// Another example
+```go
+// From internal/session/session.go:15-25
+func Create(path string) (*Session, error) {
+    // ...
+}
 ```
 
 ## Related
 
-- [Related file or concept]
-- [Another related topic]
+- `research/YYYY-MM-DD-related-topic.md`
+- `specs/XX_feature.feature`
 
 ## Open Questions
 
@@ -172,7 +154,7 @@ Key locations for this topic:
 
 ### Step 5: Present Findings
 
-Provide a concise summary to the user:
+Provide a concise summary:
 
 ```
 ## Research Complete: [Topic]
@@ -187,11 +169,9 @@ Provide a concise summary to the user:
 
 ### Key Code Locations
 
-- Entry point: `path/to/entry.ts:42`
-- Core logic: `path/to/core.ts:100-150`
-- Configuration: `path/to/config.ts`
-
-[If relevant to a task:] This understanding can help with [how it relates].
+- Entry point: `cmd/fabbro/cmd_review.go:42`
+- Core logic: `internal/session/session.go:100-150`
+- Config: `internal/config/config.go`
 ```
 
 ## Research Quality Guidelines
@@ -214,12 +194,12 @@ Provide a concise summary to the user:
 ### Be Organized
 - Group related concepts
 - Use clear headings
-- Include visual aids (diagrams, tables) when helpful
+- Include visual aids (mermaid diagrams, tables) when helpful
 
 ## Types of Research
 
 ### Architecture Research
-Focus on: Structure, layers, boundaries, dependencies
+Focus on: Structure, packages, boundaries, dependencies
 
 ### Flow Research
 Focus on: Step-by-step tracing, data transformations, control flow
@@ -227,11 +207,11 @@ Focus on: Step-by-step tracing, data transformations, control flow
 ### Pattern Research
 Focus on: Recurring structures, conventions, examples
 
-### API Research
-Focus on: Endpoints, request/response formats, authentication
+### CLI Research
+Focus on: Commands, flags, argument handling, output formats
 
 ### Data Model Research
-Focus on: Types, schemas, relationships, validation
+Focus on: Types, structs, relationships, validation
 
 ## When Research Becomes Review
 

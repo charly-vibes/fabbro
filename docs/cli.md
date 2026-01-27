@@ -66,7 +66,7 @@ fabbro apply <session-id> [flags]
 
 | Argument | Required | Description |
 |----------|----------|-------------|
-| `session-id` | Yes | The session ID (shown when session was created) |
+| `session-id` | Yes (or use `--file`) | The session ID (shown when session was created) |
 
 **Flags:**
 
@@ -94,6 +94,7 @@ fabbro apply abc12345 --json
 ```json
 {
   "sessionId": "abc12345",
+  "sourceFile": "src/main.go",
   "annotations": [
     {
       "type": "comment",
@@ -111,6 +112,32 @@ fabbro apply abc12345 --json
 }
 ```
 
+**Note:** `sourceFile` is empty for stdin sessions.
+
+### `fabbro session`
+
+Manage editing sessions.
+
+#### `fabbro session list`
+
+List all editing sessions.
+
+```bash
+fabbro session list
+```
+
+Shows all sessions with their ID, creation date, and source file (if any).
+
+#### `fabbro session resume`
+
+Resume a previous editing session.
+
+```bash
+fabbro session resume <session-id>
+```
+
+Opens the TUI with the session content and any existing annotations, allowing you to continue reviewing.
+
 ## Exit Codes
 
 | Code | Meaning |
@@ -126,9 +153,12 @@ Session files are stored in `.fabbro/sessions/` with the format `<id>.fem`. They
 ---
 session_id: abc12345
 created_at: 2026-01-11T12:00:00Z
+source_file: 'src/main.go'
 ---
 
 func main() {
     fmt.Println("Hello") {>> Consider using log <<}
 }
 ```
+
+**Note:** `source_file` is omitted for stdin sessions.

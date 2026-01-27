@@ -4,7 +4,7 @@ fabbro includes a terminal-based UI for reviewing and annotating code.
 
 ## Overview
 
-The TUI launches when you run `fabbro review --stdin`. It displays the content with line numbers and allows you to navigate, select lines, and add comments.
+The TUI launches when you run `fabbro review <file>` or `fabbro review --stdin`. It displays the content with line numbers and allows you to navigate, select lines, and add comments.
 
 ## Layout
 
@@ -54,6 +54,7 @@ Selecting a line marks it for annotation. You can navigate while selected to ext
 | `q` | question | "Question:" |
 | `e` | expand | "What to expand:" |
 | `u` | unclear | "What's unclear:" |
+| `r` | change | "Replacement text:" |
 
 ### Command Palette
 
@@ -80,10 +81,10 @@ When typing an annotation:
 | Key | Action |
 |-----|--------|
 | `w` | Save session |
-| `Q` | Quit without saving (uppercase) |
-| `Ctrl+C` | Quit without saving |
+| `Ctrl+C Ctrl+C` | Quit (with confirmation prompt) |
+| `Space` → `Q` | Force quit immediately (no confirmation) |
 
-**Note:** `q` (lowercase) is the question annotation, `Q` (uppercase) quits.
+**Note:** `q` (lowercase) is the question annotation. Quit requires double `Ctrl+C` or palette.
 
 ## Workflow
 

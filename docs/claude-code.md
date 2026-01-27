@@ -63,6 +63,7 @@ The `--json` output is designed for easy parsing by AI assistants:
 ```json
 {
   "sessionId": "abc12345",
+  "sourceFile": "src/new_feature.go",
   "annotations": [
     {
       "type": "comment",
