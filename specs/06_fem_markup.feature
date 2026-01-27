@@ -274,6 +274,21 @@ Feature: FEM Markup Language
     Then a parsing error should be reported
     And the error should indicate the unclosed marker on line 1
 
+  # --- Design Decision: Full Content Storage ---
+
+  # FEM session files store the COMPLETE original content with inline annotations,
+  # not just annotated regions with line references.
+  #
+  # Rationale (see research/2026-01-26-fem-content-strategy-evaluation.md):
+  # - Self-contained: Sessions work standalone without source file
+  # - Simple: No reconstruction logic or source dependencies
+  # - Resilient: Works for stdin, deleted sources, moved files
+  # - Git-friendly: Meaningful diffs show actual content
+  # - Storage acceptable: ~40 KB/session is trivial (100 sessions = 5 MB)
+  #
+  # Trade-off: 97-99% more storage than regions-only, but complexity cost
+  # of reconstruction outweighs storage savings for a local-first tool.
+
   # --- FEM Syntax Summary ---
 
   # Reference table for FEM markup:
