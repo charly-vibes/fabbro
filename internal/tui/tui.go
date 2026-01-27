@@ -22,6 +22,7 @@ const (
 	modeInput
 	modePalette
 	modeEditor
+	modeQuitConfirm
 )
 
 type editorState struct {
@@ -110,6 +111,7 @@ type Model struct {
 	paletteItems   []int        // annotation indices for picker
 	paletteCursor  int          // current selection in picker
 	lastCtrlC      time.Time    // timestamp of last CTRL+C press for double-tap quit
+	dirty          bool         // true when there are unsaved changes
 }
 
 func New(sess *session.Session) Model {
@@ -177,6 +179,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.handlePaletteMode(msg)
 		case modeEditor:
 			return m.handleEditorMode(msg)
+		case modeQuitConfirm:
+			return m.handleQuitConfirmMode(msg)
 		default:
 			return m.handleNormalMode(msg)
 		}
@@ -225,7 +229,9 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "ctrl+c":
 		now := time.Now()
 		if !m.lastCtrlC.IsZero() && now.Sub(m.lastCtrlC) < 2*time.Second {
-			return m, tea.Quit
+			m.mode = modeQuitConfirm
+			m.lastCtrlC = time.Time{}
+			return m, nil
 		}
 		m.lastCtrlC = now
 		m.lastMessage = "Press CTRL+C again to quit"
@@ -336,6 +342,7 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.lastError = err.Error()
 			return m, nil
 		}
+		m.dirty = false
 		m.lastMessage = "Saved!"
 		return m, clearMessageAfter(2 * time.Second)
 	}
@@ -356,6 +363,7 @@ func (m Model) handlePaletteMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.mode = modeNormal
 			return m, nil
 		}
+		m.dirty = false
 		m.lastMessage = "Saved!"
 		m.mode = modeNormal
 		return m, clearMessageAfter(2 * time.Second)
@@ -462,6 +470,7 @@ func (m Model) handleInputMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				Type:      m.inputType,
 				Text:      text,
 			})
+			m.dirty = true
 		}
 		m.mode = modeNormal
 		m.inputTA = nil
@@ -581,6 +590,17 @@ func (m Model) handleEditorMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+func (m Model) handleQuitConfirmMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "y", "Y":
+		return m, tea.Quit
+	default:
+		m.mode = modeNormal
+		m.lastMessage = "Quit cancelled"
+		return m, clearMessageAfter(2 * time.Second)
+	}
+}
+
 func (m *Model) saveEditorContent() {
 	if m.editor == nil {
 		return
@@ -591,6 +611,7 @@ func (m *Model) saveEditorContent() {
 	// Editing existing annotation
 	if m.editor.annIndex >= 0 {
 		m.annotations[m.editor.annIndex].Text = encodeAnnText(edited)
+		m.dirty = true
 		m.editor = nil
 		m.mode = modeNormal
 		return
@@ -619,6 +640,7 @@ func (m *Model) saveEditorContent() {
 			Text:      text,
 		})
 	}
+	m.dirty = true
 
 	// Clear editor and selection
 	m.editor = nil
@@ -853,6 +875,12 @@ func (m Model) View() string {
 			}
 			b.WriteString("│                                  [ESC] cancel      │\n")
 			b.WriteString("└────────────────────────────────────────────────────┘\n")
+		}
+	case modeQuitConfirm:
+		if m.dirty {
+			b.WriteString("⚠ Unsaved changes! Quit anyway? [y/n] ")
+		} else {
+			b.WriteString("Quit? [y/n] ")
 		}
 	default:
 		b.WriteString("[v]sel [SPC]cmd [w]rite [^C^C]quit")

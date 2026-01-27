@@ -53,9 +53,11 @@ Palette-only keys (press `Space` first):
 
 | Key | Action |
 |-----|--------|
-| `w` | Save and exit |
-| `Q` | Quit immediately (no save) |
-| `Ctrl+C` | Quit immediately (no save) |
+| `w` | Save session |
+| `Ctrl+C Ctrl+C` | Quit (with confirmation prompt) |
+| `Space` → `Q` | Force quit immediately (no confirmation) |
+
+Quit confirmation shows "Quit? [y/n]" or "⚠ Unsaved changes! Quit anyway? [y/n]" if dirty.
 
 ## Input Mode
 
@@ -91,7 +93,6 @@ The following are planned but not yet implemented:
 - `/` search
 - `?` help panel
 - Mouse support
-- Confirmation prompt on unsaved exit
 - `a` annotations list panel
 - `R` edit annotation range (adjust start/end lines)
 - Text objects (`ap`, `ab`, `as`)

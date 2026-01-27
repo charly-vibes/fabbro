@@ -172,10 +172,47 @@ func TestNormalModeQuit(t *testing.T) {
 		t.Errorf("expected warning message, got %q", m.lastMessage)
 	}
 
-	// Second ctrl+c within 2 seconds quits
-	_, cmd = m.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
+	// Second ctrl+c enters quit confirm mode
+	newModel, _ = m.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
+	m = newModel.(Model)
+	if m.mode != modeQuitConfirm {
+		t.Errorf("expected modeQuitConfirm, got %v", m.mode)
+	}
+
+	// 'y' confirms quit
+	_, cmd = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'y'}})
 	if cmd == nil {
-		t.Error("expected quit command from second ctrl+c, got nil")
+		t.Error("expected quit command from 'y' in quit confirm mode, got nil")
+	}
+}
+
+func TestQuitConfirmCancelled(t *testing.T) {
+	sess := newTestSession("content")
+	m := New(sess)
+	m.mode = modeQuitConfirm
+
+	// 'n' cancels quit
+	newModel, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'n'}})
+	m = newModel.(Model)
+	if m.mode != modeNormal {
+		t.Errorf("expected modeNormal after cancel, got %v", m.mode)
+	}
+	if cmd == nil {
+		t.Error("expected message clear command, got nil")
+	}
+}
+
+func TestQuitConfirmShowsUnsavedWarning(t *testing.T) {
+	sess := newTestSession("content")
+	m := New(sess)
+	m.mode = modeQuitConfirm
+	m.dirty = true
+	m.width = 80
+	m.height = 20
+
+	view := m.View()
+	if !strings.Contains(view, "Unsaved changes") {
+		t.Errorf("expected unsaved warning in view, got:\n%s", view)
 	}
 }
 
