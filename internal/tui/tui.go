@@ -667,12 +667,21 @@ func (m Model) save() error {
 	}
 
 	content := strings.Join(result, "\n")
+
+	// Build frontmatter with optional source_file (matching session.Create format)
+	var sourceFileLine string
+	if m.session.SourceFile != "" {
+		// Use single-quote YAML escaping for consistency
+		escaped := strings.ReplaceAll(m.session.SourceFile, "'", "''")
+		sourceFileLine = fmt.Sprintf("source_file: '%s'\n", escaped)
+	}
+
 	fileContent := fmt.Sprintf(`---
 session_id: %s
 created_at: %s
----
+%s---
 
-%s`, m.session.ID, m.session.CreatedAt.Format(time.RFC3339), content)
+%s`, m.session.ID, m.session.CreatedAt.Format(time.RFC3339), sourceFileLine, content)
 
 	sessionsDir, err := config.GetSessionsDir()
 	if err != nil {

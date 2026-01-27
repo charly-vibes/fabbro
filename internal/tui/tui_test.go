@@ -921,6 +921,40 @@ func TestSave(t *testing.T) {
 	}
 }
 
+func TestSavePreservesSourceFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	sess := &session.Session{
+		ID:         "test-save-source",
+		Content:    "line1\nline2",
+		CreatedAt:  time.Date(2026, 1, 11, 12, 0, 0, 0, time.UTC),
+		SourceFile: "plans/my-plan.md",
+	}
+	m := New(sess)
+
+	if err := m.save(); err != nil {
+		t.Fatalf("save() failed: %v", err)
+	}
+
+	sessionFile := filepath.Join(config.SessionsDir, "test-save-source.fem")
+	data, err := os.ReadFile(sessionFile)
+	if err != nil {
+		t.Fatalf("save() did not create file: %v", err)
+	}
+
+	content := string(data)
+
+	// Should preserve source_file in frontmatter
+	if !strings.Contains(content, "source_file: 'plans/my-plan.md'") {
+		t.Errorf("saved file should contain source_file, got:\n%s", content)
+	}
+}
+
 func TestCtrlDScrollsDown(t *testing.T) {
 	// Create 50 lines
 	lines := make([]string, 50)
