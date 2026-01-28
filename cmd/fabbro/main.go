@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	"github.com/charly-vibes/fabbro/internal/config"
 	"github.com/charly-vibes/fabbro/internal/fem"
 	"github.com/charly-vibes/fabbro/internal/session"
 	"github.com/charly-vibes/fabbro/internal/tui"
+	"github.com/charly-vibes/fabbro/internal/tutor"
 	"github.com/spf13/cobra"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -47,6 +49,7 @@ func buildRootCmd(stdin io.Reader, stdout io.Writer) *cobra.Command {
 	rootCmd.AddCommand(buildApplyCmd(stdout))
 	rootCmd.AddCommand(buildSessionCmd(stdout))
 	rootCmd.AddCommand(buildCompletionCmd())
+	rootCmd.AddCommand(buildTutorCmd(stdout))
 
 	return rootCmd
 }
@@ -346,6 +349,38 @@ func buildSessionResumeCmd(stdout io.Writer) *cobra.Command {
 			fmt.Fprintf(stdout, "Resuming session: %s\n", sess.ID)
 
 			model := tui.NewWithAnnotations(sess, sess.SourceFile, annotations)
+			p := tea.NewProgram(model)
+			if _, err := p.Run(); err != nil {
+				return fmt.Errorf("TUI error: %w", err)
+			}
+
+			return nil
+		},
+	}
+}
+
+func buildTutorCmd(stdout io.Writer) *cobra.Command {
+	return &cobra.Command{
+		Use:   "tutor",
+		Short: "Start the interactive tutorial",
+		Long: `Launch an interactive tutorial that teaches fabbro basics.
+
+The tutor opens a guided lesson file in the TUI where you can
+practice navigation, selection, and annotation. Like vimtutor,
+this is hands-on learning.
+
+Your practice session is temporary and won't be saved.`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			sess := &session.Session{
+				ID:        tutor.SessionID,
+				Content:   tutor.Content,
+				CreatedAt: time.Now(),
+			}
+
+			fmt.Fprintln(stdout, "Welcome to the fabbro tutor!")
+			fmt.Fprintln(stdout, "")
+
+			model := tui.NewWithFile(sess, "(tutorial)")
 			p := tea.NewProgram(model)
 			if _, err := p.Run(); err != nil {
 				return fmt.Errorf("TUI error: %w", err)

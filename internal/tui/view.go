@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/charly-vibes/fabbro/internal/config"
 	"github.com/charly-vibes/fabbro/internal/fem"
+	"github.com/charly-vibes/fabbro/internal/tutor"
 )
 
 func (m Model) View() string {
@@ -222,7 +224,13 @@ func (m Model) View() string {
 	return b.String()
 }
 
+var ErrTutorSession = errors.New("tutorial sessions are not saved")
+
 func (m Model) save() error {
+	if m.session.ID == tutor.SessionID {
+		return ErrTutorSession
+	}
+
 	annotationsByLine := make(map[int][]fem.Annotation)
 	for _, a := range m.annotations {
 		annotationsByLine[a.StartLine] = append(annotationsByLine[a.StartLine], a)

@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -203,8 +204,12 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case "w":
 		if err := m.save(); err != nil {
-			m.lastError = err.Error()
-			return m, nil
+			if errors.Is(err, ErrTutorSession) {
+				m.lastMessage = "Tutorial sessions are not saved"
+			} else {
+				m.lastError = err.Error()
+			}
+			return m, clearMessageAfter(2 * time.Second)
 		}
 		m.dirty = false
 		m.lastMessage = "Saved!"
@@ -221,9 +226,13 @@ func (m Model) handlePaletteMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "w":
 		if err := m.save(); err != nil {
-			m.lastError = err.Error()
+			if errors.Is(err, ErrTutorSession) {
+				m.lastMessage = "Tutorial sessions are not saved"
+			} else {
+				m.lastError = err.Error()
+			}
 			m.mode = modeNormal
-			return m, nil
+			return m, clearMessageAfter(2 * time.Second)
 		}
 		m.dirty = false
 		m.lastMessage = "Saved!"

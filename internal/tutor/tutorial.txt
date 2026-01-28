@@ -1,0 +1,117 @@
+===============================================================================
+=    W e l c o m e   t o   t h e   F a b b r o   T u t o r i a l              =
+===============================================================================
+
+Fabbro is a code review annotation tool. This tutorial teaches you the
+basics through hands-on practice.
+
+TIP: This is a practice session. Your annotations won't be saved.
+     Feel free to experiment!
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                          Lesson 1: NAVIGATION
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Use these keys to move around:
+
+    j - move DOWN one line
+    k - move UP one line
+    gg - jump to the FIRST line
+    G - jump to the LAST line
+    Ctrl+d - scroll DOWN half a page
+    Ctrl+u - scroll UP half a page
+
+>>> Practice: Use j and k to move around, then use G to jump to the end.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                          Lesson 2: SELECTION
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Before annotating, you must SELECT text:
+
+    v - toggle selection on current line
+    v + j/k - extend selection to multiple lines
+    Esc - clear selection
+
+The selected line(s) will be highlighted.
+
+>>> Practice: Press v to select this line, then press Esc to deselect.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                          Lesson 3: ADDING COMMENTS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+With a line selected, press 'c' to add a comment:
+
+    1. Select a line with 'v'
+    2. Press 'c'
+    3. Type your comment
+    4. Press Enter to save
+
+>>> Practice: Select the line below and add the comment "This is a test"
+
+    function example() {
+        return 42;
+    }
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                          Lesson 4: ANNOTATION TYPES
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Fabbro supports several annotation types. With a line selected:
+
+    c - comment    "Add a note"
+    d - delete     "Mark for deletion"
+    q - question   "Ask a question"
+    e - expand     "Request more detail"
+    u - unclear    "Mark as confusing"
+
+For 'k' (keep), use the command palette (next lesson).
+
+>>> Practice: Select a line above and try pressing 'd' to mark for deletion.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                          Lesson 5: COMMAND PALETTE
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Press SPACE to open the command palette. It shows all available actions:
+
+    Space -> c - comment
+    Space -> d - delete
+    Space -> k - keep (only available here!)
+    Space -> Q - force quit
+
+Press Esc to close the palette without acting.
+
+>>> Practice: Press Space to see the palette, then press Esc to close it.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                          Lesson 6: SAVING & QUITTING
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In a normal session:
+
+    w - save session (creates .fabbro/sessions/<id>.fem)
+    Ctrl+C Ctrl+C - quit with confirmation
+
+After saving, extract annotations with:
+
+    fabbro apply <session-id> --json
+
+>>> This tutorial session cannot be saved. Press Ctrl+C twice to exit.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                          TUTORIAL COMPLETE
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You now know fabbro basics! Next steps:
+
+    fabbro review myfile.go     Review a file
+    fabbro review --stdin       Review piped input
+    fabbro session list         See your sessions
+    fabbro apply <id> --json    Extract annotations
+
+For keybinding reference: see docs/keybindings.md
+
+Happy reviewing!
+===============================================================================
