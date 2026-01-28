@@ -46,12 +46,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *Model) openInputMode(annType string) {
+	// Match the box calculation: boxTotalWidth = width - 2, innerWidth = boxTotalWidth - 4
+	boxTotalWidth := m.width - 2
+	if boxTotalWidth < 24 {
+		boxTotalWidth = 64
+	}
+	taWidth := boxTotalWidth - 4
+
 	ta := textarea.New()
 	ta.Focus()
 	ta.Prompt = ""
 	ta.CharLimit = 0
 	ta.ShowLineNumbers = false
-	ta.SetWidth(60)
+	ta.SetWidth(taWidth)
 	ta.SetHeight(3)
 	ta.KeyMap.InsertNewline.SetKeys("alt+enter", "ctrl+j")
 
@@ -394,12 +401,20 @@ func (m *Model) openEditorForAnnotation(annIndex int) {
 	ann := m.annotations[annIndex]
 	content := decodeAnnText(ann.Text)
 
+	// Match the box calculation: boxTotalWidth = width - 2, innerWidth = boxTotalWidth - 4
+	boxTotalWidth := m.width - 2
+	if boxTotalWidth < 24 {
+		boxTotalWidth = 64
+	}
+	taWidth := boxTotalWidth - 4
+
 	ta := textarea.New()
 	ta.SetValue(content)
 	ta.Focus()
 	ta.Prompt = ""
 	ta.CharLimit = 0
 	ta.ShowLineNumbers = false
+	ta.SetWidth(taWidth)
 	ta.KeyMap.InsertNewline.SetKeys("alt+enter", "ctrl+j")
 
 	m.editor = &editorState{
@@ -415,12 +430,20 @@ func (m *Model) openEditor() {
 	start, end := m.selection.lines()
 	content := strings.Join(m.lines[start:end+1], "\n")
 
+	// Match the box calculation: boxTotalWidth = width - 2, innerWidth = boxTotalWidth - 4
+	boxTotalWidth := m.width - 2
+	if boxTotalWidth < 24 {
+		boxTotalWidth = 64
+	}
+	taWidth := boxTotalWidth - 4
+
 	ta := textarea.New()
 	ta.SetValue(content)
 	ta.Focus()
 	ta.Prompt = ""
 	ta.CharLimit = 0
 	ta.ShowLineNumbers = false
+	ta.SetWidth(taWidth)
 	ta.KeyMap.InsertNewline.SetKeys("alt+enter", "ctrl+j")
 
 	m.editor = &editorState{

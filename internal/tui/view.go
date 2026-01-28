@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 	"github.com/charly-vibes/fabbro/internal/config"
 	"github.com/charly-vibes/fabbro/internal/fem"
 	"github.com/charly-vibes/fabbro/internal/tutor"
@@ -131,47 +133,79 @@ func (m Model) View() string {
 	switch m.mode {
 	case modeInput:
 		prompt := fem.Prompts[m.inputType]
-		b.WriteString(fmt.Sprintf("┌─ %s (Ctrl+J newline, Enter submit) ─────────────────┐\n", prompt))
+		// Box total width = width - 2 (leave small margin)
+		// Inner content width = boxTotalWidth - 4 (for │ and spaces on each side)
+		boxTotalWidth := width - 2
+		if boxTotalWidth < 24 {
+			boxTotalWidth = 64
+		}
+		innerWidth := boxTotalWidth - 4
+		header := fmt.Sprintf("─ %s (Ctrl+J newline, Enter submit) ", prompt)
+		headerPad := boxTotalWidth - len([]rune(header)) - 2 // -2 for ┌ and ┐
+		if headerPad < 0 {
+			headerPad = 0
+		}
+		b.WriteString(fmt.Sprintf("┌%s%s┐\n", header, strings.Repeat("─", headerPad)))
 		if m.inputTA != nil {
 			taView := m.inputTA.View()
 			taLines := strings.Split(taView, "\n")
-			innerWidth := width - 4
 			maxLines := 4
 			for i, line := range taLines {
 				if i >= maxLines {
-					b.WriteString("│ ...                                                │\n")
+					b.WriteString(fmt.Sprintf("│ ...%s │\n", strings.Repeat(" ", innerWidth-4)))
 					break
 				}
-				lineRunes := []rune(line)
-				if len(lineRunes) > innerWidth {
-					lineRunes = lineRunes[:innerWidth]
+				visibleWidth := lipgloss.Width(line)
+				displayLine := line
+				if visibleWidth > innerWidth {
+					displayLine = ansi.Truncate(line, innerWidth, "")
+					visibleWidth = innerWidth
 				}
-				padding := innerWidth - len(lineRunes)
-				b.WriteString(fmt.Sprintf("│ %s%s │\n", string(lineRunes), strings.Repeat(" ", padding)))
+				padding := innerWidth - visibleWidth
+				if padding < 0 {
+					padding = 0
+				}
+				b.WriteString(fmt.Sprintf("│ %s%s │\n", displayLine, strings.Repeat(" ", padding)))
 			}
 		}
-		b.WriteString("└────────────────────────────────────────────────────┘\n")
+		b.WriteString(fmt.Sprintf("└%s┘\n", strings.Repeat("─", boxTotalWidth-2)))
 	case modeEditor:
-		b.WriteString("┌─ Edit (Enter save, Ctrl+J newline, Esc Esc cancel) ─────┐\n")
+		// Box total width = width - 2 (leave small margin)
+		// Inner content width = boxTotalWidth - 4 (for │ and spaces on each side)
+		boxTotalWidth := width - 2
+		if boxTotalWidth < 24 {
+			boxTotalWidth = 64
+		}
+		innerWidth := boxTotalWidth - 4
+		header := "─ Edit (Enter save, Ctrl+J newline, Esc Esc cancel) "
+		headerPad := boxTotalWidth - len([]rune(header)) - 2 // -2 for ┌ and ┐
+		if headerPad < 0 {
+			headerPad = 0
+		}
+		b.WriteString(fmt.Sprintf("┌%s%s┐\n", header, strings.Repeat("─", headerPad)))
 		if m.editor != nil {
 			taView := m.editor.ta.View()
 			taLines := strings.Split(taView, "\n")
-			innerWidth := width - 4
 			maxLines := 6
 			for i, line := range taLines {
 				if i >= maxLines {
-					b.WriteString("│ ...                                                │\n")
+					b.WriteString(fmt.Sprintf("│ ...%s │\n", strings.Repeat(" ", innerWidth-4)))
 					break
 				}
-				lineRunes := []rune(line)
-				if len(lineRunes) > innerWidth {
-					lineRunes = lineRunes[:innerWidth]
+				visibleWidth := lipgloss.Width(line)
+				displayLine := line
+				if visibleWidth > innerWidth {
+					displayLine = ansi.Truncate(line, innerWidth, "")
+					visibleWidth = innerWidth
 				}
-				padding := innerWidth - len(lineRunes)
-				b.WriteString(fmt.Sprintf("│ %s%s │\n", string(lineRunes), strings.Repeat(" ", padding)))
+				padding := innerWidth - visibleWidth
+				if padding < 0 {
+					padding = 0
+				}
+				b.WriteString(fmt.Sprintf("│ %s%s │\n", displayLine, strings.Repeat(" ", padding)))
 			}
 		}
-		b.WriteString("└────────────────────────────────────────────────────┘\n")
+		b.WriteString(fmt.Sprintf("└%s┘\n", strings.Repeat("─", boxTotalWidth-2)))
 	case modePalette:
 		if m.paletteKind == "annPick" {
 			b.WriteString("┌─ Select annotation to edit ───────────────────────┐\n")

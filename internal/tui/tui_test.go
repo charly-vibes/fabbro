@@ -8,10 +8,11 @@ import (
 	"testing"
 	"time"
 
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/charly-vibes/fabbro/internal/config"
 	"github.com/charly-vibes/fabbro/internal/fem"
 	"github.com/charly-vibes/fabbro/internal/session"
-	tea "github.com/charmbracelet/bubbletea"
 )
 
 func newTestSession(content string) *session.Session {
@@ -2376,4 +2377,155 @@ func visibleLength(s string) int {
 		count++
 	}
 	return count
+}
+
+// --- Inline Editor Box Alignment Tests ---
+
+func TestInlineEditorBox_AllLinesHaveSameWidth(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+	m.width = 100
+	m.height = 30
+
+	// Select a line and enter editor mode
+	m.cursor = 1
+	m = sendKey(m, 'v')
+	m = sendKey(m, 'i')
+
+	if m.mode != modeEditor {
+		t.Fatalf("expected modeEditor, got %d", m.mode)
+	}
+
+	view := m.View()
+	lines := strings.Split(view, "\n")
+
+	// Find the editor box lines (between ┌ and └)
+	var boxLines []string
+	inBox := false
+	for _, line := range lines {
+		if strings.HasPrefix(line, "┌") {
+			inBox = true
+		}
+		if inBox {
+			boxLines = append(boxLines, line)
+		}
+		if strings.HasPrefix(line, "└") {
+			break
+		}
+	}
+
+	if len(boxLines) < 3 {
+		t.Fatalf("expected at least 3 box lines (header, content, footer), got %d", len(boxLines))
+	}
+
+	// All box lines should have the same visible width
+	expectedWidth := lipgloss.Width(boxLines[0])
+	for i, line := range boxLines {
+		actualWidth := lipgloss.Width(line)
+		if actualWidth != expectedWidth {
+			t.Errorf("box line %d has width %d, expected %d\nline: %q", i, actualWidth, expectedWidth, line)
+		}
+	}
+}
+
+func TestInlineEditorBox_ContentLinesHaveRightBorder(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+	m.width = 100
+	m.height = 30
+
+	// Select and enter editor mode
+	m.cursor = 1
+	m = sendKey(m, 'v')
+	m = sendKey(m, 'i')
+
+	view := m.View()
+	lines := strings.Split(view, "\n")
+
+	// Find content lines (between header and footer, starting with │)
+	for _, line := range lines {
+		if strings.HasPrefix(line, "│") && !strings.HasPrefix(line, "│ ...") {
+			// Content line should end with " │"
+			stripped := strings.TrimRight(line, " \t")
+			if !strings.HasSuffix(stripped, "│") {
+				t.Errorf("content line missing right border: %q", line)
+			}
+		}
+	}
+}
+
+func TestInlineInputBox_AllLinesHaveSameWidth(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+	m.width = 100
+	m.height = 30
+
+	// Select a line and enter comment mode
+	m.cursor = 1
+	m = sendKey(m, 'v')
+	m = sendKey(m, 'c')
+
+	if m.mode != modeInput {
+		t.Fatalf("expected modeInput, got %d", m.mode)
+	}
+
+	view := m.View()
+	lines := strings.Split(view, "\n")
+
+	// Find the input box lines
+	var boxLines []string
+	inBox := false
+	for _, line := range lines {
+		if strings.HasPrefix(line, "┌") {
+			inBox = true
+		}
+		if inBox {
+			boxLines = append(boxLines, line)
+		}
+		if strings.HasPrefix(line, "└") {
+			break
+		}
+	}
+
+	if len(boxLines) < 3 {
+		t.Fatalf("expected at least 3 box lines, got %d", len(boxLines))
+	}
+
+	// All box lines should have the same visible width
+	expectedWidth := lipgloss.Width(boxLines[0])
+	for i, line := range boxLines {
+		actualWidth := lipgloss.Width(line)
+		if actualWidth != expectedWidth {
+			t.Errorf("box line %d has width %d, expected %d\nline: %q", i, actualWidth, expectedWidth, line)
+		}
+	}
+}
+
+func TestInlineEditorBox_WidthMatchesTerminalWidth(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+	m.width = 120
+	m.height = 30
+
+	// Select and enter editor mode
+	m.cursor = 1
+	m = sendKey(m, 'v')
+	m = sendKey(m, 'i')
+
+	view := m.View()
+	lines := strings.Split(view, "\n")
+
+	// Find the header line
+	for _, line := range lines {
+		if strings.HasPrefix(line, "┌") {
+			boxWidth := lipgloss.Width(line)
+			// Box width should be close to terminal width (within margin)
+			// We use width - 2 as the expected box width based on the implementation
+			expectedBoxWidth := m.width - 2
+			if boxWidth != expectedBoxWidth {
+				t.Errorf("box width %d doesn't match expected %d (terminal width %d)", boxWidth, expectedBoxWidth, m.width)
+			}
+			break
+		}
+	}
 }
