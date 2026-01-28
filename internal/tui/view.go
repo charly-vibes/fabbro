@@ -131,7 +131,7 @@ func (m Model) View() string {
 	switch m.mode {
 	case modeInput:
 		prompt := fem.Prompts[m.inputType]
-		b.WriteString(fmt.Sprintf("┌─ %s (Shift+Enter for newline, Enter to submit) ────┐\n", prompt))
+		b.WriteString(fmt.Sprintf("┌─ %s (Ctrl+J newline, Enter submit) ─────────────────┐\n", prompt))
 		if m.inputTA != nil {
 			taView := m.inputTA.View()
 			taLines := strings.Split(taView, "\n")
@@ -152,7 +152,7 @@ func (m Model) View() string {
 		}
 		b.WriteString("└────────────────────────────────────────────────────┘\n")
 	case modeEditor:
-		b.WriteString("┌─ Edit selection (Ctrl+S save, Esc Esc cancel) ─────┐\n")
+		b.WriteString("┌─ Edit (Enter save, Ctrl+J newline, Esc Esc cancel) ─────┐\n")
 		if m.editor != nil {
 			taView := m.editor.ta.View()
 			taLines := strings.Split(taView, "\n")

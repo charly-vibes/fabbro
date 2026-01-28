@@ -53,7 +53,7 @@ func (m *Model) openInputMode(annType string) {
 	ta.ShowLineNumbers = false
 	ta.SetWidth(60)
 	ta.SetHeight(3)
-	ta.KeyMap.InsertNewline.SetKeys("shift+enter", "ctrl+m")
+	ta.KeyMap.InsertNewline.SetKeys("alt+enter", "ctrl+j")
 
 	m.inputTA = &ta
 	m.inputType = annType
@@ -400,6 +400,7 @@ func (m *Model) openEditorForAnnotation(annIndex int) {
 	ta.Prompt = ""
 	ta.CharLimit = 0
 	ta.ShowLineNumbers = false
+	ta.KeyMap.InsertNewline.SetKeys("alt+enter", "ctrl+j")
 
 	m.editor = &editorState{
 		ta:       ta,
@@ -420,6 +421,7 @@ func (m *Model) openEditor() {
 	ta.Prompt = ""
 	ta.CharLimit = 0
 	ta.ShowLineNumbers = false
+	ta.KeyMap.InsertNewline.SetKeys("alt+enter", "ctrl+j")
 
 	m.editor = &editorState{
 		ta:       ta,
@@ -453,6 +455,10 @@ func (m Model) handleEditorMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case tea.KeyCtrlC:
 		m.editor = nil
 		m.mode = modeNormal
+		return m, nil
+
+	case tea.KeyEnter:
+		m.saveEditorContent()
 		return m, nil
 	}
 
