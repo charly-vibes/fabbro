@@ -62,7 +62,8 @@ type Model struct {
 	height         int
 	gPending       bool   // waiting for second 'g' in gg command
 	zPending       bool   // waiting for second key in z commands (zz, zt, zb)
-	viewportTop    int    // explicit viewport start line (-1 means auto-follow cursor)
+	viewportTop     int // explicit viewport start line (-1 means auto-follow cursor)
+	autoViewportTop int // used only when viewportTop == -1 (auto-follow)
 	lastError      string // last error message to display
 	lastMessage    string // last success message to display
 	highlighter    *highlight.Highlighter
@@ -92,9 +93,10 @@ func NewWithAnnotations(sess *session.Session, sourceFile string, annotations []
 		selection:   selection{},
 		mode:        modeNormal,
 		annotations: annotations,
-		highlighter: highlight.New(sourceFile, sess.Content),
-		sourceFile:  sourceFile,
-		viewportTop: -1, // auto-follow cursor
+		highlighter:     highlight.New(sourceFile, sess.Content),
+		sourceFile:      sourceFile,
+		viewportTop:     -1, // auto-follow cursor
+		autoViewportTop: 0,
 	}
 }
 

@@ -16,6 +16,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		if m.viewportTop < 0 {
+			m.ensureCursorVisible()
+		}
 		return m, nil
 
 	case clearMessageMsg:
@@ -63,6 +66,7 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if msg.String() == "g" {
 			m.cursor = 0
 			m.viewportTop = -1
+			m.autoViewportTop = 0
 			return m, nil
 		}
 	}
@@ -106,6 +110,7 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.cursor < len(m.lines)-1 {
 			m.cursor++
 			m.viewportTop = -1
+			m.ensureCursorVisible()
 			if m.selection.active {
 				m.selection.cursor = m.cursor
 			}
@@ -115,6 +120,7 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.cursor > 0 {
 			m.cursor--
 			m.viewportTop = -1
+			m.ensureCursorVisible()
 			if m.selection.active {
 				m.selection.cursor = m.cursor
 			}
@@ -130,6 +136,7 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.cursor = len(m.lines) - 1
 		}
 		m.viewportTop = -1
+		m.ensureCursorVisible()
 
 	case "ctrl+u":
 		halfPage := (m.height - 4) / 2
@@ -141,6 +148,7 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.cursor = 0
 		}
 		m.viewportTop = -1
+		m.ensureCursorVisible()
 
 	case "g":
 		m.gPending = true
@@ -148,6 +156,7 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "G":
 		m.cursor = len(m.lines) - 1
 		m.viewportTop = -1
+		m.ensureCursorVisible()
 
 	case "z":
 		m.zPending = true

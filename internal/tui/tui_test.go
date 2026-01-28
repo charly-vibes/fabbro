@@ -2282,6 +2282,83 @@ func TestAnnotationPicker_SelectAndEdit(t *testing.T) {
 	}
 }
 
+func TestEnsureCursorVisible_ScrollsViewportWhenCursorMovesDown(t *testing.T) {
+	lines := make([]string, 50)
+	for i := range lines {
+		lines[i] = fmt.Sprintf("line %d", i+1)
+	}
+	sess := newTestSession(strings.Join(lines, "\n"))
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	for i := 0; i < 30; i++ {
+		m = sendKey(m, 'j')
+	}
+
+	if m.cursor != 30 {
+		t.Errorf("expected cursor at 30, got %d", m.cursor)
+	}
+	if m.autoViewportTop == 0 {
+		t.Error("expected autoViewportTop to have scrolled from 0")
+	}
+	if m.autoViewportTop > m.cursor {
+		t.Errorf("autoViewportTop (%d) should not exceed cursor (%d)", m.autoViewportTop, m.cursor)
+	}
+}
+
+func TestEnsureCursorVisible_ScrollsViewportWhenCursorMovesUp(t *testing.T) {
+	lines := make([]string, 50)
+	for i := range lines {
+		lines[i] = fmt.Sprintf("line %d", i+1)
+	}
+	sess := newTestSession(strings.Join(lines, "\n"))
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m.cursor = 40
+	m.autoViewportTop = 35
+	m.viewportTop = -1
+	m.ensureCursorVisible()
+
+	for i := 0; i < 30; i++ {
+		m = sendKey(m, 'k')
+	}
+
+	if m.cursor != 10 {
+		t.Errorf("expected cursor at 10, got %d", m.cursor)
+	}
+	if m.autoViewportTop > m.cursor {
+		t.Errorf("autoViewportTop (%d) should be <= cursor (%d)", m.autoViewportTop, m.cursor)
+	}
+}
+
+func TestGG_ResetsAutoViewportTop(t *testing.T) {
+	lines := make([]string, 50)
+	for i := range lines {
+		lines[i] = fmt.Sprintf("line %d", i+1)
+	}
+	sess := newTestSession(strings.Join(lines, "\n"))
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	for i := 0; i < 30; i++ {
+		m = sendKey(m, 'j')
+	}
+
+	m = sendKey(m, 'g')
+	m = sendKey(m, 'g')
+
+	if m.cursor != 0 {
+		t.Errorf("expected cursor at 0 after gg, got %d", m.cursor)
+	}
+	if m.autoViewportTop != 0 {
+		t.Errorf("expected autoViewportTop 0 after gg, got %d", m.autoViewportTop)
+	}
+}
+
 func visibleLength(s string) int {
 	inEscape := false
 	count := 0

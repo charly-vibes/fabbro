@@ -56,23 +56,23 @@ func (m Model) View() string {
 	}
 
 	start := 0
-	if m.viewportTop >= 0 {
-		start = m.viewportTop
-		if start < 0 {
-			start = 0
-		}
-		if start >= len(m.lines) {
-			start = len(m.lines) - 1
-		}
-	} else if m.cursor > 0 {
-		screenRows := 0
-		for i := m.cursor; i >= 0; i-- {
-			wrapped := wrapLine(m.lines[i], contentWidth)
-			if screenRows+len(wrapped) > visibleLines {
-				start = i + 1
-				break
+	if len(m.lines) > 0 {
+		if m.viewportTop >= 0 {
+			start = m.viewportTop
+			if start < 0 {
+				start = 0
 			}
-			screenRows += len(wrapped)
+			if start >= len(m.lines) {
+				start = len(m.lines) - 1
+			}
+		} else {
+			start = m.autoViewportTop
+			if start < 0 {
+				start = 0
+			}
+			if start >= len(m.lines) {
+				start = len(m.lines) - 1
+			}
 		}
 	}
 
