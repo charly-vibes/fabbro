@@ -138,6 +138,25 @@ fabbro session resume <session-id>
 
 Opens the TUI with the session content and any existing annotations, allowing you to continue reviewing.
 
+### `fabbro tutor`
+
+Start the interactive tutorial.
+
+```bash
+fabbro tutor
+```
+
+Launches a guided lesson in the TUI that teaches fabbro basics:
+- Navigation (j/k, gg, G, Ctrl+d/u)
+- Selection (v, Esc)
+- Annotations (c, d, q, e, u)
+- Command palette (Space)
+- Saving and quitting
+
+The tutorial is hands-on—you practice each feature on real content. Tutorial sessions are not saved; they're just for practice.
+
+**Note:** Works without `fabbro init`. You can run the tutor from any directory.
+
 ## Exit Codes
 
 | Code | Meaning |
