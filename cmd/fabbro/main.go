@@ -101,6 +101,20 @@ func buildInitCmd(stdout io.Writer) *cobra.Command {
 	return &cobra.Command{
 		Use:   "init",
 		Short: "Initialize fabbro in the current directory",
+		Long: `Initialize fabbro in the current directory by creating a .fabbro/ folder.
+
+Pre-conditions:
+  - You must be in a directory where you want to use fabbro.
+  - The .fabbro/ directory must not already exist (idempotent: re-running is safe).
+
+Post-conditions:
+  - A .fabbro/ directory is created containing session storage.
+  - You can now run 'fabbro review' to start annotating files.`,
+		Example: `  # Initialize fabbro in the current project
+  fabbro init
+
+  # Typical workflow after init
+  fabbro init && fabbro review myfile.go`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if config.IsInitialized() {
 				fmt.Fprintln(stdout, "fabbro already initialized")
@@ -120,7 +134,25 @@ func buildReviewCmd(stdin io.Reader, stdout io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "review [file]",
 		Short: "Start a review session",
-		Args:  cobra.MaximumNArgs(1),
+		Long: `Start a new review session to annotate code with FEM (Fabbro Edit Markers).
+
+Pre-conditions:
+  - fabbro must be initialized (run 'fabbro init' first).
+  - Provide either a file path or content via --stdin.
+
+Post-conditions:
+  - A new session is created and stored in .fabbro/sessions/.
+  - The TUI opens for interactive annotation.
+  - Session ID is printed for later reference.`,
+		Example: `  # Review a specific file
+  fabbro review main.go
+
+  # Review content piped from another command
+  git show HEAD:main.go | fabbro review --stdin
+
+  # Review a file from a different directory
+  fabbro review ../lib/utils.py`,
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if !config.IsInitialized() {
 				return fmt.Errorf("fabbro not initialized. Run 'fabbro init' first")
@@ -191,7 +223,24 @@ func buildApplyCmd(stdout io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "apply [session-id]",
 		Short: "Apply annotations from a session",
-		Args:  cobra.MaximumNArgs(1),
+		Long: `Extract and display annotations from a review session.
+
+Pre-conditions:
+  - fabbro must be initialized (run 'fabbro init' first).
+  - Provide either a session ID or use --file to find a session by source file.
+
+Post-conditions:
+  - Annotations are parsed from the session content.
+  - Output is printed to stdout (human-readable or JSON with --json).`,
+		Example: `  # Apply annotations from a specific session
+  fabbro apply abc123
+
+  # Find and apply session by source file
+  fabbro apply --file main.go
+
+  # Get annotations as JSON for programmatic use
+  fabbro apply abc123 --json`,
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if !config.IsInitialized() {
 				return fmt.Errorf("fabbro not initialized. Run 'fabbro init' first")
@@ -266,6 +315,10 @@ func buildSessionCmd(stdout io.Writer) *cobra.Command {
 	sessionCmd := &cobra.Command{
 		Use:   "session",
 		Short: "Manage editing sessions",
+		Long: `Manage fabbro editing sessions.
+
+Sessions store your annotation work and can be listed, resumed, or queried.
+Each session is identified by a unique ID and stored in .fabbro/sessions/.`,
 	}
 
 	sessionCmd.AddCommand(buildSessionListCmd(stdout))
@@ -278,6 +331,19 @@ func buildSessionListCmd(stdout io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List all editing sessions",
+		Long: `List all fabbro editing sessions stored in the current directory.
+
+Pre-conditions:
+  - fabbro must be initialized (run 'fabbro init' first).
+
+Post-conditions:
+  - All sessions are listed with their ID, creation date, and source file.
+  - Use --json for machine-readable output.`,
+		Example: `  # List all sessions
+  fabbro session list
+
+  # List sessions as JSON for scripting
+  fabbro session list --json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if !config.IsInitialized() {
 				return fmt.Errorf("fabbro not initialized. Run 'fabbro init' first")
@@ -331,7 +397,22 @@ func buildSessionResumeCmd(stdout io.Writer) *cobra.Command {
 	return &cobra.Command{
 		Use:   "resume <session-id>",
 		Short: "Resume a previous editing session",
-		Args:  cobra.ExactArgs(1),
+		Long: `Resume a previous fabbro editing session by its ID.
+
+Pre-conditions:
+  - fabbro must be initialized (run 'fabbro init' first).
+  - The session ID must exist (use 'fabbro session list' to find IDs).
+
+Post-conditions:
+  - The session is loaded with its existing annotations.
+  - The TUI opens for continued annotation work.`,
+		Example: `  # Resume a session by ID
+  fabbro session resume abc123
+
+  # Find a session ID first, then resume
+  fabbro session list
+  fabbro session resume <id-from-list>`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if !config.IsInitialized() {
 				return fmt.Errorf("fabbro not initialized. Run 'fabbro init' first")
