@@ -213,6 +213,10 @@ Focus on: Commands, flags, argument handling, output formats
 ### Data Model Research
 Focus on: Types, structs, relationships, validation
 
+### Desire Path Research
+Focus on: Observing and documenting the "paths of least resistance" or actual, emergent usage patterns within the codebase, even if they deviate from intended designs. This involves identifying how developers *actually* interact with the code, which functions are most frequently called, or which modules are most often modified together. The goal is to document these organic flows, much like a desire path forms in physical space.
+See also: [Desire path on Wikipedia](https://en.wikipedia.org/wiki/Desire_path)
+
 ## When Research Becomes Review
 
 If the user asks questions like:
