@@ -225,6 +225,9 @@ func TestCreate_ReturnsErrorWhenSessionsDirMissing(t *testing.T) {
 	os.Chdir(tmpDir)
 	defer os.Chdir(origDir)
 
+	// Prevent FindProjectRoot from walking up to the real project
+	t.Setenv("FABBRO_PROJECT_ROOT_STOP", tmpDir)
+
 	// Don't initialize - sessions dir doesn't exist
 	_, err := Create("content", "")
 	if err == nil {

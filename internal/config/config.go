@@ -17,6 +17,9 @@ func FindProjectRoot() (string, error) {
 		return "", err
 	}
 
+	// Allow tests to set a boundary directory to prevent walking up past it
+	stopAt := os.Getenv("FABBRO_PROJECT_ROOT_STOP")
+
 	for {
 		sessionsPath := filepath.Join(dir, SessionsDir)
 		if info, err := os.Stat(sessionsPath); err == nil && info.IsDir() {
@@ -25,6 +28,10 @@ func FindProjectRoot() (string, error) {
 
 		parent := filepath.Dir(dir)
 		if parent == dir {
+			return "", ErrNotInitialized
+		}
+		// Stop if we've reached the boundary (for test isolation)
+		if stopAt != "" && dir == stopAt {
 			return "", ErrNotInitialized
 		}
 		dir = parent

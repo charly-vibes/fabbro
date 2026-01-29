@@ -158,6 +158,9 @@ func TestInitCommand(t *testing.T) {
 	os.Chdir(tmpDir)
 	defer os.Chdir(origDir)
 
+	// Prevent FindProjectRoot from walking up to the real project
+	t.Setenv("FABBRO_PROJECT_ROOT_STOP", tmpDir)
+
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 

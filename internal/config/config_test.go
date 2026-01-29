@@ -13,6 +13,9 @@ func TestIsInitialized_ReturnsFalseWhenNoFabbroDir(t *testing.T) {
 	os.Chdir(tmpDir)
 	defer os.Chdir(origDir)
 
+	// Prevent FindProjectRoot from walking up to the real project
+	t.Setenv("FABBRO_PROJECT_ROOT_STOP", tmpDir)
+
 	if IsInitialized() {
 		t.Error("expected IsInitialized() to return false when .fabbro does not exist")
 	}
@@ -37,6 +40,9 @@ func TestIsInitialized_ReturnsFalseWhenSessionsDirMissing(t *testing.T) {
 	origDir, _ := os.Getwd()
 	os.Chdir(tmpDir)
 	defer os.Chdir(origDir)
+
+	// Prevent FindProjectRoot from walking up to the real project
+	t.Setenv("FABBRO_PROJECT_ROOT_STOP", tmpDir)
 
 	// Create only .fabbro but not sessions
 	os.Mkdir(FabbroDir, 0755)
@@ -144,6 +150,9 @@ func TestFindProjectRoot_ReturnsErrorWhenNotFound(t *testing.T) {
 	origDir, _ := os.Getwd()
 	os.Chdir(tmpDir)
 	defer os.Chdir(origDir)
+
+	// Prevent FindProjectRoot from walking up to the real project
+	t.Setenv("FABBRO_PROJECT_ROOT_STOP", tmpDir)
 
 	_, err := FindProjectRoot()
 	if err == nil {

@@ -262,13 +262,17 @@ func (m Model) View() string {
 			b.WriteString(fmt.Sprintf(" [%d/%d]", m.search.current+1, len(m.search.matches)))
 		}
 	default:
-		b.WriteString("[v]sel [SPC]cmd [/]search [w]rite [^C^C]quit")
+		helpText := "[v]sel [SPC]cmd [/]search [w]rite [^C^C]quit"
 		if m.selection.active {
-			b.WriteString(" │ [c]omment [d]elete [q]uestion [e]xpand [u]nclear [r]eplace [i]nline")
+			helpText += " │ [c]omment [d]elete [q]uestion [e]xpand [u]nclear [r]eplace [i]nline"
 		}
 		if len(m.search.matches) > 0 {
-			b.WriteString(fmt.Sprintf(" │ [n]ext [p]rev %d/%d", m.search.current+1, len(m.search.matches)))
+			helpText += fmt.Sprintf(" │ [n]ext [p]rev %d/%d", m.search.current+1, len(m.search.matches))
 		}
+		if len([]rune(helpText)) > width {
+			helpText = string([]rune(helpText)[:width])
+		}
+		b.WriteString(helpText)
 		b.WriteString("\n")
 	}
 
