@@ -91,7 +91,7 @@ PowerShell:
 			case "powershell":
 				return cmd.Root().GenPowerShellCompletionWithDesc(cmd.OutOrStdout())
 			default:
-				return fmt.Errorf("unsupported shell: %s", args[0])
+				return fmt.Errorf("unsupported shell: %s. Supported shells: bash, zsh, fish, powershell", args[0])
 			}
 		},
 	}
@@ -182,7 +182,7 @@ Post-conditions:
 				info, err := os.Stat(sourceFile)
 				if err != nil {
 					if os.IsNotExist(err) {
-						return fmt.Errorf("file not found: %s", sourceFile)
+						return fmt.Errorf("file not found: %s. Check the path and try again", sourceFile)
 					}
 					return fmt.Errorf("failed to stat file: %w", err)
 				}
@@ -195,7 +195,7 @@ Post-conditions:
 				}
 				content = string(data)
 			} else {
-				return fmt.Errorf("no input provided. Use --stdin or provide a file path")
+				return fmt.Errorf("no input file specified. Provide a file path as an argument or pipe content via --stdin")
 			}
 
 			sess, err := session.Create(content, sourceFile)
@@ -204,7 +204,7 @@ Post-conditions:
 			}
 
 			if jsonFlag {
-				fmt.Fprintf(stdout, `{"sessionId":"%s"}`+"\n", sess.ID)
+				json.NewEncoder(stdout).Encode(map[string]string{"sessionId": sess.ID})
 			} else {
 				fmt.Fprintf(stdout, "Created session: %s\n", sess.ID)
 			}
@@ -257,7 +257,7 @@ Post-conditions:
 				return fmt.Errorf("cannot use both session-id and --file")
 			}
 			if fileFlag == "" && len(args) == 0 {
-				return fmt.Errorf("must provide either session-id or --file")
+				return fmt.Errorf("no session specified. Provide a session ID as an argument or use --file to find by source file. Run 'fabbro session list' to see available sessions")
 			}
 
 			var sess *session.Session
