@@ -54,6 +54,7 @@ A code review annotation tool with a terminal UI.`,
 	rootCmd.AddCommand(buildSessionCmd(stdout))
 	rootCmd.AddCommand(buildCompletionCmd())
 	rootCmd.AddCommand(buildTutorCmd(stdout))
+	rootCmd.AddCommand(buildPrimeCmd(stdout))
 
 	return rootCmd
 }
@@ -480,4 +481,115 @@ Your practice session is temporary and won't be saved.`,
 			return nil
 		},
 	}
+}
+
+func buildPrimeCmd(stdout io.Writer) *cobra.Command {
+	var jsonFlag bool
+	cmd := &cobra.Command{
+		Use:   "prime",
+		Short: "Output AI-optimized workflow context for fabbro",
+		Long: `Output a concise summary of fabbro for AI agents.
+
+This command provides an AI-optimized overview of fabbro's purpose, 
+key commands, and FEM syntax. Designed to quickly onboard AI coding
+assistants to the fabbro workflow.`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			primeInfo := PrimeInfo{
+				Purpose: "fabbro is a local-first code review annotation tool with a terminal UI. It lets you annotate code using FEM (Fabbro Editing Markup) syntax, designed for human-AI review workflows.",
+				Commands: []CommandInfo{
+					{Name: "fabbro init", Description: "Initialize fabbro in current directory (creates .fabbro/)"},
+					{Name: "fabbro review <file>", Description: "Start review session with file content"},
+					{Name: "fabbro review --stdin", Description: "Start review session from stdin (e.g., git diff | fabbro review --stdin)"},
+					{Name: "fabbro apply <session-id>", Description: "Show annotations from a session"},
+					{Name: "fabbro apply <session-id> --json", Description: "Output annotations as JSON for programmatic use"},
+					{Name: "fabbro apply --file <path>", Description: "Find and apply latest session for a source file"},
+					{Name: "fabbro session list", Description: "List all editing sessions"},
+					{Name: "fabbro session resume <id>", Description: "Resume a previous session in TUI"},
+					{Name: "fabbro tutor", Description: "Interactive tutorial (like vimtutor)"},
+				},
+				FEMSyntax: []FEMInfo{
+					{Syntax: "{>> text <<}", Type: "comment", Description: "General comment"},
+					{Syntax: "{-- text --}", Type: "delete", Description: "Mark for deletion"},
+					{Syntax: "{?? text ??}", Type: "question", Description: "Ask a question"},
+					{Syntax: "{!! text !!}", Type: "expand", Description: "Request more detail"},
+					{Syntax: "{== text ==}", Type: "keep", Description: "Mark as good/keep"},
+					{Syntax: "{~~ text ~~}", Type: "unclear", Description: "Mark as unclear"},
+					{Syntax: "{++ text ++}", Type: "change", Description: "Replacement text"},
+				},
+				TUIKeys: []KeyInfo{
+					{Key: "j/k", Action: "Navigate up/down"},
+					{Key: "v", Action: "Toggle line selection"},
+					{Key: "c", Action: "Add comment annotation"},
+					{Key: "Space", Action: "Open annotation palette"},
+					{Key: "w", Action: "Save session"},
+					{Key: "q", Action: "Quit"},
+				},
+				Docs: []string{
+					"README.md - Overview and quick start",
+					"docs/cli.md - Full CLI reference",
+					"docs/tui.md - TUI keybindings",
+					"docs/fem.md - FEM syntax reference",
+				},
+			}
+
+			if jsonFlag {
+				enc := json.NewEncoder(stdout)
+				enc.SetIndent("", "  ")
+				return enc.Encode(primeInfo)
+			}
+
+			fmt.Fprintln(stdout, "# fabbro — AI Workflow Context")
+			fmt.Fprintln(stdout, "")
+			fmt.Fprintln(stdout, "## Purpose")
+			fmt.Fprintln(stdout, primeInfo.Purpose)
+			fmt.Fprintln(stdout, "")
+			fmt.Fprintln(stdout, "## Commands")
+			for _, c := range primeInfo.Commands {
+				fmt.Fprintf(stdout, "  %s\n    %s\n", c.Name, c.Description)
+			}
+			fmt.Fprintln(stdout, "")
+			fmt.Fprintln(stdout, "## FEM Syntax (annotations)")
+			for _, f := range primeInfo.FEMSyntax {
+				fmt.Fprintf(stdout, "  %s → %s (%s)\n", f.Syntax, f.Type, f.Description)
+			}
+			fmt.Fprintln(stdout, "")
+			fmt.Fprintln(stdout, "## TUI Quick Reference")
+			for _, k := range primeInfo.TUIKeys {
+				fmt.Fprintf(stdout, "  %s: %s\n", k.Key, k.Action)
+			}
+			fmt.Fprintln(stdout, "")
+			fmt.Fprintln(stdout, "## Documentation")
+			for _, d := range primeInfo.Docs {
+				fmt.Fprintf(stdout, "  %s\n", d)
+			}
+
+			return nil
+		},
+	}
+	cmd.Flags().BoolVar(&jsonFlag, "json", false, "Output as JSON")
+	return cmd
+}
+
+type PrimeInfo struct {
+	Purpose   string        `json:"purpose"`
+	Commands  []CommandInfo `json:"commands"`
+	FEMSyntax []FEMInfo     `json:"femSyntax"`
+	TUIKeys   []KeyInfo     `json:"tuiKeys"`
+	Docs      []string      `json:"docs"`
+}
+
+type CommandInfo struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+type FEMInfo struct {
+	Syntax      string `json:"syntax"`
+	Type        string `json:"type"`
+	Description string `json:"description"`
+}
+
+type KeyInfo struct {
+	Key    string `json:"key"`
+	Action string `json:"action"`
 }

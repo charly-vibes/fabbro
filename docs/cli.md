@@ -157,6 +157,39 @@ The tutorial is hands-on—you practice each feature on real content. Tutorial s
 
 **Note:** Works without `fabbro init`. You can run the tutor from any directory.
 
+### `fabbro prime`
+
+Output AI-optimized workflow context.
+
+```bash
+fabbro prime
+```
+
+Outputs a concise summary designed to onboard AI coding assistants to the fabbro workflow. Includes:
+- Core purpose and functionality
+- Key commands for initialization, review, apply, and session management
+- FEM syntax reference
+- TUI keybindings quick reference
+- Links to documentation
+
+**Flags:**
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Output as JSON for programmatic use |
+
+**Example:**
+
+```bash
+# Human-readable output for context
+fabbro prime
+
+# JSON output for AI agents
+fabbro prime --json
+```
+
+**Note:** Works without `fabbro init`. Can be run from any directory.
+
 ## Exit Codes
 
 | Code | Meaning |

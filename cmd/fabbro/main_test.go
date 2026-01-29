@@ -651,3 +651,59 @@ func TestCompletionCommandInvalidShell(t *testing.T) {
 		t.Errorf("expected exit code 1, got %d", code)
 	}
 }
+
+func TestPrimeCommand(t *testing.T) {
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"prime"}, stdin, &stdout, &stderr)
+
+	if code != 0 {
+		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
+	}
+
+	output := stdout.String()
+
+	// Verify essential sections are present
+	expectedSections := []string{
+		"fabbro",
+		"review",
+		"apply",
+		"session",
+		"FEM",
+		"{>>",
+	}
+
+	for _, section := range expectedSections {
+		if !strings.Contains(output, section) {
+			t.Errorf("expected output to contain %q", section)
+		}
+	}
+}
+
+func TestPrimeCommandJSON(t *testing.T) {
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"prime", "--json"}, stdin, &stdout, &stderr)
+
+	if code != 0 {
+		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal([]byte(stdout.String()), &result); err != nil {
+		t.Fatalf("failed to parse JSON output: %v", err)
+	}
+
+	// Verify JSON structure
+	if _, ok := result["purpose"]; !ok {
+		t.Error("expected 'purpose' key in JSON output")
+	}
+	if _, ok := result["commands"]; !ok {
+		t.Error("expected 'commands' key in JSON output")
+	}
+	if _, ok := result["femSyntax"]; !ok {
+		t.Error("expected 'femSyntax' key in JSON output")
+	}
+}

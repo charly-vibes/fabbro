@@ -54,6 +54,7 @@ fabbro apply --file plans/my-plan.md --json
 | `fabbro session list` | List all editing sessions |
 | `fabbro session resume <id>` | Resume a previous editing session |
 | `fabbro tutor` | Start the interactive tutorial (like vimtutor) |
+| `fabbro prime` | Output AI-optimized workflow context |
 | `fabbro completion <shell>` | Generate shell completion scripts (bash, zsh, fish, powershell) |
 
 See [CLI documentation](docs/cli.md) for full details.
