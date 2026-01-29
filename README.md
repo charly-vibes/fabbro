@@ -1,5 +1,8 @@
 # fabbro
 
+> *"For you, il miglior fabbro"*
+> — after T.S. Eliot, The Waste Land
+
 A local-first code review annotation tool with a terminal UI.
 
 ## Overview
@@ -50,6 +53,7 @@ fabbro apply --file plans/my-plan.md --json
 | `fabbro apply --file <path>` | Find and apply latest session for a source file |
 | `fabbro session list` | List all editing sessions |
 | `fabbro session resume <id>` | Resume a previous editing session |
+| `fabbro tutor` | Start the interactive tutorial (like vimtutor) |
 | `fabbro completion <shell>` | Generate shell completion scripts (bash, zsh, fish, powershell) |
 
 See [CLI documentation](docs/cli.md) for full details.

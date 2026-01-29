@@ -39,8 +39,12 @@ func realMain(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 
 func buildRootCmd(stdin io.Reader, stdout io.Writer) *cobra.Command {
 	rootCmd := &cobra.Command{
-		Use:     "fabbro",
-		Short:   "A code review annotation tool",
+		Use:   "fabbro",
+		Short: "A code review annotation tool",
+		Long: `"For you, il miglior fabbro"
+  — after T.S. Eliot, The Waste Land
+
+A code review annotation tool with a terminal UI.`,
 		Version: version,
 	}
 
