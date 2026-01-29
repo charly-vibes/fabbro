@@ -131,6 +131,7 @@ Post-conditions:
 
 func buildReviewCmd(stdin io.Reader, stdout io.Writer) *cobra.Command {
 	var stdinFlag bool
+	var jsonFlag bool
 	cmd := &cobra.Command{
 		Use:   "review [file]",
 		Short: "Start a review session",
@@ -202,7 +203,11 @@ Post-conditions:
 				return fmt.Errorf("failed to create session: %w", err)
 			}
 
-			fmt.Fprintf(stdout, "Created session: %s\n", sess.ID)
+			if jsonFlag {
+				fmt.Fprintf(stdout, `{"sessionId":"%s"}`+"\n", sess.ID)
+			} else {
+				fmt.Fprintf(stdout, "Created session: %s\n", sess.ID)
+			}
 
 			model := tui.NewWithFile(sess, sourceFile)
 			p := tea.NewProgram(model)
@@ -214,6 +219,7 @@ Post-conditions:
 		},
 	}
 	cmd.Flags().BoolVar(&stdinFlag, "stdin", false, "Read content from stdin")
+	cmd.Flags().BoolVar(&jsonFlag, "json", false, "Output session ID as JSON")
 	return cmd
 }
 

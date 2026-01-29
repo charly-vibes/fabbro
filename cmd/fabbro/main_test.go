@@ -578,6 +578,49 @@ func TestReviewCommandRejectsStdinAndFile(t *testing.T) {
 	}
 }
 
+func TestReviewCommandJSONOutput(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	// Create a test file
+	testContent := "# Test\n\nContent for JSON test."
+	os.WriteFile("test.md", []byte(testContent), 0644)
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	// Note: TUI will fail without a TTY, but session creation and JSON output happen first
+	realMain([]string{"review", "--json", "test.md"}, stdin, &stdout, &stderr)
+
+	output := stdout.String()
+
+	// Verify JSON output format
+	if !strings.HasPrefix(output, "{") {
+		t.Errorf("expected JSON output to start with '{', got %q", output)
+	}
+	if !strings.Contains(output, `"sessionId"`) {
+		t.Errorf("expected JSON to contain 'sessionId' key, got %q", output)
+	}
+
+	// Parse and validate JSON structure
+	var result map[string]string
+	// Find the JSON line (first line before any TUI errors)
+	lines := strings.Split(output, "\n")
+	if len(lines) == 0 {
+		t.Fatal("expected at least one line of output")
+	}
+	if err := json.Unmarshal([]byte(lines[0]), &result); err != nil {
+		t.Errorf("expected valid JSON, got parse error: %v for output: %q", err, lines[0])
+	}
+	if result["sessionId"] == "" {
+		t.Error("expected sessionId to be non-empty")
+	}
+}
+
 func TestCompletionCommand(t *testing.T) {
 	shells := []string{"bash", "zsh", "fish", "powershell"}
 
