@@ -38,6 +38,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.handleEditorMode(msg)
 		case modeQuitConfirm:
 			return m.handleQuitConfirmMode(msg)
+		case modeSearch:
+			return m.handleSearchMode(msg)
 		default:
 			return m.handleNormalMode(msg)
 		}
@@ -170,6 +172,7 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case "esc":
 		m.selection = selection{}
+		m.search = searchState{}
 
 	case "v":
 		if m.selection.active {
@@ -230,6 +233,16 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.dirty = false
 		m.lastMessage = "Saved!"
 		return m, clearMessageAfter(2 * time.Second)
+
+	case "/":
+		m.mode = modeSearch
+		m.search = searchState{}
+
+	case "n":
+		m.jumpToNextMatch()
+
+	case "N", "p":
+		m.jumpToPrevMatch()
 	}
 	return m, nil
 }
@@ -543,4 +556,95 @@ func (m *Model) saveEditorContent() {
 	m.editor = nil
 	m.mode = modeNormal
 	m.selection = selection{}
+}
+
+func (m Model) handleSearchMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.Type {
+	case tea.KeyEnter:
+		if m.search.query != "" {
+			m.performSearch()
+			if len(m.search.matches) > 0 {
+				m.cursor = m.search.matches[m.search.current]
+				m.viewportTop = -1
+				m.ensureCursorVisible()
+			} else {
+				m.lastError = "No matches found"
+			}
+		}
+		m.mode = modeNormal
+		return m, nil
+
+	case tea.KeyEsc:
+		m.search = searchState{}
+		m.mode = modeNormal
+		return m, nil
+
+	case tea.KeyBackspace, tea.KeyDelete:
+		if len(m.search.query) > 0 {
+			m.search.query = m.search.query[:len(m.search.query)-1]
+		}
+		return m, nil
+
+	case tea.KeyRunes:
+		m.search.query += string(msg.Runes)
+		return m, nil
+	}
+
+	return m, nil
+}
+
+func (m *Model) performSearch() {
+	m.search.matches = nil
+	m.search.current = 0
+	if m.search.query == "" {
+		return
+	}
+	query := strings.ToLower(m.search.query)
+	for i, line := range m.lines {
+		if fuzzyMatch(strings.ToLower(line), query) {
+			m.search.matches = append(m.search.matches, i)
+		}
+	}
+	if len(m.search.matches) > 0 {
+		for i, lineIdx := range m.search.matches {
+			if lineIdx >= m.cursor {
+				m.search.current = i
+				return
+			}
+		}
+		m.search.current = 0
+	}
+}
+
+func fuzzyMatch(text, pattern string) bool {
+	pIdx := 0
+	for _, r := range text {
+		if pIdx < len(pattern) && byte(r) == pattern[pIdx] {
+			pIdx++
+		}
+	}
+	return pIdx == len(pattern)
+}
+
+func (m *Model) jumpToNextMatch() {
+	if len(m.search.matches) == 0 {
+		return
+	}
+	m.search.current = (m.search.current + 1) % len(m.search.matches)
+	m.cursor = m.search.matches[m.search.current]
+	m.viewportTop = -1
+	m.ensureCursorVisible()
+}
+
+func (m *Model) jumpToPrevMatch() {
+	if len(m.search.matches) == 0 {
+		return
+	}
+	m.search.current--
+	if m.search.current < 0 {
+		m.search.current = len(m.search.matches) - 1
+	}
+	m.cursor = m.search.matches[m.search.current]
+	m.viewportTop = -1
+	m.ensureCursorVisible()
 }

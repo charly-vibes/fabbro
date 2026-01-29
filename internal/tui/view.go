@@ -109,7 +109,16 @@ func (m Model) View() string {
 			annIndicator = "●"
 		}
 
+		searchIndicator := " "
+		if m.isSearchMatch(i) {
+			searchIndicator = "◎"
+		}
+
 		highlightedLine := m.highlighter.RenderLine(line)
+		isCurrentMatch := m.isCurrentSearchMatch(i)
+		if m.search.query != "" && m.isSearchMatch(i) {
+			highlightedLine = m.highlightSearchMatches(highlightedLine, line, isCurrentMatch)
+		}
 
 		wrapped := wrapLine(line, contentWidth)
 		for j, part := range wrapped {
@@ -118,9 +127,16 @@ func (m Model) View() string {
 				displayPart = highlightedLine
 			} else {
 				displayPart = m.highlighter.RenderLine(part)
+				if m.search.query != "" && m.isSearchMatch(i) {
+					displayPart = m.highlightSearchMatches(displayPart, part, isCurrentMatch)
+				}
+			}
+			indicator := annIndicator
+			if searchIndicator != " " {
+				indicator = searchIndicator
 			}
 			if j == 0 {
-				b.WriteString(fmt.Sprintf("%s%s %s %s │ %s\n", cursor, selIndicator, lineNum, annIndicator, displayPart))
+				b.WriteString(fmt.Sprintf("%s%s %s %s │ %s\n", cursor, selIndicator, lineNum, indicator, displayPart))
 			} else {
 				b.WriteString(fmt.Sprintf("         │ %s\n", displayPart))
 			}
@@ -240,10 +256,18 @@ func (m Model) View() string {
 		} else {
 			b.WriteString("Quit? [y/n] ")
 		}
+	case modeSearch:
+		b.WriteString(fmt.Sprintf("/%s█", m.search.query))
+		if len(m.search.matches) > 0 {
+			b.WriteString(fmt.Sprintf(" [%d/%d]", m.search.current+1, len(m.search.matches)))
+		}
 	default:
-		b.WriteString("[v]sel [SPC]cmd [w]rite [^C^C]quit")
+		b.WriteString("[v]sel [SPC]cmd [/]search [w]rite [^C^C]quit")
 		if m.selection.active {
 			b.WriteString(" │ [c]omment [d]elete [q]uestion [e]xpand [u]nclear [r]eplace [i]nline")
+		}
+		if len(m.search.matches) > 0 {
+			b.WriteString(fmt.Sprintf(" │ [n]ext [p]rev %d/%d", m.search.current+1, len(m.search.matches)))
 		}
 		b.WriteString("\n")
 	}
@@ -304,6 +328,74 @@ created_at: %s
 	sessionPath := filepath.Join(sessionsDir, m.session.ID+".fem")
 	if err := os.WriteFile(sessionPath, []byte(fileContent), 0600); err != nil {
 		return fmt.Errorf("failed to save session: %w", err)
+	}
+	return nil
+}
+
+func (m Model) isSearchMatch(lineIdx int) bool {
+	for _, idx := range m.search.matches {
+		if idx == lineIdx {
+			return true
+		}
+	}
+	return false
+}
+
+func (m Model) isCurrentSearchMatch(lineIdx int) bool {
+	if len(m.search.matches) == 0 {
+		return false
+	}
+	if m.search.current >= 0 && m.search.current < len(m.search.matches) {
+		return m.search.matches[m.search.current] == lineIdx
+	}
+	return false
+}
+
+func (m Model) highlightSearchMatches(rendered, original string, isCurrent bool) string {
+	if m.search.query == "" {
+		return rendered
+	}
+	query := strings.ToLower(m.search.query)
+	lowerOriginal := strings.ToLower(original)
+
+	var matchStyle lipgloss.Style
+	if isCurrent {
+		matchStyle = lipgloss.NewStyle().Background(lipgloss.Color("208")).Foreground(lipgloss.Color("0"))
+	} else {
+		matchStyle = lipgloss.NewStyle().Background(lipgloss.Color("226")).Foreground(lipgloss.Color("0"))
+	}
+
+	matchPositions := fuzzyMatchPositions(lowerOriginal, query)
+	if len(matchPositions) == 0 {
+		return rendered
+	}
+
+	var result strings.Builder
+	lastEnd := 0
+	for _, pos := range matchPositions {
+		if pos > lastEnd {
+			result.WriteString(original[lastEnd:pos])
+		}
+		result.WriteString(matchStyle.Render(string(original[pos])))
+		lastEnd = pos + 1
+	}
+	if lastEnd < len(original) {
+		result.WriteString(original[lastEnd:])
+	}
+	return result.String()
+}
+
+func fuzzyMatchPositions(text, pattern string) []int {
+	var positions []int
+	pIdx := 0
+	for i := 0; i < len(text) && pIdx < len(pattern); i++ {
+		if text[i] == pattern[pIdx] {
+			positions = append(positions, i)
+			pIdx++
+		}
+	}
+	if pIdx == len(pattern) {
+		return positions
 	}
 	return nil
 }

@@ -66,6 +66,9 @@ See [CLI documentation](docs/cli.md) for full details.
 | `k` / `↑` | Move cursor up |
 | `gg` / `G` | Jump to first/last line |
 | `Ctrl+d` / `Ctrl+u` | Scroll half page down/up |
+| `/` | Search (fuzzy match) |
+| `n` / `p` | Next/previous search match |
+| `Esc` | Clear selection/search |
 | `v` | Toggle line selection |
 | `Space` | Open annotation palette (when selected) |
 | `c` | Comment (when selected) |

@@ -46,13 +46,17 @@ Feature: TUI Interaction
     When I press "zb"
     Then the viewport should scroll to place line 50 at the bottom
 
-  @planned
+  @implemented
   Scenario: Search within document
     When I press "/"
     Then a search prompt should appear
     When I type "function" and press Enter
     Then the cursor should jump to the first match
     And the match should be highlighted
+    When I press "n"
+    Then the cursor should jump to the next match
+    When I press "N"
+    Then the cursor should jump to the previous match
 
   # --- Helix-style SPC Menu (Discoverability) ---
 

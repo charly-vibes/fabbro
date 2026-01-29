@@ -16,6 +16,20 @@ This is the **authoritative source** for fabbro TUI keybindings.
 | `zt` | Move cursor line to top of viewport |
 | `zb` | Move cursor line to bottom of viewport |
 
+## Search
+
+| Key | Action |
+|-----|--------|
+| `/` | Open search prompt |
+| `Enter` | Perform search and jump to first match |
+| `Esc` | Cancel search (in search mode) / Clear search results (in normal mode) |
+| `n` | Jump to next match |
+| `N` / `p` | Jump to previous match |
+
+Search uses fuzzy matching (characters must appear in order, but not necessarily adjacent).
+Matches are highlighted with a `◎` indicator. The current match is shown in orange, other matches in yellow.
+A match counter (e.g., `2/13`) is displayed in the status bar.
+
 ## Selection
 
 | Key | Action |
@@ -90,7 +104,6 @@ When multiple annotations exist on the same line, a picker opens to select which
 
 The following are planned but not yet implemented:
 
-- `/` search
 - `?` help panel
 - Mouse support
 - `a` annotations list panel

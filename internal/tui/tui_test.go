@@ -2529,3 +2529,352 @@ func TestInlineEditorBox_WidthMatchesTerminalWidth(t *testing.T) {
 		}
 	}
 }
+
+// --- Search Tests ---
+
+func TestSearchMode_SlashEntersSearchMode(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m = sendKey(m, '/')
+
+	if m.mode != modeSearch {
+		t.Errorf("expected modeSearch, got %d", m.mode)
+	}
+}
+
+func TestSearchMode_EscCancelsSearch(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m = sendKey(m, '/')
+	m = sendKeyEsc(m)
+
+	if m.mode != modeNormal {
+		t.Errorf("expected modeNormal after Esc, got %d", m.mode)
+	}
+}
+
+func TestSearchMode_TypingBuildsQuery(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m = sendKey(m, '/')
+	m = sendKey(m, 'f')
+	m = sendKey(m, 'o')
+	m = sendKey(m, 'o')
+
+	if m.search.query != "foo" {
+		t.Errorf("expected query 'foo', got %q", m.search.query)
+	}
+}
+
+func TestSearchMode_BackspaceRemovesCharacter(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m = sendKey(m, '/')
+	m = sendKey(m, 'f')
+	m = sendKey(m, 'o')
+	m = sendKeyBackspace(m)
+
+	if m.search.query != "f" {
+		t.Errorf("expected query 'f', got %q", m.search.query)
+	}
+}
+
+func TestSearchMode_EnterPerformsSearch(t *testing.T) {
+	sess := newTestSession("apple\nbanana\napricot")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m = sendKey(m, '/')
+	m = sendKey(m, 'a')
+	m = sendKey(m, 'p')
+	m = sendKeyEnter(m)
+
+	if m.mode != modeNormal {
+		t.Errorf("expected modeNormal after Enter, got %d", m.mode)
+	}
+	if len(m.search.matches) != 2 {
+		t.Errorf("expected 2 matches (apple, apricot), got %d", len(m.search.matches))
+	}
+	if m.cursor != 0 {
+		t.Errorf("expected cursor at 0 (first match), got %d", m.cursor)
+	}
+}
+
+func TestSearchMode_FuzzyMatching(t *testing.T) {
+	sess := newTestSession("function foo() {}\nconst bar = 1\nfunc baz() {}")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m = sendKey(m, '/')
+	m = sendKey(m, 'f')
+	m = sendKey(m, 'o')
+	m = sendKeyEnter(m)
+
+	// "fo" should match "function foo() {}" (f...o) and "func baz() {}" would not match
+	// Actually "function foo() {}" has f,o in sequence, "func baz() {}" has f but no o after
+	// Let me reconsider: fuzzy match "fo" in "function foo() {}" - f at 0, o at 5 (functi'o'n)
+	// In "func baz() {}" - f at 0, no o
+	if len(m.search.matches) < 1 {
+		t.Errorf("expected at least 1 fuzzy match for 'fo', got %d", len(m.search.matches))
+	}
+}
+
+func TestSearchMode_NJumpsToNextMatch(t *testing.T) {
+	sess := newTestSession("apple\nbanana\napricot\norange")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m = sendKey(m, '/')
+	m = sendKey(m, 'a')
+	m = sendKeyEnter(m)
+
+	// All lines have 'a', so 4 matches
+	if len(m.search.matches) != 4 {
+		t.Errorf("expected 4 matches, got %d", len(m.search.matches))
+	}
+
+	initialCursor := m.cursor
+	m = sendKey(m, 'n')
+
+	if m.cursor == initialCursor {
+		t.Error("expected cursor to move to next match")
+	}
+}
+
+func TestSearchMode_NWrapsAround(t *testing.T) {
+	sess := newTestSession("apple\nbanana\napricot")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m = sendKey(m, '/')
+	m = sendKey(m, 'a')
+	m = sendKeyEnter(m)
+
+	// Jump through all matches
+	for i := 0; i < len(m.search.matches); i++ {
+		m = sendKey(m, 'n')
+	}
+
+	// Should wrap back to first match
+	if m.cursor != m.search.matches[0] {
+		t.Errorf("expected cursor to wrap to first match at %d, got %d", m.search.matches[0], m.cursor)
+	}
+}
+
+func TestSearchMode_ShiftNJumpsToPreviousMatch(t *testing.T) {
+	sess := newTestSession("apple\nbanana\napricot")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m = sendKey(m, '/')
+	m = sendKey(m, 'a')
+	m = sendKeyEnter(m)
+
+	// Go to second match
+	m = sendKey(m, 'n')
+	secondMatchCursor := m.cursor
+
+	// Go back with N
+	m = sendKeyRune(m, 'N')
+
+	if m.cursor >= secondMatchCursor {
+		t.Errorf("expected cursor to go back from %d, got %d", secondMatchCursor, m.cursor)
+	}
+}
+
+func TestSearchMode_NoMatchShowsError(t *testing.T) {
+	sess := newTestSession("apple\nbanana\napricot")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m = sendKey(m, '/')
+	m = sendKey(m, 'z')
+	m = sendKey(m, 'z')
+	m = sendKey(m, 'z')
+	m = sendKeyEnter(m)
+
+	if m.lastError != "No matches found" {
+		t.Errorf("expected 'No matches found' error, got %q", m.lastError)
+	}
+}
+
+func TestSearchMode_ViewShowsSearchPrompt(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m = sendKey(m, '/')
+	m = sendKey(m, 't')
+	m = sendKey(m, 'e')
+	m = sendKey(m, 's')
+	m = sendKey(m, 't')
+
+	view := m.View()
+	if !strings.Contains(view, "/test") {
+		t.Errorf("expected view to contain '/test', got:\n%s", view)
+	}
+}
+
+func TestSearchMode_MatchIndicatorShown(t *testing.T) {
+	sess := newTestSession("apple\nbanana\napricot")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m = sendKey(m, '/')
+	m = sendKey(m, 'a')
+	m = sendKey(m, 'p')
+	m = sendKeyEnter(m)
+
+	view := m.View()
+	// Search match indicator is ◎
+	if !strings.Contains(view, "◎") {
+		t.Errorf("expected search match indicator '◎' in view, got:\n%s", view)
+	}
+}
+
+func TestSearchMode_CaseInsensitive(t *testing.T) {
+	sess := newTestSession("Apple\nBANANA\napricot")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m = sendKey(m, '/')
+	m = sendKey(m, 'a')
+	m = sendKeyEnter(m)
+
+	// Should match all 3 lines (case insensitive)
+	if len(m.search.matches) != 3 {
+		t.Errorf("expected 3 case-insensitive matches, got %d", len(m.search.matches))
+	}
+}
+
+func TestSearchMode_PJumpsToPreviousMatch(t *testing.T) {
+	sess := newTestSession("apple\nbanana\napricot")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m = sendKey(m, '/')
+	m = sendKey(m, 'a')
+	m = sendKeyEnter(m)
+
+	// Go to second match
+	m = sendKey(m, 'n')
+	secondMatchCursor := m.cursor
+
+	// Go back with p (alternative to N)
+	m = sendKey(m, 'p')
+
+	if m.cursor >= secondMatchCursor {
+		t.Errorf("expected cursor to go back from %d with 'p', got %d", secondMatchCursor, m.cursor)
+	}
+}
+
+func TestSearchMode_EscClearsSearchInNormalMode(t *testing.T) {
+	sess := newTestSession("apple\nbanana\napricot")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m = sendKey(m, '/')
+	m = sendKey(m, 'a')
+	m = sendKeyEnter(m)
+
+	// Should have matches
+	if len(m.search.matches) == 0 {
+		t.Fatal("expected matches after search")
+	}
+
+	// Press Esc in normal mode to clear search
+	m = sendKeyEsc(m)
+
+	if len(m.search.matches) != 0 {
+		t.Errorf("expected search to be cleared after Esc, got %d matches", len(m.search.matches))
+	}
+	if m.search.query != "" {
+		t.Errorf("expected query to be cleared after Esc, got %q", m.search.query)
+	}
+}
+
+func TestSearchMode_MatchCounterInView(t *testing.T) {
+	sess := newTestSession("apple\nbanana\napricot\norange")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m = sendKey(m, '/')
+	m = sendKey(m, 'a')
+	m = sendKeyEnter(m)
+
+	// All 4 lines have 'a'
+	view := m.View()
+	if !strings.Contains(view, "1/4") {
+		t.Errorf("expected match counter '1/4' in view, got:\n%s", view)
+	}
+
+	// Jump to next and check counter updates
+	m = sendKey(m, 'n')
+	view = m.View()
+	if !strings.Contains(view, "2/4") {
+		t.Errorf("expected match counter '2/4' after n, got:\n%s", view)
+	}
+}
+
+func TestSearchMode_HelpBarShowsSearchNav(t *testing.T) {
+	sess := newTestSession("apple\nbanana\napricot")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m = sendKey(m, '/')
+	m = sendKey(m, 'a')
+	m = sendKeyEnter(m)
+
+	view := m.View()
+	if !strings.Contains(view, "[n]ext") {
+		t.Errorf("expected '[n]ext' in help bar, got:\n%s", view)
+	}
+	if !strings.Contains(view, "[p]rev") {
+		t.Errorf("expected '[p]rev' in help bar, got:\n%s", view)
+	}
+}
+
+func sendKeyEsc(m Model) Model {
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	return newModel.(Model)
+}
+
+func sendKeyEnter(m Model) Model {
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	return newModel.(Model)
+}
+
+func sendKeyBackspace(m Model) Model {
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyBackspace})
+	return newModel.(Model)
+}
+
+func sendKeyRune(m Model, r rune) Model {
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+	return newModel.(Model)
+}

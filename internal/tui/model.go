@@ -19,6 +19,7 @@ const (
 	modePalette
 	modeEditor
 	modeQuitConfirm
+	modeSearch
 )
 
 type editorState struct {
@@ -49,6 +50,12 @@ func (s selection) lines() (start, end int) {
 	return s.cursor, s.anchor
 }
 
+type searchState struct {
+	query   string     // current search query
+	matches []int      // line indices (0-indexed) that match
+	current int        // index into matches for current match
+}
+
 type Model struct {
 	session        *session.Session
 	lines          []string
@@ -74,6 +81,7 @@ type Model struct {
 	paletteCursor  int          // current selection in picker
 	lastCtrlC      time.Time    // timestamp of last CTRL+C press for double-tap quit
 	dirty          bool         // true when there are unsaved changes
+	search         searchState  // search state (query, matches, current position)
 }
 
 func New(sess *session.Session) Model {
