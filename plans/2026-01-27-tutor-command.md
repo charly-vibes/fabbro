@@ -214,12 +214,14 @@ rootCmd.AddCommand(buildTutorCmd(stdout))
 
 ### 1.3 Handle Tutor Session Save
 
-The tutor uses a special session ID "tutor". Options:
+The tutor uses a reserved session ID `_tutor_` (with underscores to avoid collision with user-created sessions). Options:
 1. **Don't save** - Modify TUI to skip save for tutor sessions
 2. **Save normally** - Let users save if they want (simpler)
 3. **Save to temp** - Save to `/tmp/` instead of `.fabbro/`
 
 **Recommendation**: Option 2 (save normally). If user saves, they get a real session file they can inspect. Simple and educational.
+
+**Note**: The `_tutor_` ID is reserved and rejected by `fabbro review --id` validation.
 
 ### Success Criteria
 
@@ -345,8 +347,13 @@ internal/
 
 ---
 
-## Open Questions
+## Decisions (Closed Questions)
 
-1. Should tutor work from within an existing TUI session (`:tutor` command)?
-2. Should we track tutorial completion for gamification?
-3. Include a "quick reference" card at the end users can copy?
+1. **Should tutor work from within an existing TUI session (`:tutor` command)?**
+   → **No, defer.** Keep tutor as standalone command for simplicity. TUI-integrated tutor is future enhancement.
+
+2. **Should we track tutorial completion for gamification?**
+   → **No.** Out of scope for MVP. Focus on teaching, not tracking.
+
+3. **Include a "quick reference" card at the end users can copy?**
+   → **Yes.** The tutorial already ends with next steps and command examples. This is sufficient.
