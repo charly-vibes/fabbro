@@ -89,6 +89,21 @@ Quit confirmation shows "Quit? [y/n]" or "⚠ Unsaved changes! Quit anyway? [y/n
 - **Vim-inspired**: Navigation uses `hjkl` style, `gg`/`G` for jumps
 - **Helix-inspired**: `Space` opens discoverable command palette
 
+## Annotation Preview
+
+When the cursor is on an annotated line (shown with `●` indicator), the annotation content is automatically displayed in a preview panel below the code area. This replaces the help text.
+
+- Shows annotation type, line range, and full text
+- For multiple annotations on the same line, shows "(X of N annotations)"
+- Preview disappears when cursor moves to a non-annotated line
+
+| Key | Action |
+|-----|--------|
+| `Tab` | Cycle to next annotation (when multiple exist) |
+| `Shift+Tab` | Cycle to previous annotation |
+
+Moving the cursor resets the preview to the first annotation.
+
 ## Editing Existing Annotations
 
 | Key | Action |

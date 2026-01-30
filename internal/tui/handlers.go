@@ -76,6 +76,7 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.cursor = 0
 			m.viewportTop = -1
 			m.autoViewportTop = 0
+			m.resetPreviewIndex()
 			return m, nil
 		}
 	}
@@ -120,6 +121,7 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.cursor++
 			m.viewportTop = -1
 			m.ensureCursorVisible()
+			m.resetPreviewIndex()
 			if m.selection.active {
 				m.selection.cursor = m.cursor
 			}
@@ -130,6 +132,7 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.cursor--
 			m.viewportTop = -1
 			m.ensureCursorVisible()
+			m.resetPreviewIndex()
 			if m.selection.active {
 				m.selection.cursor = m.cursor
 			}
@@ -146,6 +149,7 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.viewportTop = -1
 		m.ensureCursorVisible()
+		m.resetPreviewIndex()
 
 	case "ctrl+u":
 		halfPage := (m.height - 4) / 2
@@ -158,6 +162,7 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.viewportTop = -1
 		m.ensureCursorVisible()
+		m.resetPreviewIndex()
 
 	case "g":
 		m.gPending = true
@@ -166,6 +171,7 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.cursor = len(m.lines) - 1
 		m.viewportTop = -1
 		m.ensureCursorVisible()
+		m.resetPreviewIndex()
 
 	case "z":
 		m.zPending = true
@@ -243,8 +249,43 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case "N", "p":
 		m.jumpToPrevMatch()
+
+	case "tab":
+		m.cyclePreviewAnnotation(1)
+
+	case "shift+tab":
+		m.cyclePreviewAnnotation(-1)
 	}
 	return m, nil
+}
+
+// resetPreviewIndex resets the annotation preview to the first annotation.
+func (m *Model) resetPreviewIndex() {
+	m.previewIndex = 0
+	m.previewLine = 0
+}
+
+// cyclePreviewAnnotation cycles through annotations on the current line.
+// direction: 1 for forward (Tab), -1 for backward (Shift+Tab)
+func (m *Model) cyclePreviewAnnotation(direction int) {
+	cursorLine := m.cursor + 1 // 1-indexed
+	indices := m.annotationsOnLine(cursorLine)
+	if len(indices) <= 1 {
+		return // No cycling needed for 0 or 1 annotation
+	}
+
+	// Reset if we moved to a different line
+	if m.previewLine != cursorLine {
+		m.previewIndex = 0
+		m.previewLine = cursorLine
+	}
+
+	m.previewIndex += direction
+	if m.previewIndex >= len(indices) {
+		m.previewIndex = 0
+	} else if m.previewIndex < 0 {
+		m.previewIndex = len(indices) - 1
+	}
 }
 
 func (m Model) handlePaletteMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {

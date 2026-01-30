@@ -2878,3 +2878,282 @@ func sendKeyRune(m Model, r rune) Model {
 	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
 	return newModel.(Model)
 }
+
+// --- Annotation Preview Tests ---
+
+func TestAnnotationPreview_ShowsWhenCursorOnAnnotatedLine(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m.annotations = []fem.Annotation{
+		{Type: "comment", StartLine: 2, EndLine: 2, Text: "This needs review"},
+	}
+
+	// Move cursor to line 2 (index 1)
+	m.cursor = 1
+
+	view := m.View()
+
+	if !strings.Contains(view, "comment [2-2]") {
+		t.Errorf("expected preview to show 'comment [2-2]', got:\n%s", view)
+	}
+	if !strings.Contains(view, "This needs review") {
+		t.Errorf("expected preview to show annotation text, got:\n%s", view)
+	}
+}
+
+func TestAnnotationPreview_ShowsCountWhenMultipleAnnotations(t *testing.T) {
+	sess := newTestSession("line1\nline2")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m.annotations = []fem.Annotation{
+		{Type: "comment", StartLine: 2, EndLine: 2, Text: "First note"},
+		{Type: "question", StartLine: 2, EndLine: 2, Text: "Is this correct?"},
+	}
+
+	// Move cursor to line 2 (index 1)
+	m.cursor = 1
+
+	view := m.View()
+
+	if !strings.Contains(view, "1 of 2") {
+		t.Errorf("expected preview to show '1 of 2', got:\n%s", view)
+	}
+}
+
+func TestAnnotationPreview_DisappearsWhenCursorLeavesAnnotatedLine(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m.annotations = []fem.Annotation{
+		{Type: "comment", StartLine: 2, EndLine: 2, Text: "Some note"},
+	}
+
+	// Start on annotated line
+	m.cursor = 1
+	view := m.View()
+	if !strings.Contains(view, "comment [2-2]") {
+		t.Fatalf("expected preview on annotated line, got:\n%s", view)
+	}
+
+	// Move to non-annotated line
+	m.cursor = 0
+	view = m.View()
+
+	if strings.Contains(view, "comment [2-2]") {
+		t.Errorf("expected preview to disappear, but it's still there:\n%s", view)
+	}
+	// Should show normal help text instead
+	if !strings.Contains(view, "[v]sel") {
+		t.Errorf("expected normal help text when not on annotated line, got:\n%s", view)
+	}
+}
+
+func TestAnnotationPreview_ShowsFirstAnnotationContent(t *testing.T) {
+	sess := newTestSession("line1\nline2")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m.annotations = []fem.Annotation{
+		{Type: "comment", StartLine: 2, EndLine: 2, Text: "First note"},
+		{Type: "question", StartLine: 2, EndLine: 2, Text: "Second note"},
+	}
+
+	m.cursor = 1
+	view := m.View()
+
+	// Should show first annotation's text
+	if !strings.Contains(view, "First note") {
+		t.Errorf("expected first annotation text, got:\n%s", view)
+	}
+}
+
+func TestAnnotationPreview_WrapsLongText(t *testing.T) {
+	sess := newTestSession("line1\nline2")
+	m := New(sess)
+	m.width = 50
+	m.height = 20
+
+	longText := "This is a very long annotation that should wrap within the preview panel width properly"
+	m.annotations = []fem.Annotation{
+		{Type: "comment", StartLine: 2, EndLine: 2, Text: longText},
+	}
+
+	m.cursor = 1
+	view := m.View()
+
+	// Should contain the preview box structure
+	if !strings.Contains(view, "┌─ comment") {
+		t.Errorf("expected preview box header, got:\n%s", view)
+	}
+	if !strings.Contains(view, "└") {
+		t.Errorf("expected preview box footer, got:\n%s", view)
+	}
+}
+
+// --- Annotation Preview Tab Cycling Tests ---
+
+func TestAnnotationPreview_TabCyclesAnnotations(t *testing.T) {
+	sess := newTestSession("line1\nline2")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m.annotations = []fem.Annotation{
+		{Type: "comment", StartLine: 2, EndLine: 2, Text: "First"},
+		{Type: "question", StartLine: 2, EndLine: 2, Text: "Second"},
+		{Type: "delete", StartLine: 2, EndLine: 2, Text: "Third"},
+	}
+
+	m.cursor = 1
+	view := m.View()
+	if !strings.Contains(view, "First") {
+		t.Fatalf("expected first annotation, got:\n%s", view)
+	}
+
+	// Tab to second annotation
+	m = sendKeyTab(m)
+	view = m.View()
+	if !strings.Contains(view, "Second") {
+		t.Errorf("expected second annotation after Tab, got:\n%s", view)
+	}
+	if !strings.Contains(view, "2 of 3") {
+		t.Errorf("expected '2 of 3' counter, got:\n%s", view)
+	}
+
+	// Tab to third annotation
+	m = sendKeyTab(m)
+	view = m.View()
+	if !strings.Contains(view, "Third") {
+		t.Errorf("expected third annotation after Tab, got:\n%s", view)
+	}
+	if !strings.Contains(view, "3 of 3") {
+		t.Errorf("expected '3 of 3' counter, got:\n%s", view)
+	}
+}
+
+func TestAnnotationPreview_TabWrapsAround(t *testing.T) {
+	sess := newTestSession("line1\nline2")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m.annotations = []fem.Annotation{
+		{Type: "comment", StartLine: 2, EndLine: 2, Text: "First"},
+		{Type: "question", StartLine: 2, EndLine: 2, Text: "Second"},
+	}
+
+	m.cursor = 1
+
+	// Tab twice to get to second, then tab again to wrap
+	m = sendKeyTab(m)
+	m = sendKeyTab(m)
+	view := m.View()
+
+	if !strings.Contains(view, "First") {
+		t.Errorf("expected wrap to first annotation, got:\n%s", view)
+	}
+	if !strings.Contains(view, "1 of 2") {
+		t.Errorf("expected '1 of 2' counter after wrap, got:\n%s", view)
+	}
+}
+
+func TestAnnotationPreview_TabNoOpOnSingleAnnotation(t *testing.T) {
+	sess := newTestSession("line1\nline2")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m.annotations = []fem.Annotation{
+		{Type: "comment", StartLine: 2, EndLine: 2, Text: "Only one"},
+	}
+
+	m.cursor = 1
+
+	m = sendKeyTab(m)
+	view := m.View()
+
+	// Should still show the same annotation, no count (only 1)
+	if !strings.Contains(view, "Only one") {
+		t.Errorf("expected annotation to remain, got:\n%s", view)
+	}
+}
+
+func TestAnnotationPreview_MovingCursorResetsIndex(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m.annotations = []fem.Annotation{
+		{Type: "comment", StartLine: 2, EndLine: 2, Text: "First"},
+		{Type: "question", StartLine: 2, EndLine: 2, Text: "Second"},
+	}
+
+	m.cursor = 1
+
+	// Tab to second annotation
+	m = sendKeyTab(m)
+	view := m.View()
+	if !strings.Contains(view, "Second") {
+		t.Fatalf("expected second annotation, got:\n%s", view)
+	}
+
+	// Move cursor away and back
+	m = sendKey(m, 'j') // move to line 3
+	m = sendKey(m, 'k') // move back to line 2
+
+	view = m.View()
+	if !strings.Contains(view, "First") {
+		t.Errorf("expected reset to first annotation after cursor move, got:\n%s", view)
+	}
+}
+
+func TestAnnotationPreview_ShiftTabCyclesBackward(t *testing.T) {
+	sess := newTestSession("line1\nline2")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m.annotations = []fem.Annotation{
+		{Type: "comment", StartLine: 2, EndLine: 2, Text: "First"},
+		{Type: "question", StartLine: 2, EndLine: 2, Text: "Second"},
+		{Type: "delete", StartLine: 2, EndLine: 2, Text: "Third"},
+	}
+
+	m.cursor = 1
+
+	// Shift+Tab should wrap to last annotation
+	m = sendKeyShiftTab(m)
+	view := m.View()
+	if !strings.Contains(view, "Third") {
+		t.Errorf("expected wrap to last annotation with Shift+Tab, got:\n%s", view)
+	}
+	if !strings.Contains(view, "3 of 3") {
+		t.Errorf("expected '3 of 3' counter, got:\n%s", view)
+	}
+
+	// Shift+Tab again to go to second
+	m = sendKeyShiftTab(m)
+	view = m.View()
+	if !strings.Contains(view, "Second") {
+		t.Errorf("expected second annotation, got:\n%s", view)
+	}
+}
+
+func sendKeyTab(m Model) Model {
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyTab})
+	return newModel.(Model)
+}
+
+func sendKeyShiftTab(m Model) Model {
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyShiftTab})
+	return newModel.(Model)
+}
