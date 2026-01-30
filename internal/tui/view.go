@@ -262,18 +262,31 @@ func (m Model) View() string {
 			b.WriteString(fmt.Sprintf(" [%d/%d]", m.search.current+1, len(m.search.matches)))
 		}
 	default:
-		helpText := "[v]sel [SPC]cmd [/]search [w]rite [^C^C]quit"
-		if m.selection.active {
-			helpText += " │ [c]omment [d]elete [q]uestion [e]xpand [u]nclear [r]eplace [i]nline"
+		// Check if cursor is on an annotated line
+		cursorLine := m.cursor + 1 // 1-indexed
+		annotationIndices := m.annotationsOnLine(cursorLine)
+		if len(annotationIndices) > 0 && !m.selection.active {
+			// Determine which annotation to show
+			previewIdx := 0
+			if m.previewLine == cursorLine && m.previewIndex < len(annotationIndices) {
+				previewIdx = m.previewIndex
+			}
+			// Show annotation preview instead of help text
+			b.WriteString(m.renderAnnotationPreviewAt(annotationIndices, previewIdx, width))
+		} else {
+			helpText := "[v]sel [SPC]cmd [/]search [w]rite [^C^C]quit"
+			if m.selection.active {
+				helpText += " │ [c]omment [d]elete [q]uestion [e]xpand [u]nclear [r]eplace [i]nline"
+			}
+			if len(m.search.matches) > 0 {
+				helpText += fmt.Sprintf(" │ [n]ext [p]rev %d/%d", m.search.current+1, len(m.search.matches))
+			}
+			if len([]rune(helpText)) > width {
+				helpText = string([]rune(helpText)[:width])
+			}
+			b.WriteString(helpText)
+			b.WriteString("\n")
 		}
-		if len(m.search.matches) > 0 {
-			helpText += fmt.Sprintf(" │ [n]ext [p]rev %d/%d", m.search.current+1, len(m.search.matches))
-		}
-		if len([]rune(helpText)) > width {
-			helpText = string([]rune(helpText)[:width])
-		}
-		b.WriteString(helpText)
-		b.WriteString("\n")
 	}
 
 	if m.lastError != "" {
@@ -402,4 +415,102 @@ func fuzzyMatchPositions(text, pattern string) []int {
 		return positions
 	}
 	return nil
+}
+
+// renderAnnotationPreview renders a preview box for annotations on the current line.
+// It displays the first annotation's content and shows a count if multiple exist.
+func (m Model) renderAnnotationPreview(annotationIndices []int, width int) string {
+	return m.renderAnnotationPreviewAt(annotationIndices, 0, width)
+}
+
+// renderAnnotationPreviewAt renders a preview box for the annotation at the given index.
+func (m Model) renderAnnotationPreviewAt(annotationIndices []int, previewIdx int, width int) string {
+	if len(annotationIndices) == 0 {
+		return ""
+	}
+	if previewIdx < 0 || previewIdx >= len(annotationIndices) {
+		previewIdx = 0
+	}
+
+	var b strings.Builder
+
+	// Get the annotation at the specified index
+	ann := m.annotations[annotationIndices[previewIdx]]
+
+	// Box dimensions
+	boxTotalWidth := width - 2
+	if boxTotalWidth < 24 {
+		boxTotalWidth = 64
+	}
+	innerWidth := boxTotalWidth - 4 // for │ and spaces on each side
+
+	// Header: "─ type [start-end] ─────"
+	header := fmt.Sprintf("─ %s [%d-%d] ", ann.Type, ann.StartLine, ann.EndLine)
+	headerPad := boxTotalWidth - len([]rune(header)) - 2 // -2 for ┌ and ┐
+	if headerPad < 0 {
+		headerPad = 0
+	}
+	b.WriteString(fmt.Sprintf("┌%s%s┐\n", header, strings.Repeat("─", headerPad)))
+
+	// Wrap annotation text to fit within inner width
+	textLines := wrapText(ann.Text, innerWidth)
+	maxLines := 3 // Limit preview to 3 lines
+	for i, line := range textLines {
+		if i >= maxLines {
+			b.WriteString(fmt.Sprintf("│ ...%s │\n", strings.Repeat(" ", innerWidth-4)))
+			break
+		}
+		lineRunes := []rune(line)
+		padding := innerWidth - len(lineRunes)
+		if padding < 0 {
+			padding = 0
+		}
+		b.WriteString(fmt.Sprintf("│ %s%s │\n", line, strings.Repeat(" ", padding)))
+	}
+
+	// Footer: show count if multiple annotations
+	var footer string
+	if len(annotationIndices) > 1 {
+		footer = fmt.Sprintf("─ (%d of %d annotations) ", previewIdx+1, len(annotationIndices))
+	} else {
+		footer = "─"
+	}
+	footerPad := boxTotalWidth - len([]rune(footer)) - 2 // -2 for └ and ┘
+	if footerPad < 0 {
+		footerPad = 0
+	}
+	b.WriteString(fmt.Sprintf("└%s%s┘\n", footer, strings.Repeat("─", footerPad)))
+
+	return b.String()
+}
+
+// wrapText wraps text to fit within the given width.
+func wrapText(text string, width int) []string {
+	if width <= 0 {
+		return []string{text}
+	}
+
+	var lines []string
+	runes := []rune(text)
+
+	for len(runes) > 0 {
+		if len(runes) <= width {
+			lines = append(lines, string(runes))
+			break
+		}
+
+		// Find a good break point (prefer space)
+		breakAt := width
+		for i := width - 1; i >= 0; i-- {
+			if runes[i] == ' ' {
+				breakAt = i + 1
+				break
+			}
+		}
+
+		lines = append(lines, string(runes[:breakAt]))
+		runes = runes[breakAt:]
+	}
+
+	return lines
 }

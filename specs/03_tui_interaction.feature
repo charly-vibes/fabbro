@@ -285,6 +285,34 @@ Feature: TUI Interaction
     Then lines 5, 10, and 15 should show a "●" indicator after the line number
     And unannotated lines should show a space in the indicator column
 
+  @implemented
+  Scenario: Show annotation preview when cursor on annotated line
+    Given I have a session with content "line1\nline2\nline3"
+    And line 2 has a comment annotation "This needs review"
+    When I move cursor to line 2
+    Then I should see the annotation preview panel
+    And the preview shows "comment [2-2]"
+    And the preview shows "This needs review"
+
+  @implemented
+  Scenario: Multiple annotations show count
+    Given I have a session with content "line1\nline2"
+    And line 2 has a comment annotation "First note"
+    And line 2 has a question annotation "Is this correct?"
+    When I move cursor to line 2
+    Then I should see "(1 of 2 annotations)"
+    And I should see the first annotation content
+
+  @implemented
+  Scenario: Annotation preview disappears when cursor leaves annotated line
+    Given I have a session with content "line1\nline2\nline3"
+    And line 2 has a comment annotation "Some note"
+    When I move cursor to line 2
+    Then I should see the annotation preview panel
+    When I move cursor to line 1
+    Then I should see the normal help text
+    And the preview panel should not be visible
+
   @planned
   Scenario: Viewing all annotations in session
     Given I have added 5 annotations to the document

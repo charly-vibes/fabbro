@@ -82,6 +82,8 @@ type Model struct {
 	lastCtrlC      time.Time    // timestamp of last CTRL+C press for double-tap quit
 	dirty          bool         // true when there are unsaved changes
 	search         searchState  // search state (query, matches, current position)
+	previewIndex   int          // index into annotations on current line for preview cycling
+	previewLine    int          // line number (1-indexed) for which previewIndex is valid
 }
 
 func New(sess *session.Session) Model {
