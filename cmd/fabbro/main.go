@@ -21,6 +21,11 @@ var version = "dev"
 
 const maxInputBytes = 10 * 1024 * 1024 // 10MB
 
+// noTUI returns true if FABBRO_NO_TUI=1 is set (for testing)
+func noTUI() bool {
+	return os.Getenv("FABBRO_NO_TUI") == "1"
+}
+
 func main() {
 	os.Exit(realMain(os.Args[1:], os.Stdin, os.Stdout, os.Stderr))
 }
@@ -208,6 +213,10 @@ Post-conditions:
 				json.NewEncoder(stdout).Encode(map[string]string{"sessionId": sess.ID})
 			} else {
 				fmt.Fprintf(stdout, "Created session: %s\n", sess.ID)
+			}
+
+			if noTUI() {
+				return nil
 			}
 
 			model := tui.NewWithFile(sess, sourceFile)
@@ -440,6 +449,10 @@ Post-conditions:
 
 			fmt.Fprintf(stdout, "Resuming session: %s\n", sess.ID)
 
+			if noTUI() {
+				return nil
+			}
+
 			model := tui.NewWithAnnotations(sess, sess.SourceFile, annotations)
 			p := tea.NewProgram(model)
 			if _, err := p.Run(); err != nil {
@@ -471,6 +484,10 @@ Your practice session is temporary and won't be saved.`,
 
 			fmt.Fprintln(stdout, "Welcome to the fabbro tutor!")
 			fmt.Fprintln(stdout, "")
+
+			if noTUI() {
+				return nil
+			}
 
 			model := tui.NewWithFile(sess, "(tutorial)")
 			p := tea.NewProgram(model)

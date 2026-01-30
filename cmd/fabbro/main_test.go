@@ -389,6 +389,8 @@ func TestReviewCommandNotInitialized(t *testing.T) {
 	os.Chdir(tmpDir)
 	defer os.Chdir(origDir)
 
+	t.Setenv("FABBRO_PROJECT_ROOT_STOP", tmpDir)
+
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("content")
 
@@ -405,6 +407,8 @@ func TestReviewCommandWithoutStdinFlag(t *testing.T) {
 	os.Chdir(tmpDir)
 	defer os.Chdir(origDir)
 
+	t.Setenv("FABBRO_PROJECT_ROOT_STOP", tmpDir)
+	t.Setenv("FABBRO_NO_TUI", "1")
 	config.Init()
 
 	var stdout, stderr strings.Builder
@@ -452,6 +456,8 @@ func TestReviewCommandWithFile(t *testing.T) {
 	os.Chdir(tmpDir)
 	defer os.Chdir(origDir)
 
+	t.Setenv("FABBRO_PROJECT_ROOT_STOP", tmpDir)
+	t.Setenv("FABBRO_NO_TUI", "1")
 	config.Init()
 
 	// Create a test file
@@ -492,6 +498,7 @@ func TestReviewCommandWithNonExistentFile(t *testing.T) {
 	os.Chdir(tmpDir)
 	defer os.Chdir(origDir)
 
+	t.Setenv("FABBRO_PROJECT_ROOT_STOP", tmpDir)
 	config.Init()
 
 	var stdout, stderr strings.Builder
@@ -510,6 +517,7 @@ func TestReviewCommandRejectsOversizedStdin(t *testing.T) {
 	os.Chdir(tmpDir)
 	defer os.Chdir(origDir)
 
+	t.Setenv("FABBRO_PROJECT_ROOT_STOP", tmpDir)
 	config.Init()
 
 	largeInput := strings.Repeat("x", maxInputBytes+1)
@@ -532,6 +540,7 @@ func TestReviewCommandRejectsOversizedFile(t *testing.T) {
 	os.Chdir(tmpDir)
 	defer os.Chdir(origDir)
 
+	t.Setenv("FABBRO_PROJECT_ROOT_STOP", tmpDir)
 	config.Init()
 
 	largeFile := filepath.Join(tmpDir, "large.txt")
@@ -558,6 +567,7 @@ func TestReviewCommandRejectsStdinAndFile(t *testing.T) {
 	os.Chdir(tmpDir)
 	defer os.Chdir(origDir)
 
+	t.Setenv("FABBRO_PROJECT_ROOT_STOP", tmpDir)
 	config.Init()
 
 	// Create a file
@@ -584,6 +594,8 @@ func TestReviewCommandJSONOutput(t *testing.T) {
 	os.Chdir(tmpDir)
 	defer os.Chdir(origDir)
 
+	t.Setenv("FABBRO_PROJECT_ROOT_STOP", tmpDir)
+	t.Setenv("FABBRO_NO_TUI", "1")
 	config.Init()
 
 	// Create a test file
