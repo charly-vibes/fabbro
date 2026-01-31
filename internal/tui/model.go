@@ -134,3 +134,24 @@ func (m *Model) annotationsOnLine(lineNum int) []int {
 	}
 	return indices
 }
+
+// previewedAnnotation returns the currently previewed annotation, or nil if none.
+// Returns the annotation being shown in the preview panel based on cursor position
+// and Tab-cycling state.
+func (m *Model) previewedAnnotation() *fem.Annotation {
+	cursorLine := m.cursor + 1 // 1-indexed
+	indices := m.annotationsOnLine(cursorLine)
+	if len(indices) == 0 {
+		return nil
+	}
+
+	previewIdx := m.previewIndex
+	if m.previewLine != cursorLine {
+		previewIdx = 0
+	}
+	if previewIdx >= len(indices) {
+		previewIdx = 0
+	}
+
+	return &m.annotations[indices[previewIdx]]
+}

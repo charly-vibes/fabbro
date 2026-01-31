@@ -313,6 +313,26 @@ Feature: TUI Interaction
     Then I should see the normal help text
     And the preview panel should not be visible
 
+  @implemented
+  Scenario: Annotation range highlighting in preview
+    Given I have a session with content "line1\nline2\nline3\nline4\nline5"
+    And lines 2-4 have a comment annotation "Multi-line note"
+    When I move cursor to line 2
+    Then I should see the annotation preview panel
+    And lines 2, 3, and 4 should show a "▐" range highlight indicator
+    When I move cursor to line 5
+    Then the range highlight indicators should disappear
+
+  @implemented
+  Scenario: Tab cycling updates annotation range highlighting
+    Given I have a session with content "line1\nline2\nline3\nline4"
+    And line 2 has a comment annotation "First" spanning lines 2-2
+    And line 2 has a question annotation "Second" spanning lines 2-4
+    When I move cursor to line 2
+    Then only line 2 should show the range highlight indicator
+    When I press Tab
+    Then lines 2, 3, and 4 should show the range highlight indicator
+
   @planned
   Scenario: Viewing all annotations in session
     Given I have added 5 annotations to the document

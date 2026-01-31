@@ -96,6 +96,7 @@ When the cursor is on an annotated line (shown with `●` indicator), the annota
 - Shows annotation type, line range, and full text
 - For multiple annotations on the same line, shows "(X of N annotations)"
 - Preview disappears when cursor moves to a non-annotated line
+- **Range highlighting**: Lines covered by the current annotation show a `▐` indicator
 
 | Key | Action |
 |-----|--------|
@@ -103,6 +104,14 @@ When the cursor is on an annotated line (shown with `●` indicator), the annota
 | `Shift+Tab` | Cycle to previous annotation |
 
 Moving the cursor resets the preview to the first annotation.
+
+### Visual Indicators
+
+| Indicator | Meaning |
+|-----------|---------|
+| `●` | Line has at least one annotation |
+| `▐` | Line is within the range of the currently previewed annotation |
+| `◎` | Line contains a search match |
 
 ## Editing Existing Annotations
 

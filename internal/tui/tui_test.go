@@ -1600,7 +1600,8 @@ func TestViewportScrollsToKeepCursorVisible(t *testing.T) {
 	}
 
 	// The current cursor position should be marked with > and selection indicator
-	if !strings.Contains(view, ">◆") && !strings.Contains(view, ">▌") {
+	// Format: "> ◆" or "> ▌" (with rangeIndicator space between cursor and selection indicator)
+	if !strings.Contains(view, "> ◆") && !strings.Contains(view, "> ▌") {
 		t.Errorf("current line should show cursor and selection indicator")
 	}
 }
@@ -1647,8 +1648,8 @@ func TestViewportScrollsUpWhenSelecting(t *testing.T) {
 
 	// Cursor indicator should be visible on line 1 (cursor moved from anchor, so ▌)
 	// Note: content may have ANSI color codes, so check prefix separately
-	// Format: ">▌   1   │" (with annotation indicator column)
-	if !strings.Contains(view, ">▌   1   │") {
+	// Format: "> ▌   1   │" (with rangeIndicator space and annotation indicator column)
+	if !strings.Contains(view, "> ▌   1   │") {
 		t.Errorf("cursor indicator '>' should be on line 1 with selection indicator, got:\n%s", view)
 	}
 }
@@ -3239,5 +3240,120 @@ func TestHelpMenu_DisplaysVersion(t *testing.T) {
 
 	if !strings.Contains(view, "1.2.3") {
 		t.Errorf("expected version in help, got:\n%s", view)
+	}
+}
+
+// --- Annotation Range Highlighting Tests ---
+
+func TestAnnotationPreview_HighlightsAnnotationRange(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3\nline4\nline5")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	// Annotation spans lines 2-4
+	m.annotations = []fem.Annotation{
+		{Type: "comment", StartLine: 2, EndLine: 4, Text: "Multi-line annotation"},
+	}
+
+	// Move cursor to line 2 (which has the annotation)
+	m.cursor = 1 // 0-indexed, so line 2
+	view := m.View()
+
+	// Lines 2, 3, 4 should have highlighting indicator
+	// Look for the annotation range highlight marker "▐"
+	lines := strings.Split(view, "\n")
+	var highlightedLines []int
+	for i, line := range lines {
+		if strings.Contains(line, "▐") {
+			highlightedLines = append(highlightedLines, i)
+		}
+	}
+
+	if len(highlightedLines) != 3 {
+		t.Errorf("expected 3 highlighted lines for annotation range 2-4, got %d: %v\nview:\n%s",
+			len(highlightedLines), highlightedLines, view)
+	}
+}
+
+func TestAnnotationPreview_HighlightDisappearsWhenCursorLeavesAnnotatedLine(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3\nline4\nline5")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m.annotations = []fem.Annotation{
+		{Type: "comment", StartLine: 2, EndLine: 3, Text: "Some note"},
+	}
+
+	// Cursor on annotated line - should show highlight
+	m.cursor = 1
+	view := m.View()
+	if !strings.Contains(view, "▐") {
+		t.Errorf("expected annotation range highlight when cursor on annotated line, got:\n%s", view)
+	}
+
+	// Move cursor away from annotated line
+	m.cursor = 4 // line 5, no annotation
+	m.resetPreviewIndex()
+	view = m.View()
+	if strings.Contains(view, "▐") {
+		t.Errorf("expected no annotation range highlight when cursor leaves annotated line, got:\n%s", view)
+	}
+}
+
+func TestAnnotationPreview_TabCyclingUpdatesHighlight(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3\nline4\nline5\nline6")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	// Two annotations with different ranges on the same starting line
+	m.annotations = []fem.Annotation{
+		{Type: "comment", StartLine: 2, EndLine: 2, Text: "Single line"},
+		{Type: "question", StartLine: 2, EndLine: 4, Text: "Multi-line"},
+	}
+
+	m.cursor = 1 // line 2
+	view := m.View()
+
+	// First annotation: only line 2 highlighted
+	highlightCount := strings.Count(view, "▐")
+	if highlightCount != 1 {
+		t.Errorf("expected 1 highlighted line for first annotation, got %d\nview:\n%s", highlightCount, view)
+	}
+
+	// Tab to second annotation: lines 2-4 highlighted
+	m = sendKeyTab(m)
+	view = m.View()
+	highlightCount = strings.Count(view, "▐")
+	if highlightCount != 3 {
+		t.Errorf("expected 3 highlighted lines for second annotation (lines 2-4), got %d\nview:\n%s", highlightCount, view)
+	}
+}
+
+func TestAnnotationPreview_HighlightCoexistsWithSelection(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3\nline4\nline5")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m.annotations = []fem.Annotation{
+		{Type: "comment", StartLine: 2, EndLine: 3, Text: "Note"},
+	}
+
+	// Start selection on line 2
+	m.cursor = 1
+	m = sendKey(m, 'v') // start selection
+	m.cursor = 2        // extend to line 3
+
+	view := m.View()
+
+	// Should have both selection indicators and annotation highlight
+	if !strings.Contains(view, "◆") && !strings.Contains(view, "▌") {
+		t.Errorf("expected selection indicator, got:\n%s", view)
+	}
+	if !strings.Contains(view, "▐") {
+		t.Errorf("expected annotation range highlight, got:\n%s", view)
 	}
 }

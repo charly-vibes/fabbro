@@ -46,7 +46,7 @@ func (m Model) View() string {
 	}
 
 	selStart, selEnd := m.selection.lines()
-	prefixLen := 12
+	prefixLen := 13 // cursor(1) + rangeIndicator(1) + selIndicator(1) + space(1) + lineNum(3) + space(1) + annIndicator(1) + space(1) + │(1) + space(1) = 13
 	contentWidth := m.width - prefixLen
 	if contentWidth < 10 {
 		contentWidth = 40
@@ -56,6 +56,9 @@ func (m Model) View() string {
 	for _, ann := range m.annotations {
 		annotatedLines[ann.StartLine] = true
 	}
+
+	// Get the currently previewed annotation for range highlighting
+	previewedAnn := m.previewedAnnotation()
 
 	start := 0
 	if len(m.lines) > 0 {
@@ -104,6 +107,14 @@ func (m Model) View() string {
 			}
 		}
 
+		// Annotation range highlight: show when previewing an annotation
+		// and this line is within its range
+		rangeIndicator := " "
+		lineNum1Based := i + 1
+		if previewedAnn != nil && lineNum1Based >= previewedAnn.StartLine && lineNum1Based <= previewedAnn.EndLine {
+			rangeIndicator = "▐"
+		}
+
 		annIndicator := " "
 		if annotatedLines[i+1] {
 			annIndicator = "●"
@@ -136,9 +147,9 @@ func (m Model) View() string {
 				indicator = searchIndicator
 			}
 			if j == 0 {
-				b.WriteString(fmt.Sprintf("%s%s %s %s │ %s\n", cursor, selIndicator, lineNum, indicator, displayPart))
+				b.WriteString(fmt.Sprintf("%s%s%s %s %s │ %s\n", cursor, rangeIndicator, selIndicator, lineNum, indicator, displayPart))
 			} else {
-				b.WriteString(fmt.Sprintf("         │ %s\n", displayPart))
+				b.WriteString(fmt.Sprintf("          │ %s\n", displayPart))
 			}
 		}
 	}
