@@ -3157,3 +3157,87 @@ func sendKeyShiftTab(m Model) Model {
 	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyShiftTab})
 	return newModel.(Model)
 }
+
+// --- Help Menu Tests ---
+
+func TestHelpMenu_QuestionMarkOpensHelp(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m = sendKey(m, '?')
+
+	if m.mode != modeHelp {
+		t.Errorf("expected modeHelp, got %d", m.mode)
+	}
+}
+
+func TestHelpMenu_AnyKeyCloses(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m = sendKey(m, '?')
+	if m.mode != modeHelp {
+		t.Fatalf("expected modeHelp, got %d", m.mode)
+	}
+
+	// Any key should close it
+	m = sendKey(m, 'j')
+	if m.mode != modeNormal {
+		t.Errorf("expected modeNormal after pressing any key, got %d", m.mode)
+	}
+}
+
+func TestHelpMenu_EscCloses(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m = sendKey(m, '?')
+	m = sendKeyEsc(m)
+
+	if m.mode != modeNormal {
+		t.Errorf("expected modeNormal after Esc, got %d", m.mode)
+	}
+}
+
+func TestHelpMenu_DisplaysKeybindings(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+	m.width = 80
+	m.height = 30
+
+	m = sendKey(m, '?')
+	view := m.View()
+
+	// Should display key navigation bindings
+	if !strings.Contains(view, "j/k") {
+		t.Errorf("expected j/k navigation in help, got:\n%s", view)
+	}
+	// Should display selection binding
+	if !strings.Contains(view, "v") && !strings.Contains(view, "selection") {
+		t.Errorf("expected selection keybinding in help, got:\n%s", view)
+	}
+	// Should display save binding
+	if !strings.Contains(view, "w") {
+		t.Errorf("expected w (write/save) in help, got:\n%s", view)
+	}
+}
+
+func TestHelpMenu_DisplaysVersion(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := NewWithVersion(sess, "", "1.2.3")
+	m.width = 80
+	m.height = 30
+
+	m = sendKey(m, '?')
+	view := m.View()
+
+	if !strings.Contains(view, "1.2.3") {
+		t.Errorf("expected version in help, got:\n%s", view)
+	}
+}

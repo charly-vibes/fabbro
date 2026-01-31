@@ -40,6 +40,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.handleQuitConfirmMode(msg)
 		case modeSearch:
 			return m.handleSearchMode(msg)
+		case modeHelp:
+			return m.handleHelpMode(msg)
 		default:
 			return m.handleNormalMode(msg)
 		}
@@ -255,7 +257,16 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case "shift+tab":
 		m.cyclePreviewAnnotation(-1)
+
+	case "?":
+		m.mode = modeHelp
 	}
+	return m, nil
+}
+
+func (m Model) handleHelpMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	// Any key closes the help panel
+	m.mode = modeNormal
 	return m, nil
 }
 

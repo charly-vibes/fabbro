@@ -398,7 +398,7 @@ Feature: TUI Interaction
     Then a confirmation prompt should appear
     And it should ask "Save changes before exiting? (y/n/cancel)"
 
-  @planned
+  @implemented
   Scenario: Viewing help
     When I press "?"
     Then a help panel should appear

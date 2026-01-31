@@ -20,6 +20,7 @@ const (
 	modeEditor
 	modeQuitConfirm
 	modeSearch
+	modeHelp
 )
 
 type editorState struct {
@@ -84,6 +85,7 @@ type Model struct {
 	search         searchState  // search state (query, matches, current position)
 	previewIndex   int          // index into annotations on current line for preview cycling
 	previewLine    int          // line number (1-indexed) for which previewIndex is valid
+	version        string       // fabbro version for display in help
 }
 
 func New(sess *session.Session) Model {
@@ -95,18 +97,27 @@ func NewWithFile(sess *session.Session, sourceFile string) Model {
 }
 
 func NewWithAnnotations(sess *session.Session, sourceFile string, annotations []fem.Annotation) Model {
+	return NewWithAll(sess, sourceFile, annotations, "")
+}
+
+func NewWithVersion(sess *session.Session, sourceFile string, version string) Model {
+	return NewWithAll(sess, sourceFile, []fem.Annotation{}, version)
+}
+
+func NewWithAll(sess *session.Session, sourceFile string, annotations []fem.Annotation, version string) Model {
 	lines := strings.Split(sess.Content, "\n")
 	return Model{
-		session:     sess,
-		lines:       lines,
-		cursor:      0,
-		selection:   selection{},
-		mode:        modeNormal,
-		annotations: annotations,
+		session:         sess,
+		lines:           lines,
+		cursor:          0,
+		selection:       selection{},
+		mode:            modeNormal,
+		annotations:     annotations,
 		highlighter:     highlight.New(sourceFile, sess.Content),
 		sourceFile:      sourceFile,
 		viewportTop:     -1, // auto-follow cursor
 		autoViewportTop: 0,
+		version:         version,
 	}
 }
 

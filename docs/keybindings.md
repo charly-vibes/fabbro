@@ -115,11 +115,18 @@ Moving the cursor resets the preview to the first annotation.
 
 When multiple annotations exist on the same line, a picker opens to select which one to edit.
 
+## Help Panel
+
+| Key | Action |
+|-----|--------|
+| `?` | Open help panel (press any key to close) |
+
+The help panel displays all available keybindings organized by category (Navigation, Selection, Annotations, General).
+
 ## Not Yet Implemented
 
 The following are planned but not yet implemented:
 
-- `?` help panel
 - Mouse support
 - `a` annotations list panel
 - `R` edit annotation range (adjust start/end lines)

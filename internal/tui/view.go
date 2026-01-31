@@ -261,6 +261,8 @@ func (m Model) View() string {
 		if len(m.search.matches) > 0 {
 			b.WriteString(fmt.Sprintf(" [%d/%d]", m.search.current+1, len(m.search.matches)))
 		}
+	case modeHelp:
+		b.WriteString(m.renderHelpPanel(width))
 	default:
 		// Check if cursor is on an annotated line
 		cursorLine := m.cursor + 1 // 1-indexed
@@ -274,7 +276,7 @@ func (m Model) View() string {
 			// Show annotation preview instead of help text
 			b.WriteString(m.renderAnnotationPreviewAt(annotationIndices, previewIdx, width))
 		} else {
-			helpText := "[v]sel [SPC]cmd [/]search [w]rite [^C^C]quit"
+			helpText := "[v]sel [SPC]cmd [/]search [w]rite [^C^C]quit [?]help"
 			if m.selection.active {
 				helpText += " │ [c]omment [d]elete [q]uestion [e]xpand [u]nclear [r]eplace [i]nline"
 			}
@@ -513,4 +515,83 @@ func wrapText(text string, width int) []string {
 	}
 
 	return lines
+}
+
+// renderHelpPanel renders the help menu overlay.
+func (m Model) renderHelpPanel(width int) string {
+	var b strings.Builder
+
+	boxWidth := width - 4
+	if boxWidth < 50 {
+		boxWidth = 50
+	}
+	innerWidth := boxWidth - 4
+
+	// Header
+	header := "─ Help "
+	versionStr := ""
+	if m.version != "" {
+		versionStr = fmt.Sprintf("(fabbro %s) ", m.version)
+	}
+	header += versionStr
+	headerPad := boxWidth - len([]rune(header)) - 2
+	if headerPad < 0 {
+		headerPad = 0
+	}
+	b.WriteString(fmt.Sprintf("┌%s%s┐\n", header, strings.Repeat("─", headerPad)))
+
+	// Helper to write a row
+	writeRow := func(left, right string) {
+		leftRunes := []rune(left)
+		rightRunes := []rune(right)
+		padding := innerWidth - len(leftRunes) - len(rightRunes)
+		if padding < 1 {
+			padding = 1
+		}
+		b.WriteString(fmt.Sprintf("│ %s%s%s │\n", left, strings.Repeat(" ", padding), right))
+	}
+
+	// Navigation section
+	writeRow("NAVIGATION", "")
+	writeRow("  j/k, ↑/↓", "move cursor")
+	writeRow("  Ctrl+d/u", "scroll half page")
+	writeRow("  gg / G", "jump to first/last line")
+	writeRow("  zz/zt/zb", "center/top/bottom cursor")
+	writeRow("", "")
+
+	// Selection section
+	writeRow("SELECTION", "")
+	writeRow("  v", "toggle line selection")
+	writeRow("  Esc", "clear selection")
+	writeRow("", "")
+
+	// Annotations section
+	writeRow("ANNOTATIONS (with selection)", "")
+	writeRow("  c", "comment")
+	writeRow("  d", "delete")
+	writeRow("  q", "question")
+	writeRow("  e", "expand")
+	writeRow("  u", "unclear")
+	writeRow("  r", "replace/change")
+	writeRow("  i", "inline edit")
+	writeRow("", "")
+
+	// General section
+	writeRow("GENERAL", "")
+	writeRow("  /", "search")
+	writeRow("  n / N,p", "next/prev match")
+	writeRow("  Space", "command palette")
+	writeRow("  w", "save session")
+	writeRow("  ?", "this help")
+	writeRow("  Ctrl+C Ctrl+C", "quit")
+
+	// Footer
+	footer := "─ Press any key to close "
+	footerPad := boxWidth - len([]rune(footer)) - 2
+	if footerPad < 0 {
+		footerPad = 0
+	}
+	b.WriteString(fmt.Sprintf("└%s%s┘\n", footer, strings.Repeat("─", footerPad)))
+
+	return b.String()
 }
