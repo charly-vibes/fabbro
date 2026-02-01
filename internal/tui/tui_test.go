@@ -3357,3 +3357,201 @@ func TestAnnotationPreview_HighlightCoexistsWithSelection(t *testing.T) {
 		t.Errorf("expected annotation range highlight, got:\n%s", view)
 	}
 }
+
+// --- Text Object Expansion Tests (ap, ab, as) ---
+
+func TestTextObjectExpandToParagraph(t *testing.T) {
+	content := "intro\n\npara line1\npara line2\npara line3\n\noutro"
+	sess := newTestSession(content)
+	m := New(sess)
+	m.width = 80
+	m.height = 24
+
+	// Move to middle of paragraph (line index 3 = "para line2")
+	m = sendKey(m, 'j') // line 1
+	m = sendKey(m, 'j') // line 2
+	m = sendKey(m, 'j') // line 3
+
+	// Start selection, then expand with 'ap'
+	m = sendKey(m, 'v')
+	m = sendKey(m, 'a')
+	m = sendKey(m, 'p')
+
+	// Selection should span lines 2-4 (the paragraph)
+	start, end := m.selection.lines()
+	if start != 2 || end != 4 {
+		t.Errorf("expected selection (2, 4), got (%d, %d)", start, end)
+	}
+}
+
+func TestTextObjectExpandToCodeBlock(t *testing.T) {
+	content := "before\n```go\nfunc main() {\n}\n```\nafter"
+	sess := newTestSession(content)
+	m := New(sess)
+	m.width = 80
+	m.height = 24
+
+	// Move into code block (line index 2 = "func main() {")
+	m = sendKey(m, 'j') // line 1 (```)
+	m = sendKey(m, 'j') // line 2 (func)
+
+	// Start selection, then expand with 'ab'
+	m = sendKey(m, 'v')
+	m = sendKey(m, 'a')
+	m = sendKey(m, 'b')
+
+	// Selection should span lines 1-4 (the code block with fences)
+	start, end := m.selection.lines()
+	if start != 1 || end != 4 {
+		t.Errorf("expected selection (1, 4), got (%d, %d)", start, end)
+	}
+}
+
+func TestTextObjectExpandToCodeBlockNotInBlock(t *testing.T) {
+	content := "before\n```go\ncode\n```\nafter"
+	sess := newTestSession(content)
+	m := New(sess)
+	m.width = 80
+	m.height = 24
+
+	// Stay on line 0 (not in code block)
+	m = sendKey(m, 'v')
+	m = sendKey(m, 'a')
+	m = sendKey(m, 'b')
+
+	// Selection should not change (still just line 0)
+	start, end := m.selection.lines()
+	if start != 0 || end != 0 {
+		t.Errorf("expected selection (0, 0) when not in block, got (%d, %d)", start, end)
+	}
+}
+
+func TestTextObjectExpandToSection(t *testing.T) {
+	content := "# Heading One\ncontent1\ncontent2\n# Heading Two\nother"
+	sess := newTestSession(content)
+	m := New(sess)
+	m.width = 80
+	m.height = 24
+
+	// Move to content1 (line index 1)
+	m = sendKey(m, 'j')
+
+	// Start selection, then expand with 'as'
+	m = sendKey(m, 'v')
+	m = sendKey(m, 'a')
+	m = sendKey(m, 's')
+
+	// Selection should span lines 0-2 (heading + content, before next heading)
+	start, end := m.selection.lines()
+	if start != 0 || end != 2 {
+		t.Errorf("expected selection (0, 2), got (%d, %d)", start, end)
+	}
+}
+
+func TestTextObjectAPendingClearsOnOtherKey(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+	m.width = 80
+	m.height = 24
+
+	m = sendKey(m, 'v')
+	m = sendKey(m, 'a')
+
+	if !m.aPending {
+		t.Error("expected aPending to be true after 'a'")
+	}
+
+	// Press unrelated key - should clear pending
+	m = sendKey(m, 'x')
+
+	if m.aPending {
+		t.Error("expected aPending to be false after unrelated key")
+	}
+}
+
+func TestTextObjectShrinkSelection(t *testing.T) {
+	content := "line0\nline1\nline2\nline3\nline4"
+	sess := newTestSession(content)
+	m := New(sess)
+	m.width = 80
+	m.height = 24
+
+	// Select lines 1-3
+	m = sendKey(m, 'j') // line 1
+	m = sendKey(m, 'v')
+	m = sendKey(m, 'j') // line 2
+	m = sendKey(m, 'j') // line 3
+
+	start, end := m.selection.lines()
+	if start != 1 || end != 3 {
+		t.Fatalf("setup failed: expected (1, 3), got (%d, %d)", start, end)
+	}
+
+	// Shrink with '{'
+	m = sendKey(m, '{')
+	start, end = m.selection.lines()
+	if start != 1 || end != 2 {
+		t.Errorf("expected selection (1, 2) after shrink, got (%d, %d)", start, end)
+	}
+}
+
+func TestTextObjectGrowSelection(t *testing.T) {
+	content := "line0\nline1\nline2\nline3\nline4"
+	sess := newTestSession(content)
+	m := New(sess)
+	m.width = 80
+	m.height = 24
+
+	// Select line 1 only
+	m = sendKey(m, 'j') // line 1
+	m = sendKey(m, 'v')
+
+	start, end := m.selection.lines()
+	if start != 1 || end != 1 {
+		t.Fatalf("setup failed: expected (1, 1), got (%d, %d)", start, end)
+	}
+
+	// Grow with '}'
+	m = sendKey(m, '}')
+	start, end = m.selection.lines()
+	if start != 1 || end != 2 {
+		t.Errorf("expected selection (1, 2) after grow, got (%d, %d)", start, end)
+	}
+}
+
+func TestTextObjectShrinkMinimumOneLine(t *testing.T) {
+	sess := newTestSession("line0\nline1\nline2")
+	m := New(sess)
+	m.width = 80
+	m.height = 24
+
+	// Select just line 1
+	m = sendKey(m, 'j')
+	m = sendKey(m, 'v')
+
+	// Try to shrink - should stay at 1 line
+	m = sendKey(m, '{')
+	start, end := m.selection.lines()
+	if start != 1 || end != 1 {
+		t.Errorf("expected selection (1, 1) minimum, got (%d, %d)", start, end)
+	}
+}
+
+func TestTextObjectGrowBoundary(t *testing.T) {
+	sess := newTestSession("line0\nline1\nline2")
+	m := New(sess)
+	m.width = 80
+	m.height = 24
+
+	// Select last line
+	m = sendKey(m, 'j') // line 1
+	m = sendKey(m, 'j') // line 2
+	m = sendKey(m, 'v')
+
+	// Try to grow past end - should stay at end
+	m = sendKey(m, '}')
+	start, end := m.selection.lines()
+	if start != 2 || end != 2 {
+		t.Errorf("expected selection (2, 2) at boundary, got (%d, %d)", start, end)
+	}
+}

@@ -36,6 +36,11 @@ A match counter (e.g., `2/13`) is displayed in the status bar.
 |-----|--------|
 | `v` | Toggle line selection (start/clear) |
 | `Esc` | Clear selection |
+| `ap` | Expand selection to paragraph (blank-line delimited) |
+| `ab` | Expand selection to code block (fenced ``` markers) |
+| `as` | Expand selection to section (heading to next heading) |
+| `{` | Shrink selection by one line |
+| `}` | Grow selection by one line |
 
 ## Annotations (require selection)
 
@@ -139,4 +144,3 @@ The following are planned but not yet implemented:
 - Mouse support
 - `a` annotations list panel
 - `R` edit annotation range (adjust start/end lines)
-- Text objects (`ap`, `ab`, `as`)

@@ -573,6 +573,8 @@ func (m Model) renderHelpPanel(width int) string {
 	// Selection section
 	writeRow("SELECTION", "")
 	writeRow("  v", "toggle line selection")
+	writeRow("  ap / ab / as", "expand to paragraph/block/section")
+	writeRow("  { / }", "shrink / grow selection")
 	writeRow("  Esc", "clear selection")
 	writeRow("", "")
 

@@ -106,6 +106,32 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	if m.aPending {
+		m.aPending = false
+		if m.selection.active {
+			switch msg.String() {
+			case "p":
+				start, end := FindParagraph(m.lines, m.cursor)
+				m.selection.anchor = start
+				m.selection.cursor = end
+				m.cursor = end
+			case "b":
+				start, end := FindCodeBlock(m.lines, m.cursor)
+				if start >= 0 {
+					m.selection.anchor = start
+					m.selection.cursor = end
+					m.cursor = end
+				}
+			case "s":
+				start, end := FindSection(m.lines, m.cursor)
+				m.selection.anchor = start
+				m.selection.cursor = end
+				m.cursor = end
+			}
+		}
+		return m, nil
+	}
+
 	switch msg.String() {
 	case "ctrl+c":
 		now := time.Now()
@@ -224,6 +250,35 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "i":
 		if m.selection.active {
 			m.openEditor()
+		}
+
+	case "a":
+		if m.selection.active {
+			m.aPending = true
+		}
+
+	case "{":
+		if m.selection.active {
+			if m.selection.cursor > m.selection.anchor {
+				m.selection.cursor--
+				m.cursor = m.selection.cursor
+			} else if m.selection.cursor < m.selection.anchor {
+				m.selection.anchor--
+			}
+		}
+
+	case "}":
+		if m.selection.active {
+			if m.selection.cursor >= m.selection.anchor {
+				if m.selection.cursor < len(m.lines)-1 {
+					m.selection.cursor++
+					m.cursor = m.selection.cursor
+				}
+			} else {
+				if m.selection.anchor < len(m.lines)-1 {
+					m.selection.anchor++
+				}
+			}
 		}
 
 	case " ":

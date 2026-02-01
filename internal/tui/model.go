@@ -70,6 +70,7 @@ type Model struct {
 	height         int
 	gPending       bool   // waiting for second 'g' in gg command
 	zPending       bool   // waiting for second key in z commands (zz, zt, zb)
+	aPending       bool   // waiting for text object key (p, b, s) after 'a'
 	viewportTop     int // explicit viewport start line (-1 means auto-follow cursor)
 	autoViewportTop int // used only when viewportTop == -1 (auto-follow)
 	lastError      string // last error message to display

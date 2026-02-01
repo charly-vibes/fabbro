@@ -114,7 +114,7 @@ Feature: TUI Interaction
 
   # --- Vim-surround Style Context Expansion ---
 
-  @planned
+  @implemented
   Scenario: Expand selection to paragraph
     Given the cursor is on line 42 within a paragraph
     When I press "v" to start selection
@@ -122,7 +122,7 @@ Feature: TUI Interaction
     Then the selection should expand to include the entire paragraph
     And paragraph boundaries are determined by blank lines
 
-  @planned
+  @implemented
   Scenario: Expand selection to code block
     Given the cursor is inside a fenced code block
     When I press "v" to start selection
@@ -130,14 +130,14 @@ Feature: TUI Interaction
     Then the selection should expand to include the entire code block
     And the ``` delimiters should be included
 
-  @planned
+  @implemented
   Scenario: Expand selection to section
     Given the cursor is under a markdown heading
     When I press "v" to start selection
     And I press "as" (a section)
     Then the selection should expand to include content until the next heading
 
-  @planned
+  @implemented
   Scenario: Shrink and grow selection by line
     Given I have lines 40-50 selected
     When I press "{"
