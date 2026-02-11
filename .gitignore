@@ -3,3 +3,4 @@
 /.fabbro/
 /.mcp-servers/
 coverage.out
+dist/

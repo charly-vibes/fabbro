@@ -93,6 +93,16 @@ ci: lint test-all check-coverage build
 pre-push: lint test
     @echo "✅ Pre-push checks passed"
 
+# === Release Commands ===
+
+# Validate GoReleaser config
+release-check:
+    goreleaser check
+
+# Local snapshot build (no publish)
+release-snapshot:
+    goreleaser release --snapshot --clean
+
 # === Setup Commands ===
 
 # Setup development environment
