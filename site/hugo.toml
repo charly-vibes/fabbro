@@ -1,0 +1,19 @@
+baseURL = "https://charly-vibes.github.io/fabbro/"
+languageCode = "en-us"
+title = "fabbro"
+
+[module]
+  [[module.imports]]
+    path = "github.com/alex-shpak/hugo-book"
+
+[params]
+  BookRepo = "https://github.com/charly-vibes/fabbro"
+  BookSection = "docs"
+  BookToC = true
+  BookTheme = "auto"
+
+[markup.highlight]
+  style = "github"
+
+[markup.goldmark.renderer]
+  unsafe = true

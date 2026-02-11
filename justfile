@@ -103,6 +103,16 @@ release-check:
 release-snapshot:
     goreleaser release --snapshot --clean
 
+# === Docs Commands ===
+
+# Serve docs locally with live reload
+docs-serve:
+    cd site && hugo server -D
+
+# Build docs locally
+docs-build:
+    cd site && hugo --minify
+
 # === Setup Commands ===
 
 # Setup development environment

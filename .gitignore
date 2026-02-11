@@ -4,3 +4,5 @@
 /.mcp-servers/
 coverage.out
 dist/
+site/public/
+site/resources/_gen/
