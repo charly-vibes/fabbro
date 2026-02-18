@@ -47,15 +47,17 @@ just setup-mcp-tui         # Clone mcp-tui-test to .mcp-servers/
 ### Running TUI Tests
 
 ```bash
-just test-tui              # Start Amp with mcp-tui-test MCP server
-just amp-tui               # Start Amp with TUI testing capability (for ad-hoc use)
+just test-tui              # Start Amp with mcp-tui-test MCP server (default)
+just test-tui claude       # Start Claude Code with mcp-tui-test MCP server
+just agent-tui             # Ad-hoc Amp session with TUI testing capability
+just agent-tui claude      # Ad-hoc Claude Code session with TUI testing capability
 ```
 
 ### Workflow
 
-1. Run `just test-tui` to start an Amp session with the TUI testing MCP server
+1. Run `just test-tui` (or `just test-tui claude`) to start an agent session with the TUI testing MCP server
 2. Load the tui-test skill: `/skill tui-test`
-3. Ask Amp to "run all TUI integration tests"
+3. Ask the agent to "run all TUI integration tests"
 4. The MCP server provides tools to capture screenshots, send keystrokes, and verify TUI state
 
 ### MCP Server Location

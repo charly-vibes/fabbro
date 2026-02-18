@@ -163,12 +163,15 @@ setup-mcp-tui:
     fi
     echo "✅ mcp-tui-test ready"
 
-# Start Amp with mcp-tui-test for TUI testing
-amp-tui *args: setup-mcp-tui
-    amp --mcp-config '{"tui-test": {"command": "uv", "args": ["run", "--directory", "{{justfile_directory()}}/{{mcp_tui_dir}}", "python", "server.py"]}}' {{args}}
+# MCP config for tui-test server
+mcp_tui_config := '{"tui-test": {"command": "uv", "args": ["run", "--directory", "' + justfile_directory() / mcp_tui_dir + '", "python", "server.py"]}}'
 
-# Run TUI integration tests via MCP (starts Amp with skill loaded)
-test-tui: setup-mcp-tui
-    @echo "Starting TUI integration test session..."
+# Start an agent with mcp-tui-test (agent: amp, claude)
+agent-tui agent="amp" *args="": setup-mcp-tui
+    {{agent}} --mcp-config '{{mcp_tui_config}}' {{args}}
+
+# Run TUI integration tests via MCP (agent: amp, claude)
+test-tui agent="amp": setup-mcp-tui
+    @echo "Starting TUI integration test session with {{agent}}..."
     @echo "Use: /skill tui-test then ask to 'run all TUI integration tests'"
-    amp --mcp-config '{"tui-test": {"command": "uv", "args": ["run", "--directory", "{{justfile_directory()}}/{{mcp_tui_dir}}", "python", "server.py"]}}'
+    {{agent}} --mcp-config '{{mcp_tui_config}}'
