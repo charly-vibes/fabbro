@@ -16,9 +16,9 @@ export function renderLines(container, content, annotations) {
     text.className = 'text';
 
     const lineText = lines[i];
-    const lineAnnotations = annotations.filter(a =>
-      a.startOffset < offset + lineText.length && a.endOffset > offset
-    );
+    const lineAnnotations = annotations
+      .map((a, idx) => ({ ...a, _index: idx }))
+      .filter(a => a.startOffset < offset + lineText.length && a.endOffset > offset);
 
     if (lineAnnotations.length === 0) {
       text.textContent = lineText;
@@ -40,7 +40,7 @@ function renderHighlightedLine(textSpan, lineText, lineOffset, annotations) {
     const start = Math.max(0, ann.startOffset - lineOffset);
     const end = Math.min(lineText.length, ann.endOffset - lineOffset);
     if (start < end) {
-      ranges.push({ start, end });
+      ranges.push({ start, end, index: ann._index });
     }
   }
   ranges.sort((a, b) => a.start - b.start);
@@ -51,6 +51,7 @@ function renderHighlightedLine(textSpan, lineText, lineOffset, annotations) {
       textSpan.appendChild(document.createTextNode(lineText.slice(pos, r.start)));
     }
     const mark = document.createElement('mark');
+    mark.dataset.annotationIndex = r.index;
     mark.textContent = lineText.slice(r.start, r.end);
     textSpan.appendChild(mark);
     pos = r.end;

@@ -1,6 +1,7 @@
 import { escapeHtml } from './util.js';
 import { renderLines, getCanonicalOffset } from './viewer.js';
 import * as toolbar from './toolbar.js';
+import * as notes from './notes.js';
 
 export function mount(container, session, { onFinish }) {
   container.innerHTML = `
@@ -8,18 +9,50 @@ export function mount(container, session, { onFinish }) {
       <span>${escapeHtml(session.filename)}</span>
       <button id="finish-btn">Finish review</button>
     </div>
-    <div class="viewer">
-      <div class="lines" id="lines"></div>
+    <div class="editor-layout">
+      <div class="viewer">
+        <div class="lines" id="lines"></div>
+      </div>
+      <div class="notes-panel" id="notes-panel"></div>
     </div>
   `;
 
-  renderLines(document.getElementById('lines'), session.content, session.annotations);
+  const linesEl = document.getElementById('lines');
+  const notesPanel = document.getElementById('notes-panel');
+
+  function refresh() {
+    renderLines(linesEl, session.content, session.annotations);
+    notes.render(notesPanel, session, {
+      onDelete: (index) => {
+        session.annotations.splice(index, 1);
+        refresh();
+      },
+      onNoteClick: (ann) => {
+        const mark = linesEl.querySelector(`mark[data-annotation-index="${ann.index}"]`);
+        if (mark) {
+          mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          mark.classList.add('mark--active');
+          setTimeout(() => mark.classList.remove('mark--active'), 1500);
+        }
+      },
+    });
+
+    linesEl.querySelectorAll('mark[data-annotation-index]').forEach(mark => {
+      mark.style.cursor = 'pointer';
+      mark.addEventListener('click', () => {
+        const idx = parseInt(mark.dataset.annotationIndex, 10);
+        notes.scrollToNote(notesPanel, idx);
+      });
+    });
+  }
+
+  refresh();
 
   document.getElementById('finish-btn').addEventListener('click', onFinish);
-  document.getElementById('lines').addEventListener('mouseup', () => handleSelection(session));
+  linesEl.addEventListener('mouseup', () => handleSelection(session, refresh));
 }
 
-function handleSelection(session) {
+function handleSelection(session, refresh) {
   const sel = window.getSelection();
   if (!sel || sel.isCollapsed) return;
 
@@ -34,11 +67,11 @@ function handleSelection(session) {
   const [sOff, eOff] = startOffset <= endOffset ? [startOffset, endOffset] : [endOffset, startOffset];
 
   toolbar.show(range.getBoundingClientRect(), () => {
-    showAnnotationInput(session, sOff, eOff);
+    showAnnotationInput(session, sOff, eOff, refresh);
   });
 }
 
-function showAnnotationInput(session, startOffset, endOffset) {
+function showAnnotationInput(session, startOffset, endOffset, refresh) {
   const lines = document.querySelectorAll('#lines .line');
   let targetLine = null;
   for (const line of lines) {
@@ -74,7 +107,7 @@ function showAnnotationInput(session, startOffset, endOffset) {
         });
       }
       inputDiv.remove();
-      renderLines(document.getElementById('lines'), session.content, session.annotations);
+      refresh();
     }
     if (e.key === 'Escape') {
       inputDiv.remove();
