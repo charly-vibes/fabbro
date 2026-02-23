@@ -103,6 +103,12 @@ release-check:
 release-snapshot:
     goreleaser release --snapshot --clean
 
+# === Web SPA Commands ===
+
+# Serve web SPA locally
+serve-web:
+    python3 -m http.server 8080 --directory web
+
 # === Docs Commands ===
 
 # Serve docs locally with live reload

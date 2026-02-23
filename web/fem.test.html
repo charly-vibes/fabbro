@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>FEM Parser Tests</title>
+  <style>
+    body { font-family: monospace; padding: 1rem; }
+    .pass { color: green; }
+    .fail { color: red; }
+    .summary { margin-top: 1rem; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>FEM Parser Conformance Tests</h1>
+  <div id="results"></div>
+  <script type="module">
+    import { parse, ANNOTATION_TYPES } from './fem.js';
+
+    const results = document.getElementById('results');
+    let passed = 0;
+    let failed = 0;
+
+    function assert(condition, name, detail) {
+      const el = document.createElement('div');
+      if (condition) {
+        passed++;
+        el.className = 'pass';
+        el.textContent = `✓ ${name}`;
+      } else {
+        failed++;
+        el.className = 'fail';
+        el.textContent = `✗ ${name}` + (detail ? ` — ${detail}` : '');
+      }
+      results.appendChild(el);
+    }
+
+    function eq(a, b) { return a === b; }
+    function fmt(v) { return JSON.stringify(v); }
+
+    // 1. Single comment extraction
+    {
+      const { annotations, cleanContent } = parse('Hello {>> this is a comment <<} world');
+      assert(annotations.length === 1, '1. single comment: count=1', `got ${annotations.length}`);
+      assert(annotations[0]?.type === 'comment', '1. single comment: type=comment', `got ${fmt(annotations[0]?.type)}`);
+      assert(annotations[0]?.text === 'this is a comment', '1. single comment: text', `got ${fmt(annotations[0]?.text)}`);
+      assert(cleanContent === 'Hello  world', '1. single comment: clean', `got ${fmt(cleanContent)}`);
+    }
+
+    // 2. Multiple comments on different lines
+    {
+      const input = 'Line one {>> first comment <<}\nLine two\nLine three {>> second comment <<}';
+      const { annotations } = parse(input);
+      assert(annotations.length === 2, '2. multi-line comments: count=2', `got ${annotations.length}`);
+      assert(annotations[0]?.startLine === 1, '2. multi-line comments: first on line 1', `got ${annotations[0]?.startLine}`);
+      assert(annotations[1]?.startLine === 3, '2. multi-line comments: second on line 3', `got ${annotations[1]?.startLine}`);
+    }
+
+    // 3. Clean content
+    {
+      const { cleanContent } = parse('First line {>> comment <<}\nSecond line');
+      const expected = 'First line \nSecond line';
+      assert(cleanContent === expected, '3. clean content', `got ${fmt(cleanContent)}`);
+    }
+
+    // 4. No annotations
+    {
+      const input = 'Just plain text\nwith no annotations';
+      const { annotations, cleanContent } = parse(input);
+      assert(annotations.length === 0, '4. no annotations: count=0', `got ${annotations.length}`);
+      assert(cleanContent === input, '4. no annotations: clean=original', `got ${fmt(cleanContent)}`);
+    }
+
+    // 5. All 7 annotation types
+    {
+      const cases = [
+        { input: 'text {>> comment here <<}',              wantType: 'comment',  wantText: 'comment here' },
+        { input: 'text {-- DELETE: reason --}',            wantType: 'delete',   wantText: 'DELETE: reason' },
+        { input: 'text {?? Why this? ??}',                 wantType: 'question', wantText: 'Why this?' },
+        { input: 'text {!! EXPAND: more detail !!}',       wantType: 'expand',   wantText: 'EXPAND: more detail' },
+        { input: 'text {== KEEP: good section ==}',        wantType: 'keep',     wantText: 'KEEP: good section' },
+        { input: 'text {~~ UNCLEAR: confusing ~~}',        wantType: 'unclear',  wantText: 'UNCLEAR: confusing' },
+        { input: 'text {++ [line 1] -> new content ++}',   wantType: 'change',   wantText: '[line 1] -> new content' },
+      ];
+      for (const tc of cases) {
+        const { annotations, cleanContent } = parse(tc.input);
+        assert(annotations.length === 1, `5. ${tc.wantType}: count=1`, `got ${annotations.length}`);
+        assert(annotations[0]?.type === tc.wantType, `5. ${tc.wantType}: type`, `got ${fmt(annotations[0]?.type)}`);
+        assert(annotations[0]?.text === tc.wantText, `5. ${tc.wantType}: text`, `got ${fmt(annotations[0]?.text)}`);
+        assert(cleanContent === 'text ', `5. ${tc.wantType}: clean`, `got ${fmt(cleanContent)}`);
+      }
+    }
+
+    // 6. Mixed types
+    {
+      const input = 'First line {>> comment <<}\nSecond line {-- delete --}\nThird line {?? question ??}';
+      const { annotations } = parse(input);
+      assert(annotations.length === 3, '6. mixed types: count=3', `got ${annotations.length}`);
+      assert(annotations[0]?.type === 'comment' && annotations[0]?.startLine === 1, '6. mixed: comment/1');
+      assert(annotations[1]?.type === 'delete' && annotations[1]?.startLine === 2, '6. mixed: delete/2');
+      assert(annotations[2]?.type === 'question' && annotations[2]?.startLine === 3, '6. mixed: question/3');
+    }
+
+    // 7. Unbalanced open marker
+    {
+      const input = 'text with {>> unbalanced marker';
+      const { annotations, cleanContent } = parse(input);
+      assert(annotations.length === 0, '7. unbalanced open: count=0', `got ${annotations.length}`);
+      assert(cleanContent === input, '7. unbalanced open: clean=original', `got ${fmt(cleanContent)}`);
+    }
+
+    // 8. Unbalanced close marker
+    {
+      const input = 'text with <<} orphan close';
+      const { annotations, cleanContent } = parse(input);
+      assert(annotations.length === 0, '8. unbalanced close: count=0', `got ${annotations.length}`);
+      assert(cleanContent === input, '8. unbalanced close: clean=original', `got ${fmt(cleanContent)}`);
+    }
+
+    // 9. Multiple annotations on same line
+    {
+      const input = 'text {>> first <<} middle {>> second <<} end';
+      const { annotations, cleanContent } = parse(input);
+      assert(annotations.length === 2, '9. same line: count=2', `got ${annotations.length}`);
+      assert(annotations[0]?.startLine === 1, '9. same line: first on line 1');
+      assert(annotations[1]?.startLine === 1, '9. same line: second on line 1');
+      assert(cleanContent === 'text  middle  end', '9. same line: clean', `got ${fmt(cleanContent)}`);
+    }
+
+    // 10. Nested markers (same type) are skipped
+    {
+      const input = 'text {>> outer {>> inner <<} still outer <<} end';
+      const { annotations, cleanContent } = parse(input);
+      assert(annotations.length === 0, '10. nested same type: count=0', `got ${annotations.length}`);
+      assert(cleanContent === input, '10. nested same type: clean=original', `got ${fmt(cleanContent)}`);
+    }
+
+    // 11. Nested different types — inner extracted
+    {
+      const input = 'text {>> outer {-- delete inside --} comment <<} end';
+      const { annotations, cleanContent } = parse(input);
+      assert(annotations.length === 1, '11. nested diff types: count=1', `got ${annotations.length}`);
+      assert(annotations[0]?.type === 'delete', '11. nested diff types: type=delete', `got ${fmt(annotations[0]?.type)}`);
+      assert(annotations[0]?.text === 'delete inside', '11. nested diff types: text', `got ${fmt(annotations[0]?.text)}`);
+      assert(cleanContent === 'text {>> outer  comment <<} end', '11. nested diff types: clean', `got ${fmt(cleanContent)}`);
+    }
+
+    // 12. Empty annotation
+    {
+      const input = 'text {>><<} with empty';
+      const { annotations, cleanContent } = parse(input);
+      assert(annotations.length === 1, '12. empty annotation: count=1', `got ${annotations.length}`);
+      assert(annotations[0]?.text === '', '12. empty annotation: text=""', `got ${fmt(annotations[0]?.text)}`);
+      assert(cleanContent === 'text  with empty', '12. empty annotation: clean', `got ${fmt(cleanContent)}`);
+    }
+
+    // 13. Whitespace-only annotation
+    {
+      const input = 'text {>>   <<} with spaces';
+      const { annotations } = parse(input);
+      assert(annotations.length === 1, '13. whitespace annotation: count=1', `got ${annotations.length}`);
+      assert(annotations[0]?.text === '', '13. whitespace annotation: text="" (trimmed)', `got ${fmt(annotations[0]?.text)}`);
+    }
+
+    // Summary
+    const summary = document.createElement('div');
+    summary.className = 'summary ' + (failed === 0 ? 'pass' : 'fail');
+    summary.textContent = `${passed} passed, ${failed} failed, ${passed + failed} total`;
+    results.appendChild(summary);
+  </script>
+</body>
+</html>

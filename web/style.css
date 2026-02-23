@@ -1,0 +1,237 @@
+:root {
+  --font-mono: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
+  --color-highlight: #fef08a;
+  --color-toolbar-bg: #1f2937;
+  --color-bg: #ffffff;
+  --color-text: #1f2937;
+  --color-border: #e5e7eb;
+  --color-gutter: #9ca3af;
+  --color-error: #dc2626;
+}
+
+/* Reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Body */
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+/* Landing */
+.landing {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.landing h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.landing p.subtitle {
+  color: var(--color-gutter);
+  margin-bottom: 1.5rem;
+}
+
+.landing input[type="text"] {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  font-size: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  outline: none;
+}
+
+.landing input[type="text"]:focus {
+  border-color: var(--color-toolbar-bg);
+}
+
+.landing .divider {
+  text-align: center;
+  color: var(--color-gutter);
+  margin: 1.25rem 0;
+  font-size: 0.875rem;
+}
+
+.landing textarea {
+  width: 100%;
+  min-height: 200px;
+  padding: 0.625rem 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  resize: vertical;
+  outline: none;
+}
+
+.landing textarea:focus {
+  border-color: var(--color-toolbar-bg);
+}
+
+.landing button {
+  width: 100%;
+  margin-top: 1.25rem;
+  padding: 0.625rem 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ffffff;
+  background: var(--color-toolbar-bg);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.landing button:hover {
+  opacity: 0.9;
+}
+
+.landing .error {
+  color: var(--color-error);
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+/* Viewer */
+.viewer {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.viewer .lines {
+  padding: 0.5rem 0;
+}
+
+.viewer .line {
+  display: flex;
+}
+
+.viewer .gutter {
+  min-width: 3em;
+  padding-right: 1em;
+  text-align: right;
+  color: var(--color-gutter);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.viewer .text {
+  white-space: pre-wrap;
+  word-break: break-all;
+  flex: 1;
+}
+
+/* Toolbar */
+.toolbar {
+  position: fixed;
+  background: var(--color-toolbar-bg);
+  color: #ffffff;
+  padding: 4px 8px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  z-index: 1000;
+}
+
+.toolbar button {
+  color: #ffffff;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 0.875rem;
+}
+
+.toolbar button:hover {
+  opacity: 0.8;
+}
+
+/* Highlight */
+mark {
+  background: var(--color-highlight);
+  padding: 0;
+}
+
+/* Export */
+.export {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.export .summary {
+  white-space: pre-wrap;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  background: #f9fafb;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+.export button {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #ffffff;
+  background: var(--color-toolbar-bg);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.export button:hover {
+  opacity: 0.9;
+}
+
+/* Editor header */
+.editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* Annotation input */
+.annotation-input {
+  width: 100%;
+  min-height: 60px;
+  padding: 0.5rem 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  resize: vertical;
+  outline: none;
+}
+
+.annotation-input:focus {
+  border-color: var(--color-toolbar-bg);
+}
+
+/* Status bar */
+.status-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 4px 1rem;
+  font-size: 0.75rem;
+  color: var(--color-gutter);
+  background: #f9fafb;
+  border-top: 1px solid var(--color-border);
+}
