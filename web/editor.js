@@ -3,10 +3,11 @@ import { renderLines, getCanonicalOffset } from './viewer.js';
 import * as toolbar from './toolbar.js';
 import * as notes from './notes.js';
 
-export function mount(container, session, { onFinish }) {
+export function mount(container, session, { onFinish, onChanged }) {
   container.innerHTML = `
     <div class="editor-header">
       <span>${escapeHtml(session.filename)}</span>
+      <span id="save-indicator" class="save-indicator"></span>
       <button id="finish-btn">Finish review</button>
     </div>
     <div class="editor-layout">
@@ -26,6 +27,7 @@ export function mount(container, session, { onFinish }) {
       onDelete: (index) => {
         session.annotations.splice(index, 1);
         refresh();
+        if (onChanged) onChanged();
       },
       onNoteClick: (ann) => {
         const mark = linesEl.querySelector(`mark[data-annotation-index="${ann.index}"]`);
@@ -49,10 +51,10 @@ export function mount(container, session, { onFinish }) {
   refresh();
 
   document.getElementById('finish-btn').addEventListener('click', onFinish);
-  linesEl.addEventListener('mouseup', () => handleSelection(session, refresh));
+  linesEl.addEventListener('mouseup', () => handleSelection(session, refresh, onChanged));
 }
 
-function handleSelection(session, refresh) {
+function handleSelection(session, refresh, onChanged) {
   const sel = window.getSelection();
   if (!sel || sel.isCollapsed) return;
 
@@ -67,11 +69,11 @@ function handleSelection(session, refresh) {
   const [sOff, eOff] = startOffset <= endOffset ? [startOffset, endOffset] : [endOffset, startOffset];
 
   toolbar.show(range.getBoundingClientRect(), () => {
-    showAnnotationInput(session, sOff, eOff, refresh);
+    showAnnotationInput(session, sOff, eOff, refresh, onChanged);
   });
 }
 
-function showAnnotationInput(session, startOffset, endOffset, refresh) {
+function showAnnotationInput(session, startOffset, endOffset, refresh, onChanged) {
   const lines = document.querySelectorAll('#lines .line');
   let targetLine = null;
   for (const line of lines) {
@@ -108,6 +110,7 @@ function showAnnotationInput(session, startOffset, endOffset, refresh) {
       }
       inputDiv.remove();
       refresh();
+      if (onChanged) onChanged();
     }
     if (e.key === 'Escape') {
       inputDiv.remove();
