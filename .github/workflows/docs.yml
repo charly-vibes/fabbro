@@ -1,8 +1,8 @@
-name: Deploy Docs
+name: Deploy Site
 on:
   push:
     branches: [main]
-    paths: ['site/**', '.github/workflows/docs.yml']
+    paths: ['site/**', 'web/**', '.github/workflows/docs.yml']
   workflow_dispatch:
 
 permissions:
@@ -27,11 +27,20 @@ jobs:
         with:
           hugo-version: 'latest'
           extended: true
+
+      # Build Hugo docs
       - working-directory: site
         run: hugo --minify
+
+      # Assemble combined site: SPA at root, Hugo docs under /docs/
+      - run: |
+          mkdir -p _site/docs
+          cp -a web/. _site/
+          cp -a site/public/. _site/docs/
+
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: site/public
+          path: _site
 
   deploy:
     environment:
