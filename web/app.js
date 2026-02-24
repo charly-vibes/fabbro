@@ -42,6 +42,8 @@ async function renderLanding() {
       <div class="divider">— or —</div>
       <textarea id="paste-input" placeholder="Paste text directly"></textarea>
       <button id="paste-btn">Start review</button>
+      <div class="divider">— or —</div>
+      <div class="drop-zone" id="drop-zone">Drop a .md, .txt, or code file here</div>
       <div id="error" class="error"></div>
       ${recent.length > 0 ? `
         <div class="divider">— recent sessions —</div>
@@ -122,6 +124,54 @@ async function renderLanding() {
     session.filename = 'pasted-text';
     session.annotations = [];
     await startSession();
+  });
+
+  const dropZone = document.getElementById('drop-zone');
+  const acceptedExts = new Set([
+    '.md', '.txt', '.go', '.py', '.js', '.ts', '.rs', '.rb', '.java',
+    '.c', '.h', '.cpp', '.hpp', '.css', '.html', '.json', '.yaml', '.yml',
+    '.toml', '.xml', '.sh', '.bash', '.zsh', '.fish', '.sql', '.lua',
+    '.ex', '.exs', '.zig', '.nim', '.kt', '.swift', '.r',
+  ]);
+
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('drop-zone--active');
+  });
+
+  dropZone.addEventListener('dragenter', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('drop-zone--active');
+  });
+
+  dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('drop-zone--active');
+  });
+
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('drop-zone--active');
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+
+    const name = file.name;
+    const dotIdx = name.lastIndexOf('.');
+    const ext = dotIdx >= 0 ? name.slice(dotIdx).toLowerCase() : '';
+    if (!acceptedExts.has(ext)) {
+      error.textContent = 'Unsupported file type. Please use text or code files.';
+      return;
+    }
+
+    error.textContent = '';
+    const reader = new FileReader();
+    reader.onload = async () => {
+      session.content = reader.result.replace(/\r\n/g, '\n');
+      session.sourceUrl = '';
+      session.filename = name;
+      session.annotations = [];
+      await startSession();
+    };
+    reader.readAsText(file);
   });
 }
 

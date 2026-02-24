@@ -103,6 +103,23 @@ body {
   margin-top: 0.5rem;
 }
 
+/* Drop zone */
+.drop-zone {
+  border: 2px dashed var(--color-border);
+  border-radius: 6px;
+  padding: 2rem;
+  text-align: center;
+  color: var(--color-gutter);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.drop-zone--active {
+  border-color: var(--color-toolbar-bg);
+  color: var(--color-text);
+}
+
 /* Recent sessions */
 .recent-sessions {
   display: flex;
