@@ -34,6 +34,32 @@ changelog:
       regexp: '^fix'
       order: 1
 
+brews:
+  - name: fabbro
+    repository:
+      owner: charly-vibes
+      name: homebrew-charly
+      branch: main
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    folder: Formula
+    homepage: "https://github.com/charly-vibes/fabbro"
+    description: "Local-first code review annotation tool with a terminal UI"
+    license: "MIT"
+    test: |
+      system "#{bin}/fabbro", "--version"
+
+scoops:
+  - name: fabbro
+    repository:
+      owner: charly-vibes
+      name: scoop-charly
+      branch: main
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    folder: bucket
+    homepage: "https://github.com/charly-vibes/fabbro"
+    description: "Local-first code review annotation tool with a terminal UI"
+    license: "MIT"
+
 release:
   github:
     owner: charly-vibes
