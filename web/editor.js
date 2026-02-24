@@ -68,12 +68,13 @@ function handleSelection(session, refresh, onChanged) {
 
   const [sOff, eOff] = startOffset <= endOffset ? [startOffset, endOffset] : [endOffset, startOffset];
 
-  toolbar.show(range.getBoundingClientRect(), () => {
-    showAnnotationInput(session, sOff, eOff, refresh, onChanged);
+  toolbar.show(range.getBoundingClientRect(), {
+    onComment: () => showAnnotationInput(session, sOff, eOff, 'comment', refresh, onChanged),
+    onSuggest: () => showAnnotationInput(session, sOff, eOff, 'suggest', refresh, onChanged),
   });
 }
 
-function showAnnotationInput(session, startOffset, endOffset, refresh, onChanged) {
+function showAnnotationInput(session, startOffset, endOffset, type, refresh, onChanged) {
   const lines = document.querySelectorAll('#lines .line');
   let targetLine = null;
   for (const line of lines) {
@@ -89,9 +90,18 @@ function showAnnotationInput(session, startOffset, endOffset, refresh, onChanged
 
   const inputDiv = document.createElement('div');
   inputDiv.style.padding = '0 0 0 3em';
+
+  if (type === 'suggest') {
+    const label = document.createElement('label');
+    label.textContent = 'Replacement:';
+    inputDiv.appendChild(label);
+  }
+
   const textarea = document.createElement('textarea');
   textarea.className = 'annotation-input';
-  textarea.placeholder = 'Add your comment… (Enter to save, Esc to cancel)';
+  textarea.placeholder = type === 'suggest'
+    ? 'Enter replacement text… (Enter to save, Esc to cancel)'
+    : 'Add your comment… (Enter to save, Esc to cancel)';
   inputDiv.appendChild(textarea);
   targetLine.after(inputDiv);
   textarea.focus();
@@ -102,7 +112,7 @@ function showAnnotationInput(session, startOffset, endOffset, refresh, onChanged
       const text = textarea.value.trim();
       if (text) {
         session.annotations.push({
-          type: 'comment',
+          type,
           text,
           startOffset,
           endOffset,

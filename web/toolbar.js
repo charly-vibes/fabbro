@@ -1,6 +1,6 @@
 let toolbarEl = null;
 
-export function show(rect, onComment) {
+export function show(rect, { onComment, onSuggest }) {
   hide();
   toolbarEl = document.createElement('div');
   toolbarEl.className = 'toolbar';
@@ -8,15 +8,24 @@ export function show(rect, onComment) {
   toolbarEl.style.top = `${rect.top - 40 + window.scrollY}px`;
   toolbarEl.style.position = 'absolute';
 
-  const btn = document.createElement('button');
-  btn.textContent = '💬 Comment';
-  btn.addEventListener('click', () => {
+  const commentBtn = document.createElement('button');
+  commentBtn.textContent = '💬 Comment';
+  commentBtn.addEventListener('click', () => {
     hide();
     window.getSelection().removeAllRanges();
     onComment();
   });
 
-  toolbarEl.appendChild(btn);
+  const suggestBtn = document.createElement('button');
+  suggestBtn.textContent = '✏️ Suggest';
+  suggestBtn.addEventListener('click', () => {
+    hide();
+    window.getSelection().removeAllRanges();
+    onSuggest();
+  });
+
+  toolbarEl.appendChild(commentBtn);
+  toolbarEl.appendChild(suggestBtn);
   document.body.appendChild(toolbarEl);
 
   const dismiss = (e) => {
