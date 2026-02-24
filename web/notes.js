@@ -1,6 +1,6 @@
 import { escapeHtml, offsetToLine } from './util.js';
 
-export function render(container, session, { onDelete, onNoteClick }) {
+export function render(container, session, { onDelete, onEdit, onNoteClick }) {
   const count = session.annotations.length;
   container.innerHTML = '';
 
@@ -31,7 +31,7 @@ export function render(container, session, { onDelete, onNoteClick }) {
 
     const badge = document.createElement('span');
     badge.className = `note-badge note-badge--${ann.type}`;
-    badge.textContent = ann.type === 'suggest' ? 'Suggest' : 'Comment';
+    badge.textContent = ann.type.charAt(0).toUpperCase() + ann.type.slice(1);
 
     const snippet = document.createElement('div');
     snippet.className = 'note-snippet';
@@ -48,6 +48,31 @@ export function render(container, session, { onDelete, onNoteClick }) {
     lineLabel.className = 'note-line';
     lineLabel.textContent = `L${line}`;
 
+    const editBtn = document.createElement('button');
+    editBtn.className = 'note-edit';
+    editBtn.textContent = '✎';
+    editBtn.title = 'Edit annotation';
+    editBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const textarea = document.createElement('textarea');
+      textarea.className = 'note-edit-input';
+      textarea.value = ann.text;
+      text.replaceWith(textarea);
+      textarea.focus();
+      textarea.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter' && !ev.shiftKey) {
+          ev.preventDefault();
+          const newText = textarea.value.trim();
+          if (newText) {
+            onEdit(ann.index, newText);
+          }
+        }
+        if (ev.key === 'Escape') {
+          textarea.replaceWith(text);
+        }
+      });
+    });
+
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'note-delete';
     deleteBtn.textContent = '✕';
@@ -61,6 +86,7 @@ export function render(container, session, { onDelete, onNoteClick }) {
     topRow.className = 'note-top';
     topRow.appendChild(badge);
     topRow.appendChild(lineLabel);
+    topRow.appendChild(editBtn);
     topRow.appendChild(deleteBtn);
 
     card.appendChild(topRow);

@@ -1,7 +1,31 @@
 import { fetchContent } from './fetch.js';
+import { parse as parseFem } from './fem.js';
 import { mount as mountEditor } from './editor.js';
 import { mount as mountExport } from './export.js';
 import * as storage from './storage.js';
+
+function stripFrontmatter(text) {
+  if (!text.startsWith('---')) return text;
+  const end = text.indexOf('\n---', 3);
+  if (end === -1) return text;
+  return text.slice(end + 4).replace(/^\n/, '');
+}
+
+function lineToOffsets(content, startLine, endLine) {
+  const lines = content.split('\n');
+  let offset = 0;
+  let startOffset = 0;
+  let endOffset = 0;
+  for (let i = 0; i < lines.length; i++) {
+    if (i + 1 === startLine) startOffset = offset;
+    if (i + 1 === endLine) {
+      endOffset = offset + lines[i].length;
+      break;
+    }
+    offset += lines[i].length + 1;
+  }
+  return { startOffset, endOffset };
+}
 
 const app = document.getElementById('app');
 
@@ -43,7 +67,7 @@ async function renderLanding() {
       <textarea id="paste-input" placeholder="Paste text directly"></textarea>
       <button id="paste-btn">Start review</button>
       <div class="divider">— or —</div>
-      <div class="drop-zone" id="drop-zone">Drop a .md, .txt, or code file here</div>
+      <div class="drop-zone" id="drop-zone">Drop a .md, .txt, .fem, or code file here</div>
       <div id="error" class="error"></div>
       ${recent.length > 0 ? `
         <div class="divider">— recent sessions —</div>
@@ -128,7 +152,7 @@ async function renderLanding() {
 
   const dropZone = document.getElementById('drop-zone');
   const acceptedExts = new Set([
-    '.md', '.txt', '.go', '.py', '.js', '.ts', '.rs', '.rb', '.java',
+    '.md', '.txt', '.fem', '.go', '.py', '.js', '.ts', '.rs', '.rb', '.java',
     '.c', '.h', '.cpp', '.hpp', '.css', '.html', '.json', '.yaml', '.yml',
     '.toml', '.xml', '.sh', '.bash', '.zsh', '.fish', '.sql', '.lua',
     '.ex', '.exs', '.zig', '.nim', '.kt', '.swift', '.r',
@@ -165,10 +189,28 @@ async function renderLanding() {
     error.textContent = '';
     const reader = new FileReader();
     reader.onload = async () => {
-      session.content = reader.result.replace(/\r\n/g, '\n');
-      session.sourceUrl = '';
-      session.filename = name;
-      session.annotations = [];
+      const raw = reader.result.replace(/\r\n/g, '\n');
+      if (ext === '.fem') {
+        const stripped = stripFrontmatter(raw);
+        const { annotations: femAnnotations, cleanContent } = parseFem(stripped);
+        session.content = cleanContent;
+        session.sourceUrl = '';
+        session.filename = name;
+        session.annotations = femAnnotations.map(a => {
+          const { startOffset, endOffset } = lineToOffsets(cleanContent, a.startLine, a.endLine);
+          return {
+            type: a.type === 'change' ? 'suggest' : a.type,
+            text: a.text,
+            startOffset,
+            endOffset,
+          };
+        });
+      } else {
+        session.content = raw;
+        session.sourceUrl = '';
+        session.filename = name;
+        session.annotations = [];
+      }
       await startSession();
     };
     reader.readAsText(file);

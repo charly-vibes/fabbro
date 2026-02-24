@@ -216,6 +216,35 @@ body {
   opacity: 0.8;
 }
 
+.toolbar-more {
+  position: relative;
+  display: inline-block;
+}
+
+.toolbar-dropdown {
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: var(--color-toolbar-bg);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  padding: 4px 0;
+  min-width: 140px;
+  z-index: 1001;
+}
+
+.toolbar-dropdown--open {
+  display: flex;
+  flex-direction: column;
+}
+
+.toolbar-dropdown-item {
+  text-align: left;
+  padding: 6px 12px;
+  white-space: nowrap;
+}
+
 /* Highlight */
 mark {
   background: var(--color-highlight);
@@ -373,10 +402,62 @@ mark {
   color: #166534;
 }
 
+.note-badge--delete {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.note-badge--question {
+  background: #f3e8ff;
+  color: #6b21a8;
+}
+
+.note-badge--expand {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.note-badge--keep {
+  background: #ccfbf1;
+  color: #115e59;
+}
+
+.note-badge--unclear {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
 .note-line {
   font-size: 0.6875rem;
   color: var(--color-gutter);
   margin-left: auto;
+}
+
+.note-edit {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-gutter);
+  font-size: 0.75rem;
+  padding: 0 2px;
+  line-height: 1;
+}
+
+.note-edit:hover {
+  color: var(--color-toolbar-bg);
+}
+
+.note-edit-input {
+  width: 100%;
+  min-height: 40px;
+  padding: 0.375rem 0.5rem;
+  font-size: 0.8125rem;
+  border: 1px solid var(--color-toolbar-bg);
+  border-radius: 3px;
+  resize: vertical;
+  outline: none;
+  font-family: inherit;
+  line-height: 1.4;
 }
 
 .note-delete {
@@ -412,6 +493,16 @@ mark {
 mark.mark--active {
   outline: 2px solid var(--color-toolbar-bg);
   outline-offset: 1px;
+}
+
+/* Keyboard navigation */
+.viewer--focused {
+  outline: 2px solid #3b82f6;
+  outline-offset: -2px;
+}
+
+.line--current {
+  background: #eff6ff;
 }
 
 /* Status bar */

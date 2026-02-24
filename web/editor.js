@@ -29,6 +29,11 @@ export function mount(container, session, { onFinish, onChanged }) {
         refresh();
         if (onChanged) onChanged();
       },
+      onEdit: (index, newText) => {
+        session.annotations[index].text = newText;
+        refresh();
+        if (onChanged) onChanged();
+      },
       onNoteClick: (ann) => {
         const mark = linesEl.querySelector(`mark[data-annotation-index="${ann.index}"]`);
         if (mark) {
@@ -50,6 +55,82 @@ export function mount(container, session, { onFinish, onChanged }) {
 
   refresh();
 
+  let currentLine = -1;
+  let viewerFocused = false;
+  let lastGTime = 0;
+
+  const viewerEl = container.querySelector('.viewer');
+
+  function updateCurrentLine() {
+    linesEl.querySelectorAll('.line--current').forEach(el => el.classList.remove('line--current'));
+    if (currentLine < 0) return;
+    const lines = linesEl.querySelectorAll('.line');
+    if (currentLine >= lines.length) currentLine = lines.length - 1;
+    if (lines[currentLine]) {
+      lines[currentLine].classList.add('line--current');
+      lines[currentLine].scrollIntoView({ block: 'nearest' });
+    }
+  }
+
+  viewerEl.addEventListener('click', () => {
+    viewerFocused = true;
+    viewerEl.classList.add('viewer--focused');
+  });
+
+  document.addEventListener('mousedown', (e) => {
+    if (!viewerEl.contains(e.target)) {
+      viewerFocused = false;
+      viewerEl.classList.remove('viewer--focused');
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (!viewerFocused) return;
+    if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+
+    const lines = linesEl.querySelectorAll('.line');
+    const totalLines = lines.length;
+    if (totalLines === 0) return;
+
+    const visibleLines = Math.floor(viewerEl.clientHeight / (lines[0]?.offsetHeight || 20));
+
+    if (e.key === 'j' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      currentLine = Math.min(currentLine + 1, totalLines - 1);
+      if (currentLine < 0) currentLine = 0;
+      updateCurrentLine();
+    } else if (e.key === 'k' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (currentLine < 0) currentLine = 0;
+      else currentLine = Math.max(currentLine - 1, 0);
+      updateCurrentLine();
+    } else if (e.key === 'd' && e.ctrlKey) {
+      e.preventDefault();
+      currentLine = Math.min(currentLine + Math.floor(visibleLines / 2), totalLines - 1);
+      if (currentLine < 0) currentLine = 0;
+      updateCurrentLine();
+    } else if (e.key === 'u' && e.ctrlKey) {
+      e.preventDefault();
+      if (currentLine < 0) currentLine = 0;
+      else currentLine = Math.max(currentLine - Math.floor(visibleLines / 2), 0);
+      updateCurrentLine();
+    } else if (e.key === 'G') {
+      e.preventDefault();
+      currentLine = totalLines - 1;
+      updateCurrentLine();
+    } else if (e.key === 'g') {
+      const now = Date.now();
+      if (now - lastGTime < 500) {
+        e.preventDefault();
+        currentLine = 0;
+        updateCurrentLine();
+        lastGTime = 0;
+      } else {
+        lastGTime = now;
+      }
+    }
+  });
+
   document.getElementById('finish-btn').addEventListener('click', onFinish);
   linesEl.addEventListener('mouseup', () => handleSelection(session, refresh, onChanged));
 }
@@ -69,8 +150,7 @@ function handleSelection(session, refresh, onChanged) {
   const [sOff, eOff] = startOffset <= endOffset ? [startOffset, endOffset] : [endOffset, startOffset];
 
   toolbar.show(range.getBoundingClientRect(), {
-    onComment: () => showAnnotationInput(session, sOff, eOff, 'comment', refresh, onChanged),
-    onSuggest: () => showAnnotationInput(session, sOff, eOff, 'suggest', refresh, onChanged),
+    onAnnotate: (type) => showAnnotationInput(session, sOff, eOff, type, refresh, onChanged),
   });
 }
 
