@@ -1,7 +1,20 @@
+# Release workflow - build cross-platform binaries and publish a GitHub release
+#
+# Triggered by pushing a version tag (e.g., `git tag v0.1.0 && git push --tags`).
+# Creates a GitHub Release with pre-built binaries for Linux, macOS, and Windows,
+# then auto-updates the homebrew-charly tap formula and scoop-charly bucket manifest.
+#
+# Required secrets:
+#   GITHUB_TOKEN       - automatically provided by GitHub Actions
+#   TAP_GITHUB_TOKEN   - PAT with repo write access to homebrew-charly and scoop-charly
+
 name: Release
+
 on:
   push:
-    tags: ['v*']
+    tags:
+      - "v*"
+
 permissions:
   contents: write
 
@@ -9,21 +22,111 @@ jobs:
   ci:
     uses: ./.github/workflows/ci.yml
 
-  release:
-    needs: ci
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+          cache: true
+
+      - name: Build all platforms
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          LDFLAGS="-s -w -X main.version=${VERSION}"
+          mkdir -p bins/linux_amd64 bins/linux_arm64 bins/darwin_amd64 bins/darwin_arm64 bins/windows_amd64
+          GOOS=linux   GOARCH=amd64 go build -ldflags="${LDFLAGS}" -o bins/linux_amd64/fabbro   ./cmd/fabbro
+          GOOS=linux   GOARCH=arm64 go build -ldflags="${LDFLAGS}" -o bins/linux_arm64/fabbro   ./cmd/fabbro
+          GOOS=darwin  GOARCH=amd64 go build -ldflags="${LDFLAGS}" -o bins/darwin_amd64/fabbro  ./cmd/fabbro
+          GOOS=darwin  GOARCH=arm64 go build -ldflags="${LDFLAGS}" -o bins/darwin_arm64/fabbro  ./cmd/fabbro
+          GOOS=windows GOARCH=amd64 go build -ldflags="${LDFLAGS}" -o bins/windows_amd64/fabbro.exe ./cmd/fabbro
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bins
+          path: bins/
+          retention-days: 1
+
+  publish:
+    name: Publish Release
+    needs: [ci, build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-go@v5
+
+      - uses: actions/download-artifact@v4
         with:
-          go-version: '1.23'
-          cache: true
-      - uses: goreleaser/goreleaser-action@v6
-        with:
-          version: '~> v2'
-          args: release --clean
+          name: bins
+          path: bins/
+
+      - name: Package archives and checksums
+        id: pkg
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          mkdir -p dist
+          tar -czf "dist/fabbro_${VERSION}_linux_amd64.tar.gz"  -C bins/linux_amd64  fabbro
+          tar -czf "dist/fabbro_${VERSION}_linux_arm64.tar.gz"  -C bins/linux_arm64  fabbro
+          tar -czf "dist/fabbro_${VERSION}_darwin_amd64.tar.gz" -C bins/darwin_amd64 fabbro
+          tar -czf "dist/fabbro_${VERSION}_darwin_arm64.tar.gz" -C bins/darwin_arm64 fabbro
+          (cd bins/windows_amd64 && zip "../../dist/fabbro_${VERSION}_windows_amd64.zip" fabbro.exe)
+          cd dist && sha256sum *.tar.gz *.zip > checksums.txt
+
+      - name: Create GitHub release
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${{ steps.pkg.outputs.version }}"
+          PRERELEASE=""
+          [[ "${TAG}" == *-* ]] && PRERELEASE="--prerelease"
+          gh release create "${TAG}" \
+            --title "${TAG}" \
+            --generate-notes \
+            $PRERELEASE \
+            dist/fabbro_${VERSION}_linux_amd64.tar.gz \
+            dist/fabbro_${VERSION}_linux_arm64.tar.gz \
+            dist/fabbro_${VERSION}_darwin_amd64.tar.gz \
+            dist/fabbro_${VERSION}_darwin_arm64.tar.gz \
+            dist/fabbro_${VERSION}_windows_amd64.zip \
+            dist/checksums.txt
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Homebrew tap
+        env:
           TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${{ steps.pkg.outputs.version }}"
+          git clone "https://x-access-token:${TAP_GITHUB_TOKEN}@github.com/charly-vibes/homebrew-charly.git" /tmp/tap
+          python3 scripts/update-homebrew.py \
+            /tmp/tap/Formula/fabbro.rb \
+            "${VERSION}" "${TAG}" dist/checksums.txt
+          cd /tmp/tap
+          git config user.email "github-actions@github.com"
+          git config user.name "GitHub Actions"
+          git add Formula/fabbro.rb
+          git diff --staged --quiet || git commit -m "Update fabbro to ${VERSION}"
+          git push
+
+      - name: Update Scoop bucket
+        env:
+          TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${{ steps.pkg.outputs.version }}"
+          git clone "https://x-access-token:${TAP_GITHUB_TOKEN}@github.com/charly-vibes/scoop-charly.git" /tmp/scoop
+          python3 scripts/update-scoop.py \
+            /tmp/scoop/bucket/fabbro.json \
+            "${VERSION}" "${TAG}" dist/checksums.txt
+          cd /tmp/scoop
+          git config user.email "github-actions@github.com"
+          git config user.name "GitHub Actions"
+          git add bucket/fabbro.json
+          git diff --staged --quiet || git commit -m "Update fabbro to ${VERSION}"
+          git push
