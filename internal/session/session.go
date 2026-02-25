@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -200,13 +201,9 @@ func List() ([]*Session, error) {
 	}
 
 	// Sort by creation date, newest first
-	for i := 0; i < len(sessions)-1; i++ {
-		for j := i + 1; j < len(sessions); j++ {
-			if sessions[j].CreatedAt.After(sessions[i].CreatedAt) {
-				sessions[i], sessions[j] = sessions[j], sessions[i]
-			}
-		}
-	}
+	sort.Slice(sessions, func(i, j int) bool {
+		return sessions[i].CreatedAt.After(sessions[j].CreatedAt)
+	})
 
 	return sessions, nil
 }
