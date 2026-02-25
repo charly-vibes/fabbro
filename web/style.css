@@ -505,6 +505,49 @@ mark.mark--active {
   background: #eff6ff;
 }
 
+/* Search */
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 4px 1rem;
+  border-bottom: 1px solid var(--color-border);
+  background: #f9fafb;
+}
+
+.search-input {
+  flex: 1;
+  padding: 4px 8px;
+  font-size: 0.875rem;
+  font-family: var(--font-mono);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  outline: none;
+}
+
+.search-input:focus {
+  border-color: var(--color-toolbar-bg);
+}
+
+.search-count {
+  font-size: 0.75rem;
+  color: var(--color-gutter);
+  white-space: nowrap;
+  min-width: 3em;
+}
+
+mark.search-match {
+  background: #fdba74;
+  border-radius: 2px;
+}
+
+mark.search-match--current {
+  background: #f97316;
+  color: #ffffff;
+  outline: 2px solid #ea580c;
+  outline-offset: 0px;
+}
+
 /* Status bar */
 .status-bar {
   position: fixed;

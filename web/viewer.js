@@ -1,4 +1,4 @@
-export function renderLines(container, content, annotations) {
+export function renderLines(container, content, annotations, searchMatches) {
   const lines = content.split('\n');
   let offset = 0;
   container.innerHTML = '';
@@ -20,10 +20,14 @@ export function renderLines(container, content, annotations) {
       .map((a, idx) => ({ ...a, _index: idx }))
       .filter(a => a.startOffset < offset + lineText.length && a.endOffset > offset);
 
-    if (lineAnnotations.length === 0) {
+    const lineSearchMatches = searchMatches
+      ? searchMatches.filter(m => m.start < offset + lineText.length && m.end > offset)
+      : [];
+
+    if (lineAnnotations.length === 0 && lineSearchMatches.length === 0) {
       text.textContent = lineText;
     } else {
-      renderHighlightedLine(text, lineText, offset, lineAnnotations);
+      renderHighlightedLine(text, lineText, offset, lineAnnotations, lineSearchMatches);
     }
 
     lineDiv.appendChild(gutter);
@@ -34,30 +38,66 @@ export function renderLines(container, content, annotations) {
   }
 }
 
-function renderHighlightedLine(textSpan, lineText, lineOffset, annotations) {
-  const ranges = [];
-  for (const ann of annotations) {
-    const start = Math.max(0, ann.startOffset - lineOffset);
-    const end = Math.min(lineText.length, ann.endOffset - lineOffset);
-    if (start < end) {
-      ranges.push({ start, end, index: ann._index });
-    }
-  }
-  ranges.sort((a, b) => a.start - b.start);
+function renderHighlightedLine(text, lineText, lineOffset, annotations, searchMatches) {
+  // Collect boundary points to split the line into non-overlapping segments
+  const boundaries = new Set([0, lineText.length]);
 
-  let pos = 0;
-  for (const r of ranges) {
-    if (pos < r.start) {
-      textSpan.appendChild(document.createTextNode(lineText.slice(pos, r.start)));
+  const annRanges = [];
+  for (const ann of annotations) {
+    const s = Math.max(0, ann.startOffset - lineOffset);
+    const e = Math.min(lineText.length, ann.endOffset - lineOffset);
+    if (s < e) {
+      boundaries.add(s);
+      boundaries.add(e);
+      annRanges.push({ start: s, end: e, index: ann._index });
     }
-    const mark = document.createElement('mark');
-    mark.dataset.annotationIndex = r.index;
-    mark.textContent = lineText.slice(r.start, r.end);
-    textSpan.appendChild(mark);
-    pos = r.end;
   }
-  if (pos < lineText.length) {
-    textSpan.appendChild(document.createTextNode(lineText.slice(pos)));
+
+  const sRanges = [];
+  for (const m of searchMatches) {
+    const s = Math.max(0, m.start - lineOffset);
+    const e = Math.min(lineText.length, m.end - lineOffset);
+    if (s < e) {
+      boundaries.add(s);
+      boundaries.add(e);
+      sRanges.push({ start: s, end: e, matchIndex: m.index, current: m.current });
+    }
+  }
+
+  const points = [...boundaries].sort((a, b) => a - b);
+
+  for (let i = 0; i < points.length - 1; i++) {
+    const segStart = points[i];
+    const segEnd = points[i + 1];
+    const segText = lineText.slice(segStart, segEnd);
+
+    const ann = annRanges.find(r => r.start <= segStart && r.end >= segEnd);
+    const search = sRanges.find(r => r.start <= segStart && r.end >= segEnd);
+
+    if (!ann && !search) {
+      text.appendChild(document.createTextNode(segText));
+    } else if (ann && !search) {
+      const mark = document.createElement('mark');
+      mark.dataset.annotationIndex = ann.index;
+      mark.textContent = segText;
+      text.appendChild(mark);
+    } else if (!ann && search) {
+      const mark = document.createElement('mark');
+      mark.className = 'search-match' + (search.current ? ' search-match--current' : '');
+      mark.dataset.matchIndex = search.matchIndex;
+      mark.textContent = segText;
+      text.appendChild(mark);
+    } else {
+      // Both annotation and search match overlap
+      const outer = document.createElement('mark');
+      outer.dataset.annotationIndex = ann.index;
+      const inner = document.createElement('mark');
+      inner.className = 'search-match' + (search.current ? ' search-match--current' : '');
+      inner.dataset.matchIndex = search.matchIndex;
+      inner.textContent = segText;
+      outer.appendChild(inner);
+      text.appendChild(outer);
+    }
   }
 }
 

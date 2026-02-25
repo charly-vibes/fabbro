@@ -2,6 +2,7 @@ import { escapeHtml } from './util.js';
 import { renderLines, getCanonicalOffset } from './viewer.js';
 import * as toolbar from './toolbar.js';
 import * as notes from './notes.js';
+import * as search from './search.js';
 
 export function mount(container, session, { onFinish, onChanged }) {
   container.innerHTML = `
@@ -20,9 +21,39 @@ export function mount(container, session, { onFinish, onChanged }) {
 
   const linesEl = document.getElementById('lines');
   const notesPanel = document.getElementById('notes-panel');
+  const viewerEl = container.querySelector('.viewer');
+
+  let searchMatches = [];
+
+  const searchCtrl = search.mount(viewerEl, {
+    onUpdate: (state) => {
+      if (state.query) {
+        const raw = search.findMatches(session.content, state.query);
+        state.matches = raw;
+        if (state.current < 0 || state.current >= raw.length) {
+          state.current = raw.length > 0 ? 0 : -1;
+        }
+        searchMatches = raw.map((m, i) => ({ ...m, index: i, current: i === state.current }));
+        searchCtrl.updateCount();
+      } else {
+        searchMatches = [];
+        state.matches = [];
+        state.current = -1;
+      }
+      refresh();
+      if (searchMatches.length > 0) {
+        scrollToCurrentMatch();
+      }
+    },
+  });
+
+  function scrollToCurrentMatch() {
+    const el = linesEl.querySelector('.search-match--current');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
 
   function refresh() {
-    renderLines(linesEl, session.content, session.annotations);
+    renderLines(linesEl, session.content, session.annotations, searchMatches);
     notes.render(notesPanel, session, {
       onDelete: (index) => {
         session.annotations.splice(index, 1);
@@ -58,8 +89,6 @@ export function mount(container, session, { onFinish, onChanged }) {
   let currentLine = -1;
   let viewerFocused = false;
   let lastGTime = 0;
-
-  const viewerEl = container.querySelector('.viewer');
 
   function updateCurrentLine() {
     linesEl.querySelectorAll('.line--current').forEach(el => el.classList.remove('line--current'));
@@ -127,6 +156,19 @@ export function mount(container, session, { onFinish, onChanged }) {
         lastGTime = 0;
       } else {
         lastGTime = now;
+      }
+    } else if (e.key === '/') {
+      e.preventDefault();
+      searchCtrl.open();
+    } else if (e.key === 'n') {
+      if (searchMatches.length > 0) {
+        e.preventDefault();
+        searchCtrl.navigate(1);
+      }
+    } else if (e.key === 'N') {
+      if (searchMatches.length > 0) {
+        e.preventDefault();
+        searchCtrl.navigate(-1);
       }
     }
   });
