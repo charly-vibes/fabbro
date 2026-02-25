@@ -3,6 +3,7 @@ import { parse as parseFem } from './fem.js';
 import { mount as mountEditor } from './editor.js';
 import { mount as mountExport } from './export.js';
 import * as storage from './storage.js';
+import * as tutorial from './tutorial.js';
 
 function stripFrontmatter(text) {
   if (!text.startsWith('---')) return text;
@@ -55,12 +56,14 @@ async function startSession() {
 }
 
 async function renderLanding() {
+  tutorial.stop();
   const recent = await storage.listSessions();
 
   app.innerHTML = `
     <div class="landing">
       <h1>fabbro</h1>
       <p class="subtitle">Review any text. Annotate with comments. Export a structured summary.</p>
+      <button id="tutorial-btn" class="tutorial-start">New here? Try the interactive tutorial →</button>
       <input type="text" id="url-input" placeholder="Paste a GitHub file URL or any web page URL">
       <button id="url-btn">Start review</button>
       <div class="divider">— or —</div>
@@ -148,6 +151,15 @@ async function renderLanding() {
     session.filename = 'pasted-text';
     session.annotations = [];
     await startSession();
+  });
+
+  document.getElementById('tutorial-btn').addEventListener('click', async () => {
+    session.content = tutorial.SAMPLE_CONTENT;
+    session.sourceUrl = '';
+    session.filename = 'greeting.js (tutorial)';
+    session.annotations = [];
+    await startSession();
+    tutorial.start(renderLanding);
   });
 
   const dropZone = document.getElementById('drop-zone');

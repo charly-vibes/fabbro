@@ -692,6 +692,163 @@ mark.search-match--current {
   padding: 1px 6px;
 }
 
+/* Tutorial start button */
+.landing .tutorial-start {
+  width: auto;
+  display: block;
+  margin: 0 auto 1.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #3b82f6;
+  background: none;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+}
+
+.landing .tutorial-start:hover {
+  background: #eff6ff;
+  border-color: #3b82f6;
+}
+
+/* Tutorial panel */
+.tutorial-panel {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 520px;
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  z-index: 3000;
+  overflow: hidden;
+}
+
+.tutorial-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #f9fafb;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tutorial-dots {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+
+.tutorial-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-border);
+}
+
+.tutorial-dot--active {
+  background: #3b82f6;
+}
+
+.tutorial-dot--done {
+  background: #86efac;
+}
+
+.tutorial-step-count {
+  font-size: 0.75rem;
+  color: var(--color-gutter);
+}
+
+.tutorial-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-gutter);
+  font-size: 1rem;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.tutorial-close:hover {
+  color: var(--color-text);
+}
+
+.tutorial-body {
+  padding: 1rem;
+}
+
+.tutorial-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.tutorial-message {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: #4b5563;
+  margin-bottom: 0.75rem;
+}
+
+.tutorial-message code {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  background: #f3f4f6;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.tutorial-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tutorial-btn {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  background: #ffffff;
+  color: var(--color-text);
+}
+
+.tutorial-btn:hover {
+  background: #f9fafb;
+}
+
+.tutorial-btn--primary {
+  background: #3b82f6;
+  color: #ffffff;
+  border-color: #3b82f6;
+}
+
+.tutorial-btn--primary:hover {
+  background: #2563eb;
+}
+
+.tutorial-hint {
+  font-size: 0.8125rem;
+  color: #3b82f6;
+  font-weight: 500;
+}
+
+/* Tutorial highlight */
+.tutorial-highlight {
+  outline: 2px solid #3b82f6 !important;
+  outline-offset: 2px;
+  animation: tutorial-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes tutorial-pulse {
+  0%, 100% { outline-color: #3b82f6; }
+  50% { outline-color: #93c5fd; }
+}
+
 /* Status bar */
 .status-bar {
   position: fixed;
