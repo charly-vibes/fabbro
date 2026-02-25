@@ -3,6 +3,8 @@ import { renderLines, getCanonicalOffset } from './viewer.js';
 import * as toolbar from './toolbar.js';
 import * as notes from './notes.js';
 import * as search from './search.js';
+import * as help from './help.js';
+import * as palette from './palette.js';
 
 export function mount(container, session, { onFinish, onChanged }) {
   container.innerHTML = `
@@ -114,8 +116,30 @@ export function mount(container, session, { onFinish, onChanged }) {
   });
 
   document.addEventListener('keydown', (e) => {
-    if (!viewerFocused) return;
     if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+
+    if (e.key === '?') {
+      e.preventDefault();
+      help.toggle();
+      return;
+    }
+    if (e.key === 'Escape' && help.isVisible()) {
+      e.preventDefault();
+      help.hide();
+      return;
+    }
+    if (e.key === 'Escape' && palette.isVisible()) {
+      e.preventDefault();
+      palette.hide();
+      return;
+    }
+    if (e.key === 'k' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      openPalette();
+      return;
+    }
+
+    if (!viewerFocused) return;
 
     const lines = linesEl.querySelectorAll('.line');
     const totalLines = lines.length;
@@ -157,6 +181,9 @@ export function mount(container, session, { onFinish, onChanged }) {
       } else {
         lastGTime = now;
       }
+    } else if (e.key === ' ') {
+      e.preventDefault();
+      openPalette();
     } else if (e.key === '/') {
       e.preventDefault();
       searchCtrl.open();
@@ -172,6 +199,37 @@ export function mount(container, session, { onFinish, onChanged }) {
       }
     }
   });
+
+  function openPalette() {
+    const commands = [
+      { id: 'search', label: '🔍 Search', key: '/' },
+      { id: 'help', label: '❓ Help', key: '?' },
+      { id: 'finish', label: '🏁 Finish review', key: '' },
+      { id: 'top', label: '⬆ Go to top', key: 'gg' },
+      { id: 'bottom', label: '⬇ Go to bottom', key: 'G' },
+      { id: 'ann:comment', label: '💬 Comment', key: 'select + toolbar' },
+      { id: 'ann:suggest', label: '✏️ Suggest', key: 'select + toolbar' },
+      { id: 'ann:delete', label: '🗑️ Delete', key: 'select + toolbar' },
+      { id: 'ann:question', label: '❓ Question', key: 'select + toolbar' },
+      { id: 'ann:expand', label: '💡 Expand', key: 'select + toolbar' },
+      { id: 'ann:keep', label: '✅ Keep', key: 'select + toolbar' },
+      { id: 'ann:unclear', label: '🔍 Unclear', key: 'select + toolbar' },
+    ];
+
+    palette.open(commands, {
+      onSelect: (cmd) => {
+        if (cmd.id === 'search') searchCtrl.open();
+        else if (cmd.id === 'help') help.toggle();
+        else if (cmd.id === 'finish') onFinish();
+        else if (cmd.id === 'top') { currentLine = 0; updateCurrentLine(); }
+        else if (cmd.id === 'bottom') {
+          const lines = linesEl.querySelectorAll('.line');
+          currentLine = lines.length - 1;
+          updateCurrentLine();
+        }
+      },
+    });
+  }
 
   document.getElementById('finish-btn').addEventListener('click', onFinish);
   linesEl.addEventListener('mouseup', () => handleSelection(session, refresh, onChanged));

@@ -10,7 +10,22 @@ export function renderLines(container, content, annotations, searchMatches) {
 
     const gutter = document.createElement('span');
     gutter.className = 'gutter';
-    gutter.textContent = i + 1;
+
+    const hasAnnotation = annotations.some(
+      a => a.startOffset < offset + lines[i].length && a.endOffset > offset
+    );
+
+    if (hasAnnotation) {
+      const num = document.createElement('span');
+      num.textContent = i + 1;
+      const dot = document.createElement('span');
+      dot.className = 'gutter-dot';
+      dot.textContent = '●';
+      gutter.appendChild(num);
+      gutter.appendChild(dot);
+    } else {
+      gutter.textContent = i + 1;
+    }
 
     const text = document.createElement('span');
     text.className = 'text';
