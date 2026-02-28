@@ -333,14 +333,14 @@ Feature: TUI Interaction
     When I press Tab
     Then lines 2, 3, and 4 should show the range highlight indicator
 
-  @planned
+  @implemented
   Scenario: Viewing all annotations in session
     Given I have added 5 annotations to the document
     When I press "a" (or SPC then a)
     Then an annotations panel should appear
     And it should list all 5 annotations with their line numbers and types
 
-  @planned
+  @implemented
   Scenario: Jumping to annotation from list
     Given the annotations panel is open
     When I select an annotation and press Enter

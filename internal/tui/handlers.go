@@ -42,6 +42,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.handleSearchMode(msg)
 		case modeHelp:
 			return m.handleHelpMode(msg)
+		case modeAnnotations:
+			return m.handleAnnotationsMode(msg)
 		default:
 			return m.handleNormalMode(msg)
 		}
@@ -255,6 +257,9 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "a":
 		if m.selection.active {
 			m.aPending = true
+		} else {
+			m.mode = modeAnnotations
+			m.annotationsCursor = 0
 		}
 
 	case "{":
@@ -323,6 +328,45 @@ func (m Model) handleHelpMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Any key closes the help panel
 	m.mode = modeNormal
 	return m, nil
+}
+
+func (m Model) handleAnnotationsMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "j", "down":
+		if len(m.annotations) > 0 && m.annotationsCursor < len(m.annotations)-1 {
+			m.annotationsCursor++
+		}
+	case "k", "up":
+		if m.annotationsCursor > 0 {
+			m.annotationsCursor--
+		}
+	case "enter":
+		if len(m.annotations) > 0 && m.annotationsCursor < len(m.annotations) {
+			ann := m.sortedAnnotations()[m.annotationsCursor]
+			m.cursor = ann.StartLine - 1 // 0-indexed
+			m.viewportTop = -1
+			m.ensureCursorVisible()
+		}
+		m.mode = modeNormal
+	case "esc":
+		m.mode = modeNormal
+	}
+	return m, nil
+}
+
+// sortedAnnotations returns annotations sorted by StartLine, then EndLine.
+func (m Model) sortedAnnotations() []fem.Annotation {
+	sorted := make([]fem.Annotation, len(m.annotations))
+	copy(sorted, m.annotations)
+	for i := 1; i < len(sorted); i++ {
+		for j := i; j > 0; j-- {
+			if sorted[j].StartLine < sorted[j-1].StartLine ||
+				(sorted[j].StartLine == sorted[j-1].StartLine && sorted[j].EndLine < sorted[j-1].EndLine) {
+				sorted[j], sorted[j-1] = sorted[j-1], sorted[j]
+			}
+		}
+	}
+	return sorted
 }
 
 // resetPreviewIndex resets the annotation preview to the first annotation.

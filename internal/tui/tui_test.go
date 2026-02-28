@@ -2820,7 +2820,7 @@ func TestSearchMode_EscClearsSearchInNormalMode(t *testing.T) {
 func TestSearchMode_MatchCounterInView(t *testing.T) {
 	sess := newTestSession("apple\nbanana\napricot\norange")
 	m := New(sess)
-	m.width = 80
+	m.width = 120
 	m.height = 20
 
 	m = sendKey(m, '/')
@@ -2844,7 +2844,7 @@ func TestSearchMode_MatchCounterInView(t *testing.T) {
 func TestSearchMode_HelpBarShowsSearchNav(t *testing.T) {
 	sess := newTestSession("apple\nbanana\napricot")
 	m := New(sess)
-	m.width = 80
+	m.width = 120
 	m.height = 20
 
 	m = sendKey(m, '/')
@@ -3534,6 +3534,166 @@ func TestTextObjectShrinkMinimumOneLine(t *testing.T) {
 	start, end := m.selection.lines()
 	if start != 1 || end != 1 {
 		t.Errorf("expected selection (1, 1) minimum, got (%d, %d)", start, end)
+	}
+}
+
+// --- Annotations List View Tests ---
+
+func TestAnnotationsPanel_AKeyOpensPanel(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+	m.width = 80
+	m.height = 24
+
+	m = sendKey(m, 'a')
+
+	if m.mode != modeAnnotations {
+		t.Errorf("expected modeAnnotations, got %d", m.mode)
+	}
+}
+
+func TestAnnotationsPanel_AKeyWithSelectionDoesNotOpenPanel(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+	m.width = 80
+	m.height = 24
+
+	m = sendKey(m, 'v') // start selection
+	m = sendKey(m, 'a') // should trigger text object, not panel
+
+	if m.mode == modeAnnotations {
+		t.Error("a with selection should not open annotations panel")
+	}
+}
+
+func TestAnnotationsPanel_EmptyState(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+	m.width = 80
+	m.height = 24
+	m.mode = modeAnnotations
+
+	view := m.View()
+	if !strings.Contains(view, "No annotations yet") {
+		t.Errorf("expected empty state message, got:\n%s", view)
+	}
+}
+
+func TestAnnotationsPanel_ShowsAnnotations(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+	m.width = 80
+	m.height = 24
+	m.annotations = []fem.Annotation{
+		{StartLine: 1, EndLine: 1, Type: "comment", Text: "First note"},
+		{StartLine: 3, EndLine: 3, Type: "question", Text: "Why?"},
+	}
+	m.mode = modeAnnotations
+
+	view := m.View()
+	if !strings.Contains(view, "Annotations (2)") {
+		t.Errorf("expected header with count, got:\n%s", view)
+	}
+	if !strings.Contains(view, "comment") {
+		t.Errorf("expected comment type in view")
+	}
+	if !strings.Contains(view, "question") {
+		t.Errorf("expected question type in view")
+	}
+}
+
+func TestAnnotationsPanel_NavigateWithJK(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+	m.width = 80
+	m.height = 24
+	m.annotations = []fem.Annotation{
+		{StartLine: 1, EndLine: 1, Type: "comment", Text: "A"},
+		{StartLine: 2, EndLine: 2, Type: "delete", Text: "B"},
+		{StartLine: 3, EndLine: 3, Type: "question", Text: "C"},
+	}
+
+	m = sendKey(m, 'a') // open panel
+	if m.annotationsCursor != 0 {
+		t.Errorf("expected cursor at 0, got %d", m.annotationsCursor)
+	}
+
+	m = sendKey(m, 'j')
+	if m.annotationsCursor != 1 {
+		t.Errorf("expected cursor at 1 after j, got %d", m.annotationsCursor)
+	}
+
+	m = sendKey(m, 'j')
+	if m.annotationsCursor != 2 {
+		t.Errorf("expected cursor at 2 after j, got %d", m.annotationsCursor)
+	}
+
+	// Can't go past end
+	m = sendKey(m, 'j')
+	if m.annotationsCursor != 2 {
+		t.Errorf("expected cursor to stay at 2, got %d", m.annotationsCursor)
+	}
+
+	m = sendKey(m, 'k')
+	if m.annotationsCursor != 1 {
+		t.Errorf("expected cursor at 1 after k, got %d", m.annotationsCursor)
+	}
+}
+
+func TestAnnotationsPanel_EnterJumpsToAnnotation(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3\nline4\nline5")
+	m := New(sess)
+	m.width = 80
+	m.height = 24
+	m.annotations = []fem.Annotation{
+		{StartLine: 4, EndLine: 5, Type: "comment", Text: "Note"},
+	}
+
+	m = sendKey(m, 'a') // open panel
+	m = sendKeyEnter(m) // jump to annotation
+
+	if m.mode != modeNormal {
+		t.Errorf("expected modeNormal after Enter, got %d", m.mode)
+	}
+	if m.cursor != 3 { // 0-indexed, line 4
+		t.Errorf("expected cursor at 3 (line 4), got %d", m.cursor)
+	}
+}
+
+func TestAnnotationsPanel_EscCloses(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+	m.width = 80
+	m.height = 24
+
+	m = sendKey(m, 'a')
+	if m.mode != modeAnnotations {
+		t.Fatalf("expected modeAnnotations, got %d", m.mode)
+	}
+
+	m = sendKeyEsc(m)
+	if m.mode != modeNormal {
+		t.Errorf("expected modeNormal after Esc, got %d", m.mode)
+	}
+}
+
+func TestAnnotationsPanel_SortedByLine(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3\nline4\nline5")
+	m := New(sess)
+	m.width = 80
+	m.height = 24
+	// Add annotations out of order
+	m.annotations = []fem.Annotation{
+		{StartLine: 5, EndLine: 5, Type: "comment", Text: "Last"},
+		{StartLine: 1, EndLine: 1, Type: "delete", Text: "First"},
+		{StartLine: 3, EndLine: 3, Type: "question", Text: "Middle"},
+	}
+
+	m = sendKey(m, 'a') // open panel
+	// Cursor at 0, jump with Enter should go to line 1 (first sorted annotation)
+	m = sendKeyEnter(m)
+	if m.cursor != 0 { // 0-indexed, line 1
+		t.Errorf("expected cursor at 0 (line 1, first sorted), got %d", m.cursor)
 	}
 }
 

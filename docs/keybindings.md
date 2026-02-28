@@ -137,10 +137,23 @@ When multiple annotations exist on the same line, a picker opens to select which
 
 The help panel displays all available keybindings organized by category (Navigation, Selection, Annotations, General).
 
+## Annotations List
+
+| Key | Action |
+|-----|--------|
+| `a` | Open annotations list panel |
+
+Inside the annotations panel:
+
+| Key | Action |
+|-----|--------|
+| `j`/`k` | Navigate up/down |
+| `Enter` | Jump to annotation's line and close panel |
+| `Esc` | Close panel |
+
 ## Not Yet Implemented
 
 The following are planned but not yet implemented:
 
 - Mouse support
-- `a` annotations list panel
 - `R` edit annotation range (adjust start/end lines)

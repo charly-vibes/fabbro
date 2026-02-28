@@ -21,6 +21,7 @@ const (
 	modeQuitConfirm
 	modeSearch
 	modeHelp
+	modeAnnotations
 )
 
 type editorState struct {
@@ -84,9 +85,10 @@ type Model struct {
 	lastCtrlC      time.Time    // timestamp of last CTRL+C press for double-tap quit
 	dirty          bool         // true when there are unsaved changes
 	search         searchState  // search state (query, matches, current position)
-	previewIndex   int          // index into annotations on current line for preview cycling
-	previewLine    int          // line number (1-indexed) for which previewIndex is valid
-	version        string       // fabbro version for display in help
+	previewIndex      int          // index into annotations on current line for preview cycling
+	previewLine       int          // line number (1-indexed) for which previewIndex is valid
+	version           string       // fabbro version for display in help
+	annotationsCursor int          // cursor position in annotations list view
 }
 
 func New(sess *session.Session) Model {

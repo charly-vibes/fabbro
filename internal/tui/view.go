@@ -274,6 +274,8 @@ func (m Model) View() string {
 		}
 	case modeHelp:
 		b.WriteString(m.renderHelpPanel(width))
+	case modeAnnotations:
+		b.WriteString(m.renderAnnotationsPanel(width))
 	default:
 		// Check if cursor is on an annotated line
 		cursorLine := m.cursor + 1 // 1-indexed
@@ -287,7 +289,7 @@ func (m Model) View() string {
 			// Show annotation preview instead of help text
 			b.WriteString(m.renderAnnotationPreviewAt(annotationIndices, previewIdx, width))
 		} else {
-			helpText := "[v]sel [SPC]cmd [/]search [w]rite [^C^C]quit [?]help"
+			helpText := "[v]sel [a]nnotations [SPC]cmd [/]search [w]rite [^C^C]quit [?]help"
 			if m.selection.active {
 				helpText += " │ [c]omment [d]elete [q]uestion [e]xpand [u]nclear [r]eplace [i]nline"
 			}
@@ -528,6 +530,92 @@ func wrapText(text string, width int) []string {
 	return lines
 }
 
+// renderAnnotationsPanel renders the annotations list overlay.
+func (m Model) renderAnnotationsPanel(width int) string {
+	var b strings.Builder
+
+	boxWidth := width - 4
+	if boxWidth < 50 {
+		boxWidth = 50
+	}
+	innerWidth := boxWidth - 4
+
+	// Header
+	header := fmt.Sprintf("─ Annotations (%d) ", len(m.annotations))
+	headerPad := boxWidth - len([]rune(header)) - 2
+	if headerPad < 0 {
+		headerPad = 0
+	}
+	b.WriteString(fmt.Sprintf("┌%s%s┐\n", header, strings.Repeat("─", headerPad)))
+
+	if len(m.annotations) == 0 {
+		msg := "No annotations yet"
+		padding := innerWidth - len([]rune(msg))
+		if padding < 0 {
+			padding = 0
+		}
+		b.WriteString(fmt.Sprintf("│ %s%s │\n", msg, strings.Repeat(" ", padding)))
+	} else {
+		// Column header
+		colHeader := fmt.Sprintf("  %-8s %-10s %s", "LINE", "TYPE", "PREVIEW")
+		colRunes := []rune(colHeader)
+		if len(colRunes) > innerWidth {
+			colRunes = colRunes[:innerWidth]
+		}
+		colPad := innerWidth - len(colRunes)
+		if colPad < 0 {
+			colPad = 0
+		}
+		b.WriteString(fmt.Sprintf("│ %s%s │\n", string(colRunes), strings.Repeat(" ", colPad)))
+
+		sorted := m.sortedAnnotations()
+		for i, ann := range sorted {
+			cursor := " "
+			if i == m.annotationsCursor {
+				cursor = ">"
+			}
+
+			var lineRange string
+			if ann.StartLine == ann.EndLine {
+				lineRange = fmt.Sprintf("%d", ann.StartLine)
+			} else {
+				lineRange = fmt.Sprintf("%d-%d", ann.StartLine, ann.EndLine)
+			}
+
+			preview := decodeAnnText(ann.Text)
+			maxPreview := innerWidth - 22 // cursor(1) + space + lineRange(8) + space + type(10) + space
+			if maxPreview < 10 {
+				maxPreview = 10
+			}
+			previewRunes := []rune(preview)
+			if len(previewRunes) > maxPreview {
+				previewRunes = append(previewRunes[:maxPreview-1], '…')
+			}
+
+			row := fmt.Sprintf("%s %-8s %-10s %s", cursor, lineRange, ann.Type, string(previewRunes))
+			rowRunes := []rune(row)
+			if len(rowRunes) > innerWidth {
+				rowRunes = rowRunes[:innerWidth]
+			}
+			rowPad := innerWidth - len(rowRunes)
+			if rowPad < 0 {
+				rowPad = 0
+			}
+			b.WriteString(fmt.Sprintf("│ %s%s │\n", string(rowRunes), strings.Repeat(" ", rowPad)))
+		}
+	}
+
+	// Footer
+	footer := "─ j/k: navigate  Enter: jump  Esc: close "
+	footerPad := boxWidth - len([]rune(footer)) - 2
+	if footerPad < 0 {
+		footerPad = 0
+	}
+	b.WriteString(fmt.Sprintf("└%s%s┘\n", footer, strings.Repeat("─", footerPad)))
+
+	return b.String()
+}
+
 // renderHelpPanel renders the help menu overlay.
 func (m Model) renderHelpPanel(width int) string {
 	var b strings.Builder
@@ -591,6 +679,7 @@ func (m Model) renderHelpPanel(width int) string {
 
 	// General section
 	writeRow("GENERAL", "")
+	writeRow("  a", "annotations list")
 	writeRow("  /", "search")
 	writeRow("  n / N,p", "next/prev match")
 	writeRow("  Space", "command palette")
