@@ -132,7 +132,15 @@ just ci
 just help
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow.
+### Specifications
+
+All features are defined as Gherkin `.feature` files in [`specs/`](specs/). Each scenario is tagged `@implemented`, `@partial`, or `@planned` to track progress. See the [spec coverage matrix](docs/spec-coverage.md) for the full breakdown.
+
+### Task Tracking
+
+We use [beads](https://github.com/steveyegge/beads) for issue tracking — a git-native, CLI-first tracker that lives in the repo. Run `bd ready` to see available work, `bd list` for all issues.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full development workflow.
 
 ## License
 

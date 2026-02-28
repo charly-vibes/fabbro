@@ -8,7 +8,7 @@ This document tracks implementation status for all scenarios in the fabbro speci
 - ❌ Not Implemented — Planned but not yet built
 - 🚫 Deprecated — Removed from roadmap
 
-**Last updated:** 2026-01-13
+**Last updated:** 2026-02-27
 
 ---
 
@@ -162,6 +162,51 @@ This document tracks implementation status for all scenarios in the fabbro speci
 
 ---
 
+## 07_web_notes_sidebar.feature
+
+| # | Scenario | Status | Notes |
+|---|----------|--------|-------|
+| 1 | Notes panel appears in editor view | ✅ | Right-side panel with annotation count |
+| 2 | Empty state when no annotations exist | ✅ | Shows placeholder message |
+| 3 | Note card displays annotation details | ✅ | Badge, snippet, text, line number |
+| 4 | Snippet preview is truncated at 60 characters | ✅ | Truncation with "…" |
+| 5 | Notes are sorted by position in document | ✅ | Sorted by offset |
+| 6 | Counter updates when annotations change | ✅ | Reactive count |
+| 7 | Comment annotation shows Comment badge | ✅ | Blue styling |
+| 8 | Suggest annotation shows Suggest badge | ✅ | Green styling |
+| 9 | Clicking a note scrolls to its highlight | ✅ | Scroll + flash |
+| 10 | Clicking a highlight scrolls to its note | ✅ | Bidirectional navigation |
+| 11 | Deleting an annotation via the sidebar | ✅ | Removes annotation and highlight |
+| 12 | Delete button does not trigger note click | ✅ | Proper event isolation |
+
+**Summary:** 12 ✅, 0 🔶, 0 ❌
+
+---
+
+## 08_web_search.feature
+
+| # | Scenario | Status | Notes |
+|---|----------|--------|-------|
+| 1 | Open search bar with / key | ❌ | Not implemented |
+| 2 | Dismiss search with Escape | ❌ | Not implemented |
+| 3 | Confirm search with Enter | ❌ | Not implemented |
+| 4 | / key is ignored when typing in textarea or input | ❌ | Not implemented |
+| 5 | Matches highlight as the user types | ❌ | Not implemented |
+| 6 | Highlights update incrementally | ❌ | Not implemented |
+| 7 | No matches found | ❌ | Not implemented |
+| 8 | Search is case-insensitive | ❌ | Not implemented |
+| 9 | Match counter shows current position | ❌ | Not implemented |
+| 10 | Counter updates on navigation | ❌ | Not implemented |
+| 11 | Navigate to next match with n | ❌ | Not implemented |
+| 12 | Navigate to previous match with N | ❌ | Not implemented |
+| 13 | Navigation wraps around at end | ❌ | Not implemented |
+| 14 | Navigation wraps around at beginning | ❌ | Not implemented |
+| 15 | First match is scrolled to when search begins | ❌ | Not implemented |
+
+**Summary:** 0 ✅, 0 🔶, 15 ❌
+
+---
+
 ## Overall Summary
 
 | Spec | ✅ Implemented | 🔶 Partial | ❌ Not Implemented | Total |
@@ -172,9 +217,11 @@ This document tracks implementation status for all scenarios in the fabbro speci
 | 04_apply_feedback | 11 | 1 | 5 | 17 |
 | 05_session_management | 0 | 0 | 18 | 18 |
 | 06_fem_markup | 10 | 0 | 8 | 18 |
-| **TOTAL** | **44** | **2** | **50** | **96** |
+| 07_web_notes_sidebar | 12 | 0 | 0 | 12 |
+| 08_web_search | 0 | 0 | 15 | 15 |
+| **TOTAL** | **56** | **2** | **65** | **123** |
 
-**Coverage: 46/96 scenarios (48%)**
+**Coverage: 58/123 scenarios (47%)**
 
 ---
 
@@ -197,3 +244,4 @@ This document tracks implementation status for all scenarios in the fabbro speci
 3. `--editor` and `--no-interactive` modes
 4. `emphasize` and `section` annotation types
 5. FEM syntax escaping and error reporting
+6. Web incremental search (`/` in web UI)
