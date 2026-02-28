@@ -2,6 +2,7 @@ import { fetchContent } from './fetch.js';
 import { parse as parseFem } from './fem.js';
 import { mount as mountEditor } from './editor.js';
 import { mount as mountExport } from './export.js';
+import { mount as mountApply } from './apply.js';
 import * as storage from './storage.js';
 import * as tutorial from './tutorial.js';
 
@@ -217,13 +218,14 @@ async function renderLanding() {
             endOffset,
           };
         });
+        renderApply();
       } else {
         session.content = raw;
         session.sourceUrl = '';
         session.filename = name;
         session.annotations = [];
+        await startSession();
       }
-      await startSession();
     };
     reader.readAsText(file);
   });
@@ -235,6 +237,10 @@ function renderEditor() {
 
 function renderExport() {
   mountExport(app, session, { onBack: renderEditor });
+}
+
+function renderApply() {
+  mountApply(app, session, { onBack: renderLanding });
 }
 
 // Boot
