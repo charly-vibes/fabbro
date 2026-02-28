@@ -121,12 +121,69 @@ just help          # Show all commands
 4. Open PR with clear description
 5. Address review feedback
 
+## Specifications
+
+All features are defined as [Gherkin](https://cucumber.io/docs/gherkin/) `.feature` files in `specs/`. These specs are the **source of truth** for how fabbro behaves — they serve as living documentation, drive TDD, and define acceptance criteria.
+
+### Spec inventory
+
+| File | Feature | Description |
+|------|---------|-------------|
+| `01_initialization.feature` | Project Initialization | `fabbro init`, directory scaffolding, agent integration |
+| `02_review_session.feature` | Review Session Creation | Creating sessions from stdin/files, metadata, error handling |
+| `03_tui_interaction.feature` | TUI Interaction | Navigation, selection, annotations, command palette, inline editing |
+| `04_apply_feedback.feature` | Apply Feedback | Extracting annotations as human-readable or JSON output |
+| `05_session_management.feature` | Session Management | Listing, resuming, deleting, and cleaning sessions |
+| `06_fem_markup.feature` | FEM Markup Language | FEM syntax reference, parsing rules, edge cases |
+| `07_web_notes_sidebar.feature` | Web Notes Sidebar | Web UI annotation sidebar, navigation, deletion |
+| `08_web_search.feature` | Web Incremental Search | `/`-triggered search with incremental highlighting |
+
+### Implementation status tags
+
+Every scenario is tagged with its current status:
+
+| Tag | Meaning |
+|-----|---------|
+| `@implemented` | Working in the current build |
+| `@partial` | Core behavior works, some aspects still missing |
+| `@planned` | Designed but not yet implemented |
+
+When you implement a scenario, update its tag from `@planned` to `@implemented` in the same commit.
+
+### Writing specs
+
+- Use user-centric language: _"As a user, I want to..."_
+- One scenario per behavior — keep them atomic
+- Include error and edge-case scenarios alongside happy paths
+- Add comments for implementation notes (e.g., `# Block markers {--/--} not yet implemented`)
+
 ## Task Tracking
 
-We use [beads](https://github.com/charly-vibes/beads) for task tracking:
+We use [beads](https://github.com/steveyegge/beads) for task tracking. Beads is an AI-native, git-native issue tracker that lives inside the repository (`.beads/`), syncs via git, and works entirely from the CLI — no web UI required.
+
+### Why beads?
+
+- **Git-native** — Issues are stored in `.beads/issues.jsonl` and travel with the repo
+- **AI-friendly** — CLI-first design integrates with AI coding agents (Amp, Claude Code)
+- **Offline-first** — Works without network; syncs when you push
+- **Dependency-aware** — Issues can declare dependencies so `bd ready` shows only unblocked work
+
+### Essential commands
 
 ```bash
-bd ready           # Show unblocked work
-bd list            # All issues
-bd show <id>       # Issue details
+bd ready                              # Show unblocked issues (start here)
+bd list                               # All issues
+bd show <id>                          # Issue details with dependencies
+bd create "Title of the issue"        # Create a new issue
+bd update <id> --status=in_progress   # Claim work
+bd close <id>                         # Mark complete
+bd sync                               # Sync issues with git remote
 ```
+
+### Typical workflow
+
+1. Run `bd ready` to see what's available to work on
+2. Pick an issue and `bd update <id> --status=in_progress`
+3. Implement following TDD (see [Development Workflow](#development-workflow) above)
+4. When done, `bd close <id>` and commit your code
+5. Run `bd sync` before pushing to keep issues in sync across clones
