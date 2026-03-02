@@ -71,7 +71,7 @@ async function renderLanding() {
       <textarea id="paste-input" placeholder="Paste text directly"></textarea>
       <button id="paste-btn">Start review</button>
       <div class="divider">— or —</div>
-      <div class="drop-zone" id="drop-zone">Drop a .md, .txt, .fem, or code file here</div>
+      <div class="drop-zone" id="drop-zone">Drop a .md, .txt, .docx, .fem, or code file here</div>
       <div id="error" class="error"></div>
       ${recent.length > 0 ? `
         <div class="divider">— recent sessions —</div>
@@ -165,7 +165,7 @@ async function renderLanding() {
 
   const dropZone = document.getElementById('drop-zone');
   const acceptedExts = new Set([
-    '.md', '.txt', '.fem', '.go', '.py', '.js', '.ts', '.rs', '.rb', '.java',
+    '.md', '.txt', '.docx', '.fem', '.go', '.py', '.js', '.ts', '.rs', '.rb', '.java',
     '.c', '.h', '.cpp', '.hpp', '.css', '.html', '.json', '.yaml', '.yml',
     '.toml', '.xml', '.sh', '.bash', '.zsh', '.fish', '.sql', '.lua',
     '.ex', '.exs', '.zig', '.nim', '.kt', '.swift', '.r',
@@ -194,12 +194,42 @@ async function renderLanding() {
     const name = file.name;
     const dotIdx = name.lastIndexOf('.');
     const ext = dotIdx >= 0 ? name.slice(dotIdx).toLowerCase() : '';
+
+    if (ext === '.doc') {
+      error.textContent = 'Legacy .doc files are not supported. Please save as .docx.';
+      return;
+    }
+
     if (!acceptedExts.has(ext)) {
       error.textContent = 'Unsupported file type. Please use text or code files.';
       return;
     }
 
     error.textContent = '';
+
+    if (ext === '.docx') {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const result = await window.mammoth.extractRawText({arrayBuffer: reader.result});
+          const text = result.value.replace(/\r\n/g, '\n').trimEnd();
+          if (!text.trim()) {
+            error.textContent = 'This document appears to be empty.';
+            return;
+          }
+          session.content = text;
+          session.sourceUrl = '';
+          session.filename = name;
+          session.annotations = [];
+          await startSession();
+        } catch {
+          error.textContent = 'Could not read .docx file. The file may be corrupt.';
+        }
+      };
+      reader.readAsArrayBuffer(file);
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = async () => {
       const raw = reader.result.replace(/\r\n/g, '\n');
