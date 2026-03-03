@@ -6,3 +6,7 @@ coverage.out
 dist/
 site/public/
 site/resources/_gen/
+
+# Dolt database files (added by bd init)
+.dolt/
+*.db
