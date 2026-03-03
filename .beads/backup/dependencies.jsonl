@@ -1,31 +1,75 @@
-{"issue_id": "fabbro-23g", "depends_on_id": "fabbro-86p", "type": "blocks", "created_at": "2026-01-12T18:30:30.396170791-03:00", "created_by": "charly vibes"}
-{"issue_id": "fabbro-23g", "depends_on_id": "fabbro-3j3", "type": "blocks", "created_at": "2026-01-12T18:30:30.461140437-03:00", "created_by": "charly vibes"}
-{"issue_id": "fabbro-23g", "depends_on_id": "fabbro-d7p", "type": "blocks", "created_at": "2026-01-12T18:30:30.527129983-03:00", "created_by": "charly vibes"}
-{"issue_id": "fabbro-3e3", "depends_on_id": "fabbro-n6h", "type": "blocks", "created_at": "2026-01-11T19:06:45.591525948-03:00", "created_by": "charly vibes"}
-{"issue_id": "fabbro-3j3", "depends_on_id": "fabbro-uhy", "type": "blocks", "created_at": "2026-01-12T18:30:30.270313472-03:00", "created_by": "charly vibes"}
-{"issue_id": "fabbro-4v1", "depends_on_id": "fabbro-tta", "type": "blocks", "created_at": "2026-01-14T10:29:39.474397472-03:00", "created_by": "charly vibes"}
-{"issue_id": "fabbro-529", "depends_on_id": "fabbro-9t9", "type": "blocks", "created_at": "2026-01-11T18:30:08.169727743-03:00", "created_by": "charly vibes"}
-{"issue_id": "fabbro-7et", "depends_on_id": "fabbro-n6h", "type": "blocks", "created_at": "2026-01-11T19:06:45.531377958-03:00", "created_by": "charly vibes"}
-{"issue_id": "fabbro-86p", "depends_on_id": "fabbro-uhy", "type": "blocks", "created_at": "2026-01-12T18:30:30.33317208-03:00", "created_by": "charly vibes"}
-{"issue_id": "fabbro-88t", "depends_on_id": "fabbro-wwh", "type": "blocks", "created_at": "2026-01-11T18:30:08.390427543-03:00", "created_by": "charly vibes"}
-{"issue_id": "fabbro-9bn", "depends_on_id": "fabbro-tha", "type": "blocks", "created_at": "2026-01-12T21:57:52.09069559-03:00", "created_by": "charly vibes"}
-{"issue_id": "fabbro-9gi", "depends_on_id": "fabbro-l0t", "type": "blocks", "created_at": "2026-01-14T10:29:39.235731124-03:00", "created_by": "charly vibes"}
-{"issue_id": "fabbro-at2", "depends_on_id": "fabbro-n6h", "type": "blocks", "created_at": "2026-01-11T19:06:45.288764005-03:00", "created_by": "charly vibes"}
-{"issue_id": "fabbro-c5b", "depends_on_id": "fabbro-73g", "type": "blocks", "created_at": "2026-01-14T10:29:39.580461297-03:00", "created_by": "charly vibes"}
-{"issue_id": "fabbro-d8r", "depends_on_id": "fabbro-88t", "type": "blocks", "created_at": "2026-01-11T18:30:08.502305512-03:00", "created_by": "charly vibes"}
-{"issue_id": "fabbro-drm", "depends_on_id": "fabbro-q57", "type": "blocks", "created_at": "2026-01-11T19:06:45.410231862-03:00", "created_by": "charly vibes"}
-{"issue_id": "fabbro-ejx", "depends_on_id": "fabbro-gt1", "type": "blocks", "created_at": "2026-01-14T16:56:46.401189311-03:00", "created_by": "charly vibes"}
-{"issue_id": "fabbro-ejx", "depends_on_id": "fabbro-kvs", "type": "blocks", "created_at": "2026-01-14T16:56:46.477349403-03:00", "created_by": "charly vibes"}
-{"issue_id": "fabbro-ejx", "depends_on_id": "fabbro-nts", "type": "blocks", "created_at": "2026-01-14T16:56:46.552595265-03:00", "created_by": "charly vibes"}
-{"issue_id": "fabbro-kvs", "depends_on_id": "fabbro-gt1", "type": "blocks", "created_at": "2026-01-19T19:35:25.831027251-03:00", "created_by": "charly vibes"}
-{"issue_id": "fabbro-kyl", "depends_on_id": "fabbro-4dj", "type": "blocks", "created_at": "2026-01-19T19:35:14.467007988-03:00", "created_by": "charly vibes"}
-{"issue_id": "fabbro-lbg", "depends_on_id": "fabbro-88t", "type": "blocks", "created_at": "2026-01-11T19:06:45.468907587-03:00", "created_by": "charly vibes"}
-{"issue_id": "fabbro-n6h", "depends_on_id": "fabbro-q57", "type": "blocks", "created_at": "2026-01-11T18:30:08.727645324-03:00", "created_by": "charly vibes"}
-{"issue_id": "fabbro-nts", "depends_on_id": "fabbro-kvs", "type": "blocks", "created_at": "2026-01-19T19:35:32.269253447-03:00", "created_by": "charly vibes"}
-{"issue_id": "fabbro-p47", "depends_on_id": "fabbro-9r3", "type": "blocks", "created_at": "2026-01-14T10:29:39.696178199-03:00", "created_by": "charly vibes"}
-{"issue_id": "fabbro-q57", "depends_on_id": "fabbro-d8r", "type": "blocks", "created_at": "2026-01-11T18:30:08.618038681-03:00", "created_by": "charly vibes"}
-{"issue_id": "fabbro-r7r", "depends_on_id": "fabbro-d8r", "type": "blocks", "created_at": "2026-01-11T19:06:45.351670119-03:00", "created_by": "charly vibes"}
-{"issue_id": "fabbro-tta", "depends_on_id": "fabbro-1xg", "type": "blocks", "created_at": "2026-01-14T10:29:39.36166257-03:00", "created_by": "charly vibes"}
-{"issue_id": "fabbro-uhy", "depends_on_id": "fabbro-99b", "type": "blocks", "created_at": "2026-01-12T18:30:30.205391318-03:00", "created_by": "charly vibes"}
-{"issue_id": "fabbro-wwh", "depends_on_id": "fabbro-529", "type": "blocks", "created_at": "2026-01-11T18:30:08.28037922-03:00", "created_by": "charly vibes"}
-{"issue_id": "fabbro-ydd", "depends_on_id": "fabbro-ywn", "type": "blocks", "created_at": "2026-01-13T14:43:30.25965087-03:00", "created_by": "charly vibes"}
+{"created_at":"2026-01-29T21:07:10Z","created_by":"charly vibes","depends_on_id":"fabbro-10e","issue_id":"fabbro-096","type":"blocks"}
+{"created_at":"2026-01-25T00:20:38Z","created_by":"charly vibes","depends_on_id":"fabbro-xtx","issue_id":"fabbro-0f3","type":"blocks"}
+{"created_at":"2026-02-23T13:19:58Z","created_by":"charly vibes","depends_on_id":"fabbro-2cx","issue_id":"fabbro-1td","type":"blocks"}
+{"created_at":"2026-01-12T21:30:30Z","created_by":"charly vibes","depends_on_id":"fabbro-3j3","issue_id":"fabbro-23g","type":"blocks"}
+{"created_at":"2026-01-12T21:30:30Z","created_by":"charly vibes","depends_on_id":"fabbro-86p","issue_id":"fabbro-23g","type":"blocks"}
+{"created_at":"2026-01-12T21:30:31Z","created_by":"charly vibes","depends_on_id":"fabbro-d7p","issue_id":"fabbro-23g","type":"blocks"}
+{"created_at":"2026-02-23T13:19:58Z","created_by":"charly vibes","depends_on_id":"fabbro-2cx","issue_id":"fabbro-349","type":"blocks"}
+{"created_at":"2026-01-11T22:06:46Z","created_by":"charly vibes","depends_on_id":"fabbro-n6h","issue_id":"fabbro-3e3","type":"blocks"}
+{"created_at":"2026-01-25T00:02:17Z","created_by":"charly vibes","depends_on_id":"fabbro-ltb","issue_id":"fabbro-3e7","type":"blocks"}
+{"created_at":"2026-01-12T21:30:30Z","created_by":"charly vibes","depends_on_id":"fabbro-uhy","issue_id":"fabbro-3j3","type":"blocks"}
+{"created_at":"2026-02-24T12:49:57Z","created_by":"charly vibes","depends_on_id":"fabbro-7hv","issue_id":"fabbro-4nt","type":"blocks"}
+{"created_at":"2026-02-24T12:49:57Z","created_by":"charly vibes","depends_on_id":"fabbro-j7o","issue_id":"fabbro-4nt","type":"blocks"}
+{"created_at":"2026-01-14T13:29:39Z","created_by":"charly vibes","depends_on_id":"fabbro-tta","issue_id":"fabbro-4v1","type":"blocks"}
+{"created_at":"2026-01-11T21:30:08Z","created_by":"charly vibes","depends_on_id":"fabbro-9t9","issue_id":"fabbro-529","type":"blocks"}
+{"created_at":"2026-01-31T23:03:32Z","created_by":"charly vibes","depends_on_id":"fabbro-kdq","issue_id":"fabbro-7a5","type":"blocks"}
+{"created_at":"2026-01-11T22:06:46Z","created_by":"charly vibes","depends_on_id":"fabbro-n6h","issue_id":"fabbro-7et","type":"blocks"}
+{"created_at":"2026-01-12T21:30:30Z","created_by":"charly vibes","depends_on_id":"fabbro-uhy","issue_id":"fabbro-86p","type":"blocks"}
+{"created_at":"2026-01-11T21:30:08Z","created_by":"charly vibes","depends_on_id":"fabbro-wwh","issue_id":"fabbro-88t","type":"blocks"}
+{"created_at":"2026-01-13T00:57:52Z","created_by":"charly vibes","depends_on_id":"fabbro-tha","issue_id":"fabbro-9bn","type":"blocks"}
+{"created_at":"2026-01-14T13:29:39Z","created_by":"charly vibes","depends_on_id":"fabbro-l0t","issue_id":"fabbro-9gi","type":"blocks"}
+{"created_at":"2026-02-24T12:49:50Z","created_by":"charly vibes","depends_on_id":"fabbro-j7o","issue_id":"fabbro-aeu","type":"blocks"}
+{"created_at":"2026-01-11T22:06:45Z","created_by":"charly vibes","depends_on_id":"fabbro-n6h","issue_id":"fabbro-at2","type":"blocks"}
+{"created_at":"2026-01-29T23:40:23Z","created_by":"charly vibes","depends_on_id":"fabbro-9g7","issue_id":"fabbro-ayq","type":"blocks"}
+{"created_at":"2026-01-29T23:40:23Z","created_by":"charly vibes","depends_on_id":"fabbro-bhz","issue_id":"fabbro-ayq","type":"blocks"}
+{"created_at":"2026-01-29T23:40:23Z","created_by":"charly vibes","depends_on_id":"fabbro-e4s","issue_id":"fabbro-ayq","type":"blocks"}
+{"created_at":"2026-01-29T23:40:23Z","created_by":"charly vibes","depends_on_id":"fabbro-ylf","issue_id":"fabbro-ayq","type":"blocks"}
+{"created_at":"2026-01-14T13:29:40Z","created_by":"charly vibes","depends_on_id":"fabbro-73g","issue_id":"fabbro-c5b","type":"blocks"}
+{"created_at":"2026-01-11T21:30:09Z","created_by":"charly vibes","depends_on_id":"fabbro-88t","issue_id":"fabbro-d8r","type":"blocks"}
+{"created_at":"2026-01-11T22:06:45Z","created_by":"charly vibes","depends_on_id":"fabbro-q57","issue_id":"fabbro-drm","type":"blocks"}
+{"created_at":"2026-02-23T00:47:32Z","created_by":"charly vibes","depends_on_id":"fabbro-due","issue_id":"fabbro-due.1","type":"parent-child"}
+{"created_at":"2026-02-23T00:47:37Z","created_by":"charly vibes","depends_on_id":"fabbro-due","issue_id":"fabbro-due.2","type":"parent-child"}
+{"created_at":"2026-02-23T00:47:43Z","created_by":"charly vibes","depends_on_id":"fabbro-due","issue_id":"fabbro-due.3","type":"parent-child"}
+{"created_at":"2026-02-23T00:47:49Z","created_by":"charly vibes","depends_on_id":"fabbro-due","issue_id":"fabbro-due.4","type":"parent-child"}
+{"created_at":"2026-02-23T00:48:11Z","created_by":"charly vibes","depends_on_id":"fabbro-due.1","issue_id":"fabbro-due.4","type":"blocks"}
+{"created_at":"2026-02-23T00:47:55Z","created_by":"charly vibes","depends_on_id":"fabbro-due","issue_id":"fabbro-due.5","type":"parent-child"}
+{"created_at":"2026-02-23T00:48:11Z","created_by":"charly vibes","depends_on_id":"fabbro-due.4","issue_id":"fabbro-due.5","type":"blocks"}
+{"created_at":"2026-02-23T00:47:59Z","created_by":"charly vibes","depends_on_id":"fabbro-due","issue_id":"fabbro-due.6","type":"parent-child"}
+{"created_at":"2026-02-23T00:48:11Z","created_by":"charly vibes","depends_on_id":"fabbro-due.5","issue_id":"fabbro-due.6","type":"blocks"}
+{"created_at":"2026-02-23T00:48:05Z","created_by":"charly vibes","depends_on_id":"fabbro-due","issue_id":"fabbro-due.7","type":"parent-child"}
+{"created_at":"2026-02-23T00:48:11Z","created_by":"charly vibes","depends_on_id":"fabbro-due.2","issue_id":"fabbro-due.7","type":"blocks"}
+{"created_at":"2026-02-23T00:50:26Z","created_by":"charly vibes","depends_on_id":"fabbro-due.3","issue_id":"fabbro-due.7","type":"blocks"}
+{"created_at":"2026-02-23T00:48:11Z","created_by":"charly vibes","depends_on_id":"fabbro-due.6","issue_id":"fabbro-due.7","type":"blocks"}
+{"created_at":"2026-01-29T21:07:00Z","created_by":"charly vibes","depends_on_id":"fabbro-10e","issue_id":"fabbro-dvn","type":"blocks"}
+{"created_at":"2026-01-14T19:56:46Z","created_by":"charly vibes","depends_on_id":"fabbro-gt1","issue_id":"fabbro-ejx","type":"blocks"}
+{"created_at":"2026-01-14T19:56:46Z","created_by":"charly vibes","depends_on_id":"fabbro-kvs","issue_id":"fabbro-ejx","type":"blocks"}
+{"created_at":"2026-01-14T19:56:47Z","created_by":"charly vibes","depends_on_id":"fabbro-nts","issue_id":"fabbro-ejx","type":"blocks"}
+{"created_at":"2026-02-24T12:48:10Z","created_by":"charly vibes","depends_on_id":"fabbro-j7o","issue_id":"fabbro-ert","type":"blocks"}
+{"created_at":"2026-02-23T13:19:58Z","created_by":"charly vibes","depends_on_id":"fabbro-2cx","issue_id":"fabbro-jhj","type":"blocks"}
+{"created_at":"2026-01-30T22:13:08Z","created_by":"charly vibes","depends_on_id":"fabbro-hh5","issue_id":"fabbro-kdq","type":"blocks"}
+{"created_at":"2026-01-29T23:40:13Z","created_by":"charly vibes","depends_on_id":"fabbro-1h9","issue_id":"fabbro-khz","type":"blocks"}
+{"created_at":"2026-01-29T23:40:13Z","created_by":"charly vibes","depends_on_id":"fabbro-3ln","issue_id":"fabbro-khz","type":"blocks"}
+{"created_at":"2026-01-29T23:40:14Z","created_by":"charly vibes","depends_on_id":"fabbro-4y1","issue_id":"fabbro-khz","type":"blocks"}
+{"created_at":"2026-01-29T23:40:13Z","created_by":"charly vibes","depends_on_id":"fabbro-fwz","issue_id":"fabbro-khz","type":"blocks"}
+{"created_at":"2026-01-29T23:40:13Z","created_by":"charly vibes","depends_on_id":"fabbro-t4e","issue_id":"fabbro-khz","type":"blocks"}
+{"created_at":"2026-01-29T23:40:13Z","created_by":"charly vibes","depends_on_id":"fabbro-t6e","issue_id":"fabbro-khz","type":"blocks"}
+{"created_at":"2026-01-29T23:40:13Z","created_by":"charly vibes","depends_on_id":"fabbro-xw7","issue_id":"fabbro-khz","type":"blocks"}
+{"created_at":"2026-01-19T22:35:26Z","created_by":"charly vibes","depends_on_id":"fabbro-gt1","issue_id":"fabbro-kvs","type":"blocks"}
+{"created_at":"2026-01-19T22:35:14Z","created_by":"charly vibes","depends_on_id":"fabbro-4dj","issue_id":"fabbro-kyl","type":"blocks"}
+{"created_at":"2026-01-11T22:06:45Z","created_by":"charly vibes","depends_on_id":"fabbro-88t","issue_id":"fabbro-lbg","type":"blocks"}
+{"created_at":"2026-01-11T21:30:09Z","created_by":"charly vibes","depends_on_id":"fabbro-q57","issue_id":"fabbro-n6h","type":"blocks"}
+{"created_at":"2026-01-19T22:35:32Z","created_by":"charly vibes","depends_on_id":"fabbro-kvs","issue_id":"fabbro-nts","type":"blocks"}
+{"created_at":"2026-01-14T13:29:40Z","created_by":"charly vibes","depends_on_id":"fabbro-9r3","issue_id":"fabbro-p47","type":"blocks"}
+{"created_at":"2026-01-11T21:30:09Z","created_by":"charly vibes","depends_on_id":"fabbro-d8r","issue_id":"fabbro-q57","type":"blocks"}
+{"created_at":"2026-01-11T22:06:45Z","created_by":"charly vibes","depends_on_id":"fabbro-d8r","issue_id":"fabbro-r7r","type":"blocks"}
+{"created_at":"2026-01-14T13:29:39Z","created_by":"charly vibes","depends_on_id":"fabbro-1xg","issue_id":"fabbro-tta","type":"blocks"}
+{"created_at":"2026-01-12T21:30:30Z","created_by":"charly vibes","depends_on_id":"fabbro-99b","issue_id":"fabbro-uhy","type":"blocks"}
+{"created_at":"2026-01-29T23:46:20Z","created_by":"charly vibes","depends_on_id":"fabbro-uk4","issue_id":"fabbro-uk4.2","type":"parent-child"}
+{"created_at":"2026-01-29T23:49:40Z","created_by":"charly vibes","depends_on_id":"fabbro-uk4","issue_id":"fabbro-uk4.3","type":"parent-child"}
+{"created_at":"2026-01-30T00:03:08Z","created_by":"charly vibes","depends_on_id":"fabbro-uk4","issue_id":"fabbro-uk4.4","type":"parent-child"}
+{"created_at":"2026-01-29T21:07:05Z","created_by":"charly vibes","depends_on_id":"fabbro-10e","issue_id":"fabbro-val","type":"blocks"}
+{"created_at":"2026-01-11T21:30:08Z","created_by":"charly vibes","depends_on_id":"fabbro-529","issue_id":"fabbro-wwh","type":"blocks"}
+{"created_at":"2026-02-24T12:48:10Z","created_by":"charly vibes","depends_on_id":"fabbro-7hv","issue_id":"fabbro-xgd","type":"blocks"}
+{"created_at":"2026-02-24T12:49:50Z","created_by":"charly vibes","depends_on_id":"fabbro-aeu","issue_id":"fabbro-xgd","type":"blocks"}
+{"created_at":"2026-02-24T12:48:10Z","created_by":"charly vibes","depends_on_id":"fabbro-j7o","issue_id":"fabbro-xgd","type":"blocks"}
+{"created_at":"2026-01-13T17:43:30Z","created_by":"charly vibes","depends_on_id":"fabbro-ywn","issue_id":"fabbro-ydd","type":"blocks"}
