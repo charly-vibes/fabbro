@@ -14,7 +14,7 @@ Feature: Session Management
 
   # --- Listing Sessions ---
 
-  @planned
+  @implemented
   Scenario: Listing all sessions
     Given the following sessions exist:
       | session_id  | created_at          | source      | annotations |
@@ -26,14 +26,14 @@ Feature: Session Management
     And each session should show ID, creation time, source, and annotation count
     And sessions should be sorted by creation time (newest first)
 
-  @planned
+  @implemented
   Scenario: Listing sessions in JSON format
     Given sessions exist
     When I run the command `fabbro sessions --json`
     Then the output should be valid JSON
     And the JSON should contain an array of session objects
 
-  @planned
+  @implemented
   Scenario: No sessions exist
     Given no sessions exist
     When I run the command `fabbro sessions`
