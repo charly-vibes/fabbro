@@ -370,18 +370,31 @@ Post-conditions:
 				return fmt.Errorf("failed to list sessions: %w", err)
 			}
 
+			// Count annotations for each session
+			type sessionInfo struct {
+				session     *session.Session
+				annotations int
+			}
+			infos := make([]sessionInfo, len(sessions))
+			for i, s := range sessions {
+				annotations, _, _ := fem.Parse(s.Content)
+				infos[i] = sessionInfo{session: s, annotations: len(annotations)}
+			}
+
 			if jsonFlag {
 				type sessionOutput struct {
-					ID         string `json:"id"`
-					CreatedAt  string `json:"createdAt"`
-					SourceFile string `json:"sourceFile,omitempty"`
+					ID          string `json:"id"`
+					CreatedAt   string `json:"createdAt"`
+					SourceFile  string `json:"sourceFile,omitempty"`
+					Annotations int    `json:"annotations"`
 				}
-				output := make([]sessionOutput, len(sessions))
-				for i, s := range sessions {
+				output := make([]sessionOutput, len(infos))
+				for i, info := range infos {
 					output[i] = sessionOutput{
-						ID:         s.ID,
-						CreatedAt:  s.CreatedAt.Format("2006-01-02 15:04:05"),
-						SourceFile: s.SourceFile,
+						ID:          info.session.ID,
+						CreatedAt:   info.session.CreatedAt.Format("2006-01-02 15:04:05"),
+						SourceFile:  info.session.SourceFile,
+						Annotations: info.annotations,
 					}
 				}
 				enc := json.NewEncoder(stdout)
@@ -391,16 +404,18 @@ Post-conditions:
 
 			if len(sessions) == 0 {
 				fmt.Fprintln(stdout, "No sessions found.")
+				fmt.Fprintln(stdout, "Start a review with: fabbro review <file>")
 				return nil
 			}
 
-			for _, s := range sessions {
+			for _, info := range infos {
+				s := info.session
 				date := s.CreatedAt.Format("2006-01-02 15:04")
+				source := "(stdin)"
 				if s.SourceFile != "" {
-					fmt.Fprintf(stdout, "%s  %s  %s\n", s.ID, date, s.SourceFile)
-				} else {
-					fmt.Fprintf(stdout, "%s  %s  (stdin)\n", s.ID, date)
+					source = s.SourceFile
 				}
+				fmt.Fprintf(stdout, "%s  %s  %-20s  %d annotations\n", s.ID, date, source, info.annotations)
 			}
 			return nil
 		},

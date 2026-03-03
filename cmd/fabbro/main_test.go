@@ -664,6 +664,115 @@ func TestCompletionCommandInvalidShell(t *testing.T) {
 	}
 }
 
+func TestSessionListShowsAnnotationCount(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	// Create a session with FEM annotations
+	sess, _ := session.Create("Test content", "main.go")
+	femContent := `---
+session_id: ` + sess.ID + `
+created_at: 2026-01-11T22:00:00Z
+source_file: 'main.go'
+---
+
+Test content {>> a comment <<} {?? a question ??}`
+
+	sessionPath := filepath.Join(config.SessionsDir, sess.ID+".fem")
+	os.WriteFile(sessionPath, []byte(femContent), 0644)
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"session", "list"}, stdin, &stdout, &stderr)
+
+	if code != 0 {
+		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
+	}
+
+	output := stdout.String()
+	if !strings.Contains(output, "2") {
+		t.Errorf("expected annotation count '2' in output, got %q", output)
+	}
+}
+
+func TestSessionListJSONIncludesAnnotations(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	sess, _ := session.Create("Test content", "main.go")
+	femContent := `---
+session_id: ` + sess.ID + `
+created_at: 2026-01-11T22:00:00Z
+source_file: 'main.go'
+---
+
+Test content {>> a comment <<}`
+
+	sessionPath := filepath.Join(config.SessionsDir, sess.ID+".fem")
+	os.WriteFile(sessionPath, []byte(femContent), 0644)
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"session", "list", "--json"}, stdin, &stdout, &stderr)
+
+	if code != 0 {
+		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
+	}
+
+	var result []map[string]interface{}
+	if err := json.Unmarshal([]byte(stdout.String()), &result); err != nil {
+		t.Fatalf("failed to parse JSON output: %v", err)
+	}
+
+	if len(result) != 1 {
+		t.Fatalf("expected 1 session, got %d", len(result))
+	}
+
+	annotations, ok := result[0]["annotations"]
+	if !ok {
+		t.Fatal("expected 'annotations' key in JSON output")
+	}
+	if int(annotations.(float64)) != 1 {
+		t.Errorf("expected annotations=1, got %v", annotations)
+	}
+}
+
+func TestSessionListEmptyShowsHelpfulMessage(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"session", "list"}, stdin, &stdout, &stderr)
+
+	if code != 0 {
+		t.Errorf("expected exit code 0, got %d", code)
+	}
+
+	output := stdout.String()
+	if !strings.Contains(output, "No sessions found") {
+		t.Errorf("expected 'No sessions found' in output, got %q", output)
+	}
+	if !strings.Contains(output, "fabbro review") {
+		t.Errorf("expected 'fabbro review' suggestion in output, got %q", output)
+	}
+}
+
 func TestPrimeCommand(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
