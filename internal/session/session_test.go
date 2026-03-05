@@ -524,6 +524,121 @@ func TestList_SkipsMalformedSessions(t *testing.T) {
 	}
 }
 
+func TestLoadPartial_ExactMatch(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	sess, _ := Create("content", "file.go")
+
+	loaded, err := LoadPartial(sess.ID)
+	if err != nil {
+		t.Fatalf("LoadPartial() returned error: %v", err)
+	}
+	if loaded.ID != sess.ID {
+		t.Errorf("expected ID=%s, got %s", sess.ID, loaded.ID)
+	}
+}
+
+func TestLoadPartial_PrefixMatch(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	sess, _ := Create("content", "file.go")
+
+	// Use first 10 chars as partial
+	partial := sess.ID[:10]
+	loaded, err := LoadPartial(partial)
+	if err != nil {
+		t.Fatalf("LoadPartial(%q) returned error: %v", partial, err)
+	}
+	if loaded.ID != sess.ID {
+		t.Errorf("expected ID=%s, got %s", sess.ID, loaded.ID)
+	}
+}
+
+func TestLoadPartial_NoMatch(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	_, err := LoadPartial("zzzzz")
+	if err == nil {
+		t.Error("expected LoadPartial() to return error for no match")
+	}
+	if !strings.Contains(err.Error(), "no session matching") {
+		t.Errorf("expected 'no session matching' error, got: %v", err)
+	}
+}
+
+func TestLoadPartial_AmbiguousMatch(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	sess1, _ := Create("content1", "file1.go")
+	Create("content2", "file2.go")
+
+	// Both sessions share the same date prefix (YYYYMMDD)
+	datePrefix := sess1.ID[:8]
+	_, err := LoadPartial(datePrefix)
+	if err == nil {
+		t.Error("expected LoadPartial() to return error for ambiguous match")
+	}
+	if !strings.Contains(err.Error(), "ambiguous") {
+		t.Errorf("expected 'ambiguous' error, got: %v", err)
+	}
+}
+
+func TestDelete_RemovesSessionFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	sess, _ := Create("content to delete", "delete-me.go")
+
+	err := Delete(sess.ID)
+	if err != nil {
+		t.Fatalf("Delete() returned error: %v", err)
+	}
+
+	// Verify file is gone
+	sessionFile := filepath.Join(config.SessionsDir, sess.ID+".fem")
+	if _, err := os.Stat(sessionFile); !os.IsNotExist(err) {
+		t.Error("expected session file to be deleted")
+	}
+}
+
+func TestDelete_ReturnsErrorForNonexistent(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	err := Delete("nonexistent")
+	if err == nil {
+		t.Error("expected Delete() to return error for nonexistent session")
+	}
+}
+
 func TestGenerateID_ReturnsDateBasedFormat(t *testing.T) {
 	id, err := generateID()
 	if err != nil {

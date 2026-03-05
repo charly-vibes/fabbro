@@ -6,8 +6,7 @@ Feature: Session Management
   # @implemented - Working in current build
   # @planned     - Designed but not yet implemented
   #
-  # Note: All scenarios in this spec are currently @planned.
-  # Session management commands are a priority for post-tracer development.
+  # Note: All scenarios in this spec are now @implemented.
 
   Background:
     Given I am in a directory that has been initialized with `fabbro init`
@@ -42,7 +41,7 @@ Feature: Session Management
 
   # --- Showing Session Details ---
 
-  @planned
+  @implemented
   Scenario: Showing session details
     Given a session "review-123" exists with 5 annotations
     When I run the command `fabbro show review-123`
@@ -55,7 +54,7 @@ Feature: Session Management
       | Content lines    | 100                  |
     And the output should list annotation summary by type
 
-  @planned
+  @implemented
   Scenario: Showing session with annotation breakdown
     Given a session exists with:
       | type     | count |
@@ -71,7 +70,7 @@ Feature: Session Management
         delete:   1
       """
 
-  @planned
+  @implemented
   Scenario: Showing non-existent session
     Given no session "missing" exists
     When I run the command `fabbro show missing`
@@ -80,7 +79,7 @@ Feature: Session Management
 
   # --- Resuming Sessions ---
 
-  @planned
+  @implemented
   Scenario: Resuming an interrupted review
     Given a session "review-123" exists with annotations
     When I run the command `fabbro resume review-123`
@@ -88,14 +87,14 @@ Feature: Session Management
     And existing annotations should be visible
     And I should be able to add more annotations
 
-  @planned
+  @implemented
   Scenario: Resuming in editor mode
     Given a session "review-123" exists
     When I run the command `fabbro resume review-123 --editor`
     Then the $EDITOR should open with the session file
     And the TUI should NOT be launched
 
-  @planned
+  @implemented
   Scenario: Resuming non-existent session
     Given no session "missing" exists
     When I run the command `fabbro resume missing`
@@ -104,7 +103,7 @@ Feature: Session Management
 
   # --- Deleting Sessions ---
 
-  @planned
+  @implemented
   Scenario: Deleting a session
     Given a session "review-123" exists
     When I run the command `fabbro delete review-123`
@@ -113,14 +112,14 @@ Feature: Session Management
     Then the session file should be removed
     And a success message should be displayed
 
-  @planned
+  @implemented
   Scenario: Deleting a session with --force
     Given a session "review-123" exists
     When I run the command `fabbro delete review-123 --force`
     Then the session file should be removed without confirmation
     And a success message should be displayed
 
-  @planned
+  @implemented
   Scenario: Deleting non-existent session
     Given no session "missing" exists
     When I run the command `fabbro delete missing`
@@ -129,7 +128,7 @@ Feature: Session Management
 
   # --- Cleaning Old Sessions ---
 
-  @planned
+  @implemented
   Scenario: Cleaning sessions older than threshold
     Given sessions exist with various ages:
       | session_id  | age     |
@@ -143,7 +142,7 @@ Feature: Session Management
     Then old-001 and old-002 should be deleted
     And recent-001 should remain
 
-  @planned
+  @implemented
   Scenario: Dry-run cleaning
     Given old sessions exist
     When I run the command `fabbro clean --older-than 7d --dry-run`
@@ -152,14 +151,14 @@ Feature: Session Management
 
   # --- Exporting Sessions ---
 
-  @planned
+  @implemented
   Scenario: Exporting session as standalone file
     Given a session "review-123" exists
     When I run the command `fabbro export review-123 --output review.fem`
     Then a file "review.fem" should be created
     And the file should contain the complete session with annotations
 
-  @planned
+  @implemented
   Scenario: Exporting session to stdout
     Given a session "review-123" exists
     When I run the command `fabbro export review-123`
@@ -167,14 +166,14 @@ Feature: Session Management
 
   # --- Session ID Autocompletion ---
 
-  @planned
+  @implemented
   Scenario: Partial session ID matching
     Given a session "review-abc123" exists
     When I run the command `fabbro show abc1`
     Then the command should match the full session ID
     And the session details should be displayed
 
-  @planned
+  @implemented
   Scenario: Ambiguous partial session ID
     Given sessions exist:
       | session_id     |

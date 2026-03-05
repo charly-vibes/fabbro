@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/charly-vibes/fabbro/internal/config"
@@ -56,7 +59,7 @@ A code review annotation tool with a terminal UI.`,
 	rootCmd.AddCommand(buildInitCmd(stdout))
 	rootCmd.AddCommand(buildReviewCmd(stdin, stdout))
 	rootCmd.AddCommand(buildApplyCmd(stdout))
-	rootCmd.AddCommand(buildSessionCmd(stdout))
+	rootCmd.AddCommand(buildSessionCmd(stdin, stdout))
 	rootCmd.AddCommand(buildCompletionCmd())
 	rootCmd.AddCommand(buildTutorCmd(stdout))
 	rootCmd.AddCommand(buildPrimeCmd(stdout))
@@ -280,7 +283,7 @@ Post-conditions:
 				}
 			} else {
 				sessionID := args[0]
-				sess, err = session.Load(sessionID)
+				sess, err = session.LoadPartial(sessionID)
 				if err != nil {
 					return fmt.Errorf("failed to load session %q: %w", sessionID, err)
 				}
@@ -327,7 +330,7 @@ Post-conditions:
 	return cmd
 }
 
-func buildSessionCmd(stdout io.Writer) *cobra.Command {
+func buildSessionCmd(stdin io.Reader, stdout io.Writer) *cobra.Command {
 	sessionCmd := &cobra.Command{
 		Use:   "session",
 		Short: "Manage editing sessions",
@@ -338,8 +341,28 @@ Each session is identified by a unique ID and stored in .fabbro/sessions/.`,
 	}
 
 	sessionCmd.AddCommand(buildSessionListCmd(stdout))
+	sessionCmd.AddCommand(buildSessionShowCmd(stdout))
 	sessionCmd.AddCommand(buildSessionResumeCmd(stdout))
+	sessionCmd.AddCommand(buildSessionDeleteCmd(stdin, stdout))
+	sessionCmd.AddCommand(buildSessionCleanCmd(stdin, stdout))
+	sessionCmd.AddCommand(buildSessionExportCmd(stdout))
 	return sessionCmd
+}
+
+// parseDaysDuration parses a duration string like "7d", "14d", "30d".
+func parseDaysDuration(s string) (time.Duration, error) {
+	if !strings.HasSuffix(s, "d") {
+		return 0, fmt.Errorf("invalid duration format: %s (use Nd, e.g. 7d)", s)
+	}
+	numStr := strings.TrimSuffix(s, "d")
+	var days int
+	if _, err := fmt.Sscanf(numStr, "%d", &days); err != nil {
+		return 0, fmt.Errorf("invalid duration: %s", s)
+	}
+	if days < 0 {
+		return 0, fmt.Errorf("duration must be positive: %s", s)
+	}
+	return time.Duration(days) * 24 * time.Hour, nil
 }
 
 func buildSessionListCmd(stdout io.Writer) *cobra.Command {
@@ -424,8 +447,277 @@ Post-conditions:
 	return cmd
 }
 
-func buildSessionResumeCmd(stdout io.Writer) *cobra.Command {
+func buildSessionShowCmd(stdout io.Writer) *cobra.Command {
 	return &cobra.Command{
+		Use:   "show <session-id>",
+		Short: "Show session details and annotation breakdown",
+		Long: `Display detailed information about a review session.
+
+Pre-conditions:
+  - fabbro must be initialized (run 'fabbro init' first).
+  - The session ID must exist (use 'fabbro session list' to find IDs).
+
+Post-conditions:
+  - Session metadata and annotation breakdown are printed to stdout.`,
+		Example: `  # Show details for a session
+  fabbro session show abc123`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if !config.IsInitialized() {
+				return fmt.Errorf("fabbro not initialized. Run 'fabbro init' first")
+			}
+
+			sessionID := args[0]
+			sess, err := session.LoadPartial(sessionID)
+			if err != nil {
+				return fmt.Errorf("session not found: %s", sessionID)
+			}
+
+			annotations, _, err := fem.Parse(sess.Content)
+			if err != nil {
+				return fmt.Errorf("failed to parse session content: %w", err)
+			}
+
+			source := "(stdin)"
+			if sess.SourceFile != "" {
+				source = sess.SourceFile
+			}
+
+			contentLines := len(strings.Split(sess.Content, "\n"))
+
+			fmt.Fprintf(stdout, "Session ID:     %s\n", sess.ID)
+			fmt.Fprintf(stdout, "Created:        %s\n", sess.CreatedAt.Format("2006-01-02 15:04:05"))
+			fmt.Fprintf(stdout, "Source:         %s\n", source)
+			fmt.Fprintf(stdout, "Content lines:  %d\n", contentLines)
+			fmt.Fprintln(stdout)
+
+			if len(annotations) == 0 {
+				fmt.Fprintln(stdout, "No annotations.")
+				return nil
+			}
+
+			breakdown := make(map[string]int)
+			for _, a := range annotations {
+				breakdown[string(a.Type)]++
+			}
+
+			fmt.Fprintf(stdout, "Annotations (%d total):\n", len(annotations))
+			for typ, count := range breakdown {
+				fmt.Fprintf(stdout, "  %s:  %d\n", typ, count)
+			}
+
+			return nil
+		},
+	}
+}
+
+func buildSessionDeleteCmd(stdin io.Reader, stdout io.Writer) *cobra.Command {
+	var forceFlag bool
+	cmd := &cobra.Command{
+		Use:   "delete <session-id>",
+		Short: "Delete a session",
+		Long: `Delete a review session by its ID.
+
+Pre-conditions:
+  - fabbro must be initialized (run 'fabbro init' first).
+  - The session ID must exist (use 'fabbro session list' to find IDs).
+
+Post-conditions:
+  - The session file is removed from .fabbro/sessions/.`,
+		Example: `  # Delete with confirmation prompt
+  fabbro session delete abc123
+
+  # Delete without confirmation
+  fabbro session delete abc123 --force`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if !config.IsInitialized() {
+				return fmt.Errorf("fabbro not initialized. Run 'fabbro init' first")
+			}
+
+			sessionID := args[0]
+
+			// Verify session exists and resolve partial ID
+			sess, err := session.LoadPartial(sessionID)
+			if err != nil {
+				return fmt.Errorf("session not found: %s", sessionID)
+			}
+			sessionID = sess.ID
+
+			if !forceFlag {
+				fmt.Fprintf(stdout, "Delete session %s? [y/N] ", sessionID)
+				var answer string
+				fmt.Fscanln(stdin, &answer)
+				if answer != "y" && answer != "Y" {
+					fmt.Fprintln(stdout, "Aborted.")
+					return nil
+				}
+			}
+
+			if err := session.Delete(sessionID); err != nil {
+				return fmt.Errorf("failed to delete session: %w", err)
+			}
+
+			fmt.Fprintf(stdout, "Deleted session: %s\n", sessionID)
+			return nil
+		},
+	}
+	cmd.Flags().BoolVar(&forceFlag, "force", false, "Delete without confirmation prompt")
+	return cmd
+}
+
+func buildSessionExportCmd(stdout io.Writer) *cobra.Command {
+	var outputFlag string
+	cmd := &cobra.Command{
+		Use:   "export <session-id>",
+		Short: "Export session content",
+		Long: `Export the content of a review session.
+
+Pre-conditions:
+  - fabbro must be initialized (run 'fabbro init' first).
+  - The session ID must exist (use 'fabbro session list' to find IDs).
+
+Post-conditions:
+  - Session content is printed to stdout or written to a file.`,
+		Example: `  # Export to stdout
+  fabbro session export abc123
+
+  # Export to a file
+  fabbro session export abc123 --output review.fem`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if !config.IsInitialized() {
+				return fmt.Errorf("fabbro not initialized. Run 'fabbro init' first")
+			}
+
+			sessionID := args[0]
+
+			// Resolve partial ID
+			sess, err := session.LoadPartial(sessionID)
+			if err != nil {
+				return fmt.Errorf("session not found: %s", sessionID)
+			}
+
+			sessionsDir, err := config.GetSessionsDir()
+			if err != nil {
+				return fmt.Errorf("failed to find sessions directory: %w", err)
+			}
+			sessionPath := filepath.Join(sessionsDir, sess.ID+".fem")
+
+			data, err := os.ReadFile(sessionPath)
+			if err != nil {
+				return fmt.Errorf("failed to read session file: %w", err)
+			}
+
+			if outputFlag != "" {
+				if err := os.WriteFile(outputFlag, data, 0644); err != nil {
+					return fmt.Errorf("failed to write output file: %w", err)
+				}
+				fmt.Fprintf(stdout, "Exported session %s to %s\n", sessionID, outputFlag)
+				return nil
+			}
+
+			fmt.Fprint(stdout, string(data))
+			return nil
+		},
+	}
+	cmd.Flags().StringVar(&outputFlag, "output", "", "Write output to file instead of stdout")
+	return cmd
+}
+
+func buildSessionCleanCmd(stdin io.Reader, stdout io.Writer) *cobra.Command {
+	var olderThan string
+	var dryRun bool
+	var forceFlag bool
+	cmd := &cobra.Command{
+		Use:   "clean",
+		Short: "Remove old sessions",
+		Long: `Remove sessions older than a specified duration.
+
+Pre-conditions:
+  - fabbro must be initialized (run 'fabbro init' first).
+
+Post-conditions:
+  - Sessions older than the threshold are deleted.
+  - With --dry-run, only lists what would be deleted.`,
+		Example: `  # Delete sessions older than 7 days (with confirmation)
+  fabbro session clean --older-than 7d
+
+  # Preview what would be deleted
+  fabbro session clean --older-than 7d --dry-run
+
+  # Delete without confirmation
+  fabbro session clean --older-than 7d --force`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if !config.IsInitialized() {
+				return fmt.Errorf("fabbro not initialized. Run 'fabbro init' first")
+			}
+
+			duration, err := parseDaysDuration(olderThan)
+			if err != nil {
+				return err
+			}
+			if duration < 24*time.Hour && !forceFlag {
+				return fmt.Errorf("minimum --older-than is 1d (safety limit). Use --force to override")
+			}
+
+			sessions, err := session.List()
+			if err != nil {
+				return fmt.Errorf("failed to list sessions: %w", err)
+			}
+
+			cutoff := time.Now().UTC().Add(-duration)
+			var matches []*session.Session
+			for _, s := range sessions {
+				if s.CreatedAt.Before(cutoff) {
+					matches = append(matches, s)
+				}
+			}
+
+			if len(matches) == 0 {
+				fmt.Fprintln(stdout, "No sessions older than "+olderThan+".")
+				return nil
+			}
+
+			if dryRun {
+				fmt.Fprintf(stdout, "Would delete %d session(s):\n", len(matches))
+				for _, s := range matches {
+					fmt.Fprintf(stdout, "  %s  %s\n", s.ID, s.CreatedAt.Format("2006-01-02 15:04"))
+				}
+				return nil
+			}
+
+			if !forceFlag {
+				fmt.Fprintf(stdout, "Delete %d session(s) older than %s? [y/N] ", len(matches), olderThan)
+				var answer string
+				fmt.Fscanln(stdin, &answer)
+				if answer != "y" && answer != "Y" {
+					fmt.Fprintln(stdout, "Aborted.")
+					return nil
+				}
+			}
+
+			for _, s := range matches {
+				if err := session.Delete(s.ID); err != nil {
+					fmt.Fprintf(stdout, "  Failed to delete %s: %v\n", s.ID, err)
+					continue
+				}
+				fmt.Fprintf(stdout, "  Deleted %s\n", s.ID)
+			}
+
+			return nil
+		},
+	}
+	cmd.Flags().StringVar(&olderThan, "older-than", "", "Delete sessions older than this duration (e.g. 7d, 30d)")
+	cmd.MarkFlagRequired("older-than")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "List sessions that would be deleted without deleting")
+	cmd.Flags().BoolVar(&forceFlag, "force", false, "Skip confirmation and safety limit")
+	return cmd
+}
+
+func buildSessionResumeCmd(stdout io.Writer) *cobra.Command {
+	var editorFlag bool
+	cmd := &cobra.Command{
 		Use:   "resume <session-id>",
 		Short: "Resume a previous editing session",
 		Long: `Resume a previous fabbro editing session by its ID.
@@ -436,9 +728,12 @@ Pre-conditions:
 
 Post-conditions:
   - The session is loaded with its existing annotations.
-  - The TUI opens for continued annotation work.`,
+  - The TUI opens for continued annotation work (or $EDITOR with --editor).`,
 		Example: `  # Resume a session by ID
   fabbro session resume abc123
+
+  # Resume in $EDITOR instead of TUI
+  fabbro session resume abc123 --editor
 
   # Find a session ID first, then resume
   fabbro session list
@@ -450,9 +745,33 @@ Post-conditions:
 			}
 
 			sessionID := args[0]
-			sess, err := session.Load(sessionID)
+			sess, err := session.LoadPartial(sessionID)
 			if err != nil {
 				return fmt.Errorf("failed to load session %q: %w", sessionID, err)
+			}
+
+			if editorFlag {
+				editor := os.Getenv("EDITOR")
+				if editor == "" {
+					editor = os.Getenv("VISUAL")
+				}
+				if editor == "" {
+					return fmt.Errorf("no editor configured. Set $EDITOR or $VISUAL")
+				}
+
+				sessionsDir, err := config.GetSessionsDir()
+				if err != nil {
+					return fmt.Errorf("failed to find sessions directory: %w", err)
+				}
+				sessionPath := filepath.Join(sessionsDir, sess.ID+".fem")
+
+				fmt.Fprintf(stdout, "Opening session %s in %s\n", sess.ID, editor)
+
+				editorCmd := exec.Command(editor, sessionPath)
+				editorCmd.Stdin = os.Stdin
+				editorCmd.Stdout = os.Stdout
+				editorCmd.Stderr = os.Stderr
+				return editorCmd.Run()
 			}
 
 			annotations, cleanContent, err := fem.Parse(sess.Content)
@@ -477,6 +796,8 @@ Post-conditions:
 			return nil
 		},
 	}
+	cmd.Flags().BoolVar(&editorFlag, "editor", false, "Open session in $EDITOR instead of TUI")
+	return cmd
 }
 
 func buildTutorCmd(stdout io.Writer) *cobra.Command {

@@ -208,6 +208,53 @@ func List() ([]*Session, error) {
 	return sessions, nil
 }
 
+// LoadPartial loads a session by exact or prefix match on the ID.
+// Returns an error if no match or multiple matches are found.
+func LoadPartial(partial string) (*Session, error) {
+	sessions, err := List()
+	if err != nil {
+		return nil, err
+	}
+
+	// Exact match first
+	for _, sess := range sessions {
+		if sess.ID == partial {
+			return sess, nil
+		}
+	}
+
+	// Prefix match
+	var matches []string
+	for _, sess := range sessions {
+		if strings.HasPrefix(sess.ID, partial) {
+			matches = append(matches, sess.ID)
+		}
+	}
+
+	switch len(matches) {
+	case 0:
+		return nil, fmt.Errorf("no session matching '%s'", partial)
+	case 1:
+		return Load(matches[0])
+	default:
+		return nil, fmt.Errorf("ambiguous session ID '%s' matches: %s",
+			partial, strings.Join(matches, ", "))
+	}
+}
+
+// Delete removes a session file by ID.
+func Delete(id string) error {
+	sessionsDir, err := config.GetSessionsDir()
+	if err != nil {
+		return fmt.Errorf("failed to find project root: %w", err)
+	}
+	sessionPath := filepath.Join(sessionsDir, id+".fem")
+	if _, err := os.Stat(sessionPath); os.IsNotExist(err) {
+		return fmt.Errorf("session not found: %s", id)
+	}
+	return os.Remove(sessionPath)
+}
+
 // FindBySourceFile finds the latest session created from the given source file.
 // Returns an error if no matching session is found.
 func FindBySourceFile(sourceFile string) (*Session, error) {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -770,6 +771,487 @@ func TestSessionListEmptyShowsHelpfulMessage(t *testing.T) {
 	}
 	if !strings.Contains(output, "fabbro review") {
 		t.Errorf("expected 'fabbro review' suggestion in output, got %q", output)
+	}
+}
+
+func TestSessionExportToStdout(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	sess, _ := session.Create("exported content", "export.go")
+	femContent := fmt.Sprintf("---\nsession_id: %s\ncreated_at: 2026-01-11T22:00:00Z\nsource_file: 'export.go'\n---\n\nexported content {>> nice <<}", sess.ID)
+	os.WriteFile(filepath.Join(config.SessionsDir, sess.ID+".fem"), []byte(femContent), 0644)
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"session", "export", sess.ID}, stdin, &stdout, &stderr)
+
+	if code != 0 {
+		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
+	}
+
+	output := stdout.String()
+	if !strings.Contains(output, "exported content") {
+		t.Errorf("expected session content in stdout, got %q", output)
+	}
+	if !strings.Contains(output, "{>> nice <<}") {
+		t.Errorf("expected FEM markers in output, got %q", output)
+	}
+}
+
+func TestSessionExportToFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	sess, _ := session.Create("file export content", "export.go")
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	outputFile := filepath.Join(tmpDir, "review.fem")
+	code := realMain([]string{"session", "export", sess.ID, "--output", outputFile}, stdin, &stdout, &stderr)
+
+	if code != 0 {
+		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
+	}
+
+	data, err := os.ReadFile(outputFile)
+	if err != nil {
+		t.Fatalf("expected output file to exist: %v", err)
+	}
+
+	if !strings.Contains(string(data), "file export content") {
+		t.Errorf("expected content in output file, got %q", string(data))
+	}
+}
+
+func TestSessionExportNonexistent(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"session", "export", "nonexistent"}, stdin, &stdout, &stderr)
+
+	if code != 1 {
+		t.Errorf("expected exit code 1, got %d", code)
+	}
+}
+
+func TestSessionCleanDryRun(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	// Create an old session (fake old timestamp)
+	sess, _ := session.Create("old content", "old.go")
+	oldContent := fmt.Sprintf("---\nsession_id: %s\ncreated_at: 2025-01-01T00:00:00Z\nsource_file: 'old.go'\n---\n\nold content", sess.ID)
+	os.WriteFile(filepath.Join(config.SessionsDir, sess.ID+".fem"), []byte(oldContent), 0644)
+
+	// Create a recent session
+	recent, _ := session.Create("recent content", "recent.go")
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"session", "clean", "--older-than", "7d", "--dry-run"}, stdin, &stdout, &stderr)
+
+	if code != 0 {
+		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
+	}
+
+	output := stdout.String()
+	if !strings.Contains(output, sess.ID) {
+		t.Errorf("expected old session ID in dry-run output, got %q", output)
+	}
+	if strings.Contains(output, recent.ID) {
+		t.Errorf("expected recent session to NOT appear in dry-run output, got %q", output)
+	}
+
+	// Both files should still exist (dry run)
+	if _, err := os.Stat(filepath.Join(config.SessionsDir, sess.ID+".fem")); err != nil {
+		t.Error("expected old session file to still exist after dry-run")
+	}
+	if _, err := os.Stat(filepath.Join(config.SessionsDir, recent.ID+".fem")); err != nil {
+		t.Error("expected recent session file to still exist after dry-run")
+	}
+}
+
+func TestSessionCleanWithForce(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	// Create an old session
+	sess, _ := session.Create("old content", "old.go")
+	oldContent := fmt.Sprintf("---\nsession_id: %s\ncreated_at: 2025-01-01T00:00:00Z\nsource_file: 'old.go'\n---\n\nold content", sess.ID)
+	os.WriteFile(filepath.Join(config.SessionsDir, sess.ID+".fem"), []byte(oldContent), 0644)
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"session", "clean", "--older-than", "7d", "--force"}, stdin, &stdout, &stderr)
+
+	if code != 0 {
+		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
+	}
+
+	output := stdout.String()
+	if !strings.Contains(output, "Deleted") {
+		t.Errorf("expected 'Deleted' in output, got %q", output)
+	}
+
+	// Old session should be gone
+	if _, err := os.Stat(filepath.Join(config.SessionsDir, sess.ID+".fem")); !os.IsNotExist(err) {
+		t.Error("expected old session file to be deleted")
+	}
+}
+
+func TestSessionCleanSafetyLimit(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"session", "clean", "--older-than", "0d"}, stdin, &stdout, &stderr)
+
+	if code != 1 {
+		t.Errorf("expected exit code 1, got %d", code)
+	}
+}
+
+func TestSessionCleanNoMatches(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	// Create a very recent session
+	session.Create("recent content", "recent.go")
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"session", "clean", "--older-than", "7d", "--force"}, stdin, &stdout, &stderr)
+
+	if code != 0 {
+		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
+	}
+
+	output := stdout.String()
+	if !strings.Contains(output, "No sessions") {
+		t.Errorf("expected 'No sessions' message, got %q", output)
+	}
+}
+
+func TestSessionDeleteWithForce(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	sess, _ := session.Create("content to delete", "delete-me.go")
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"session", "delete", sess.ID, "--force"}, stdin, &stdout, &stderr)
+
+	if code != 0 {
+		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
+	}
+
+	output := stdout.String()
+	if !strings.Contains(output, "Deleted session") {
+		t.Errorf("expected 'Deleted session' in output, got %q", output)
+	}
+
+	// Verify session is gone
+	sessionPath := filepath.Join(config.SessionsDir, sess.ID+".fem")
+	if _, err := os.Stat(sessionPath); !os.IsNotExist(err) {
+		t.Error("expected session file to be deleted")
+	}
+}
+
+func TestSessionDeleteNonexistent(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"session", "delete", "nonexistent", "--force"}, stdin, &stdout, &stderr)
+
+	if code != 1 {
+		t.Errorf("expected exit code 1, got %d", code)
+	}
+}
+
+func TestSessionDeleteWithConfirmation(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	sess, _ := session.Create("content to delete", "delete-me.go")
+
+	// Simulate user typing "y\n"
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("y\n")
+
+	code := realMain([]string{"session", "delete", sess.ID}, stdin, &stdout, &stderr)
+
+	if code != 0 {
+		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
+	}
+
+	// Verify session is gone
+	sessionPath := filepath.Join(config.SessionsDir, sess.ID+".fem")
+	if _, err := os.Stat(sessionPath); !os.IsNotExist(err) {
+		t.Error("expected session file to be deleted after confirmation")
+	}
+}
+
+func TestSessionDeleteAborted(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	sess, _ := session.Create("content to keep", "keep-me.go")
+
+	// Simulate user typing "n\n"
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("n\n")
+
+	code := realMain([]string{"session", "delete", sess.ID}, stdin, &stdout, &stderr)
+
+	if code != 0 {
+		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
+	}
+
+	output := stdout.String()
+	if !strings.Contains(output, "Aborted") {
+		t.Errorf("expected 'Aborted' in output, got %q", output)
+	}
+
+	// Verify session still exists
+	sessionPath := filepath.Join(config.SessionsDir, sess.ID+".fem")
+	if _, err := os.Stat(sessionPath); err != nil {
+		t.Error("expected session file to still exist after abort")
+	}
+}
+
+func TestSessionResumeNonexistent(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"session", "resume", "nonexistent"}, stdin, &stdout, &stderr)
+
+	if code != 1 {
+		t.Errorf("expected exit code 1, got %d", code)
+	}
+}
+
+func TestSessionResumeWithEditor(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+	t.Setenv("FABBRO_NO_TUI", "1")
+	// Use 'true' as editor — it's a no-op command that exits 0
+	t.Setenv("EDITOR", "true")
+
+	sess, _ := session.Create("Test content", "main.go")
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"session", "resume", sess.ID, "--editor"}, stdin, &stdout, &stderr)
+
+	if code != 0 {
+		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
+	}
+
+	output := stdout.String()
+	if !strings.Contains(output, "Opening") {
+		t.Errorf("expected 'Opening' in output for editor mode, got %q", output)
+	}
+}
+
+func TestSessionResumeWithEditorNoEditorSet(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+	t.Setenv("EDITOR", "")
+	t.Setenv("VISUAL", "")
+
+	sess, _ := session.Create("Test content", "main.go")
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"session", "resume", sess.ID, "--editor"}, stdin, &stdout, &stderr)
+
+	if code != 1 {
+		t.Errorf("expected exit code 1, got %d", code)
+	}
+}
+
+func TestSessionShowDisplaysDetails(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	sess, _ := session.Create("Test content", "main.go")
+	femContent := `---
+session_id: ` + sess.ID + `
+created_at: 2026-01-11T22:00:00Z
+source_file: 'main.go'
+---
+
+Test content {>> a comment <<} {?? a question ??} {-- remove this --}`
+
+	sessionPath := filepath.Join(config.SessionsDir, sess.ID+".fem")
+	os.WriteFile(sessionPath, []byte(femContent), 0644)
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"session", "show", sess.ID}, stdin, &stdout, &stderr)
+
+	if code != 0 {
+		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
+	}
+
+	output := stdout.String()
+	if !strings.Contains(output, "Session ID:") {
+		t.Errorf("expected 'Session ID:' in output, got %q", output)
+	}
+	if !strings.Contains(output, sess.ID) {
+		t.Errorf("expected session ID in output, got %q", output)
+	}
+	if !strings.Contains(output, "Source:") {
+		t.Errorf("expected 'Source:' in output, got %q", output)
+	}
+	if !strings.Contains(output, "main.go") {
+		t.Errorf("expected 'main.go' in output, got %q", output)
+	}
+	if !strings.Contains(output, "Annotations (3 total):") {
+		t.Errorf("expected 'Annotations (3 total):' in output, got %q", output)
+	}
+	if !strings.Contains(output, "comment:") {
+		t.Errorf("expected 'comment:' in annotation breakdown, got %q", output)
+	}
+	if !strings.Contains(output, "question:") {
+		t.Errorf("expected 'question:' in annotation breakdown, got %q", output)
+	}
+	if !strings.Contains(output, "delete:") {
+		t.Errorf("expected 'delete:' in annotation breakdown, got %q", output)
+	}
+}
+
+func TestSessionShowNonexistent(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"session", "show", "nonexistent"}, stdin, &stdout, &stderr)
+
+	if code != 1 {
+		t.Errorf("expected exit code 1, got %d", code)
+	}
+}
+
+func TestSessionShowStdinSource(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	sess, _ := session.Create("Test content", "")
+	femContent := `---
+session_id: ` + sess.ID + `
+created_at: 2026-01-11T22:00:00Z
+---
+
+Test content`
+
+	sessionPath := filepath.Join(config.SessionsDir, sess.ID+".fem")
+	os.WriteFile(sessionPath, []byte(femContent), 0644)
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"session", "show", sess.ID}, stdin, &stdout, &stderr)
+
+	if code != 0 {
+		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
+	}
+
+	output := stdout.String()
+	if !strings.Contains(output, "(stdin)") {
+		t.Errorf("expected '(stdin)' for source, got %q", output)
 	}
 }
 
