@@ -128,15 +128,64 @@ fabbro session list
 
 Shows all sessions with their ID, creation date, and source file (if any).
 
+#### `fabbro session show`
+
+Show session details and annotation breakdown.
+
+```bash
+fabbro session show <session-id>
+```
+
+Displays session metadata (ID, creation time, source, content lines) and a breakdown of annotations by type.
+
+Supports partial session ID matching — you can use a prefix of the session ID as long as it's unambiguous.
+
 #### `fabbro session resume`
 
 Resume a previous editing session.
 
 ```bash
 fabbro session resume <session-id>
+fabbro session resume <session-id> --editor
 ```
 
 Opens the TUI with the session content and any existing annotations, allowing you to continue reviewing.
+
+With `--editor`, opens the session file in `$EDITOR` (or `$VISUAL`) instead of the TUI.
+
+#### `fabbro session delete`
+
+Delete a session.
+
+```bash
+fabbro session delete <session-id>
+fabbro session delete <session-id> --force
+```
+
+Prompts for confirmation before deleting. Use `--force` to skip the prompt.
+
+#### `fabbro session clean`
+
+Remove old sessions.
+
+```bash
+fabbro session clean --older-than 7d
+fabbro session clean --older-than 30d --dry-run
+fabbro session clean --older-than 7d --force
+```
+
+Deletes sessions older than the specified duration. Use `--dry-run` to preview what would be deleted. Safety limit: minimum `1d` (use `--force` to override).
+
+#### `fabbro session export`
+
+Export session content.
+
+```bash
+fabbro session export <session-id>
+fabbro session export <session-id> --output review.fem
+```
+
+Prints the full session file (with frontmatter and annotations) to stdout. Use `--output` to write to a file instead.
 
 ### `fabbro tutor`
 

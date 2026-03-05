@@ -52,7 +52,11 @@ fabbro apply --file plans/my-plan.md --json
 | `fabbro apply <id> --json` | Output annotations as JSON |
 | `fabbro apply --file <path>` | Find and apply latest session for a source file |
 | `fabbro session list` | List all editing sessions |
+| `fabbro session show <id>` | Show session details and annotation breakdown |
 | `fabbro session resume <id>` | Resume a previous editing session |
+| `fabbro session delete <id>` | Delete a session (with confirmation) |
+| `fabbro session clean --older-than <duration>` | Remove old sessions |
+| `fabbro session export <id>` | Export session content to stdout or file |
 | `fabbro tutor` | Start the interactive tutorial (like vimtutor) |
 | `fabbro prime` | Output AI-optimized workflow context |
 | `fabbro completion <shell>` | Generate shell completion scripts (bash, zsh, fish, powershell) |
