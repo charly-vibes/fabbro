@@ -2,10 +2,12 @@ package session
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -13,11 +15,46 @@ import (
 	"github.com/charly-vibes/fabbro/internal/config"
 )
 
+var validSessionID = regexp.MustCompile(`^[a-zA-Z0-9_-]{1,64}$`)
+var reservedIDs = map[string]bool{"tutor": true, "_tutor_": true}
+
+// ValidateSessionID checks that a custom session ID is valid.
+func ValidateSessionID(id string) error {
+	if !validSessionID.MatchString(id) {
+		return fmt.Errorf("invalid session ID %q: must be 1-64 alphanumeric characters, dash, or underscore", id)
+	}
+	if reservedIDs[id] {
+		return fmt.Errorf("session ID %q is reserved", id)
+	}
+	return nil
+}
+
 type Session struct {
-	ID         string
-	Content    string
-	CreatedAt  time.Time
-	SourceFile string
+	ID          string
+	Content     string
+	CreatedAt   time.Time
+	SourceFile  string
+	ContentHash string
+}
+
+func computeHash(content string) string {
+	h := sha256.Sum256([]byte(content))
+	return hex.EncodeToString(h[:])
+}
+
+// VerifySourceHash checks if the source file content still matches the hash stored at session creation.
+// Returns true if the hash matches or if verification is not applicable (stdin sessions).
+func (s *Session) VerifySourceHash() (bool, error) {
+	if s.SourceFile == "" || s.ContentHash == "" {
+		return true, nil
+	}
+
+	data, err := os.ReadFile(s.SourceFile)
+	if err != nil {
+		return false, fmt.Errorf("source file not found: %s", s.SourceFile)
+	}
+
+	return computeHash(string(data)) == s.ContentHash, nil
 }
 
 func generateID() (string, error) {
@@ -47,6 +84,34 @@ func quoteYAMLString(s string) string {
 	return "'" + escaped + "'"
 }
 
+// CreateWithID creates a session with a specific custom ID.
+func CreateWithID(id string, content string, sourceFile string) (*Session, error) {
+	if err := ValidateSessionID(id); err != nil {
+		return nil, err
+	}
+
+	sessionsDir, err := config.GetSessionsDir()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find project root: %w", err)
+	}
+
+	sessionPath := filepath.Join(sessionsDir, id+".fem")
+	if _, err := os.Stat(sessionPath); err == nil {
+		return nil, fmt.Errorf("session ID %q already exists", id)
+	}
+
+	normalizedSource := normalizeSourceFile(sourceFile)
+	sess := &Session{
+		ID:          id,
+		Content:     content,
+		CreatedAt:   time.Now().UTC(),
+		SourceFile:  normalizedSource,
+		ContentHash: computeHash(content),
+	}
+
+	return writeSession(sess, sessionPath, content)
+}
+
 func Create(content string, sourceFile string) (*Session, error) {
 	sessionsDir, err := config.GetSessionsDir()
 	if err != nil {
@@ -68,10 +133,11 @@ func Create(content string, sourceFile string) (*Session, error) {
 
 		if _, err := os.Stat(sessionPath); os.IsNotExist(err) {
 			session = &Session{
-				ID:         id,
-				Content:    content,
-				CreatedAt:  time.Now().UTC(),
-				SourceFile: normalizedSource,
+				ID:          id,
+				Content:     content,
+				CreatedAt:   time.Now().UTC(),
+				SourceFile:  normalizedSource,
+				ContentHash: computeHash(content),
 			}
 			break
 		}
@@ -81,24 +147,28 @@ func Create(content string, sourceFile string) (*Session, error) {
 		return nil, fmt.Errorf("failed to generate unique session ID after %d attempts", maxCollisionRetries)
 	}
 
-	// Build frontmatter with optional source_file
+	return writeSession(session, sessionPath, content)
+}
+
+func writeSession(sess *Session, sessionPath string, content string) (*Session, error) {
 	var sourceFileLine string
-	if normalizedSource != "" {
-		sourceFileLine = fmt.Sprintf("source_file: %s\n", quoteYAMLString(normalizedSource))
+	if sess.SourceFile != "" {
+		sourceFileLine = fmt.Sprintf("source_file: %s\n", quoteYAMLString(sess.SourceFile))
 	}
 
 	fileContent := fmt.Sprintf(`---
 session_id: %s
 created_at: %s
+content_hash: %s
 %s---
 
-%s`, session.ID, session.CreatedAt.Format(time.RFC3339), sourceFileLine, content)
+%s`, sess.ID, sess.CreatedAt.Format(time.RFC3339), sess.ContentHash, sourceFileLine, content)
 
 	if err := os.WriteFile(sessionPath, []byte(fileContent), 0600); err != nil {
 		return nil, fmt.Errorf("failed to write session file: %w", err)
 	}
 
-	return session, nil
+	return sess, nil
 }
 
 func Load(id string) (*Session, error) {
@@ -127,9 +197,10 @@ func Load(id string) (*Session, error) {
 	frontmatter := parts[1]
 	body := strings.TrimPrefix(parts[2], "\n")
 
-	// Extract session_id, created_at, and source_file from frontmatter
+	// Extract session_id, created_at, source_file, and content_hash from frontmatter
 	var sessionID string
 	var sourceFile string
+	var contentHash string
 	var createdAt time.Time
 	var parseErr error
 
@@ -147,6 +218,9 @@ func Load(id string) (*Session, error) {
 		if strings.HasPrefix(line, "source_file: ") {
 			sourceFile = unquoteYAMLString(strings.TrimPrefix(line, "source_file: "))
 		}
+		if strings.HasPrefix(line, "content_hash: ") {
+			contentHash = strings.TrimPrefix(line, "content_hash: ")
+		}
 	}
 
 	if sessionID == "" {
@@ -157,10 +231,11 @@ func Load(id string) (*Session, error) {
 	}
 
 	return &Session{
-		ID:         sessionID,
-		Content:    body,
-		CreatedAt:  createdAt,
-		SourceFile: sourceFile,
+		ID:          sessionID,
+		Content:     body,
+		CreatedAt:   createdAt,
+		SourceFile:  sourceFile,
+		ContentHash: contentHash,
 	}, nil
 }
 

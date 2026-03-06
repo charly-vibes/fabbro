@@ -141,6 +141,9 @@ Post-conditions:
 func buildReviewCmd(stdin io.Reader, stdout io.Writer) *cobra.Command {
 	var stdinFlag bool
 	var jsonFlag bool
+	var idFlag string
+	var editorFlag bool
+	var noInteractiveFlag bool
 	cmd := &cobra.Command{
 		Use:   "review [file]",
 		Short: "Start a review session",
@@ -207,15 +210,47 @@ Post-conditions:
 				return fmt.Errorf("no input file specified. Provide a file path as an argument or pipe content via --stdin")
 			}
 
-			sess, err := session.Create(content, sourceFile)
+			var sess *session.Session
+			if idFlag != "" {
+				sess, err = session.CreateWithID(idFlag, content, sourceFile)
+			} else {
+				sess, err = session.Create(content, sourceFile)
+			}
 			if err != nil {
 				return fmt.Errorf("failed to create session: %w", err)
+			}
+
+			if noInteractiveFlag {
+				fmt.Fprintln(stdout, sess.ID)
+				return nil
 			}
 
 			if jsonFlag {
 				json.NewEncoder(stdout).Encode(map[string]string{"sessionId": sess.ID})
 			} else {
 				fmt.Fprintf(stdout, "Created session: %s\n", sess.ID)
+			}
+
+			if editorFlag {
+				editor := os.Getenv("EDITOR")
+				if editor == "" {
+					editor = os.Getenv("VISUAL")
+				}
+				if editor == "" {
+					return fmt.Errorf("no editor configured. Set $EDITOR or $VISUAL")
+				}
+
+				sessionsDir, sdErr := config.GetSessionsDir()
+				if sdErr != nil {
+					return fmt.Errorf("failed to find sessions directory: %w", sdErr)
+				}
+				sessionPath := filepath.Join(sessionsDir, sess.ID+".fem")
+
+				editorCmd := exec.Command(editor, sessionPath)
+				editorCmd.Stdin = os.Stdin
+				editorCmd.Stdout = os.Stdout
+				editorCmd.Stderr = os.Stderr
+				return editorCmd.Run()
 			}
 
 			if noTUI() {
@@ -233,11 +268,15 @@ Post-conditions:
 	}
 	cmd.Flags().BoolVar(&stdinFlag, "stdin", false, "Read content from stdin")
 	cmd.Flags().BoolVar(&jsonFlag, "json", false, "Output session ID as JSON")
+	cmd.Flags().StringVar(&idFlag, "id", "", "Custom session ID (alphanumeric, dash, underscore; max 64 chars)")
+	cmd.Flags().BoolVar(&editorFlag, "editor", false, "Open in $EDITOR instead of TUI")
+	cmd.Flags().BoolVar(&noInteractiveFlag, "no-interactive", false, "Create session without opening TUI or editor")
 	return cmd
 }
 
 func buildApplyCmd(stdout io.Writer) *cobra.Command {
 	var jsonFlag bool
+	var compactFlag bool
 	var fileFlag string
 	cmd := &cobra.Command{
 		Use:   "apply [session-id]",
@@ -294,19 +333,30 @@ Post-conditions:
 				return fmt.Errorf("failed to parse FEM in session %q: %w", sess.ID, err)
 			}
 
+			// Verify source file hash
+			if valid, hashErr := sess.VerifySourceHash(); hashErr != nil {
+				fmt.Fprintf(cmd.ErrOrStderr(), "Warning: %v\n", hashErr)
+			} else if !valid {
+				fmt.Fprintf(cmd.ErrOrStderr(), "Warning: source file has changed since session was created. Line numbers may have drifted.\n")
+			}
+
 			if jsonFlag {
 				output := struct {
 					SessionID   string           `json:"sessionId"`
 					SourceFile  string           `json:"sourceFile"`
+					CreatedAt   string           `json:"createdAt"`
 					Annotations []fem.Annotation `json:"annotations"`
 				}{
 					SessionID:   sess.ID,
 					SourceFile:  sess.SourceFile,
+					CreatedAt:   sess.CreatedAt.Format(time.RFC3339),
 					Annotations: annotations,
 				}
 
 				enc := json.NewEncoder(stdout)
-				enc.SetIndent("", "  ")
+				if !compactFlag {
+					enc.SetIndent("", "  ")
+				}
 				return enc.Encode(output)
 			}
 
@@ -326,6 +376,7 @@ Post-conditions:
 		},
 	}
 	cmd.Flags().BoolVar(&jsonFlag, "json", false, "Output as JSON")
+	cmd.Flags().BoolVar(&compactFlag, "compact", false, "Output minified JSON (use with --json)")
 	cmd.Flags().StringVar(&fileFlag, "file", "", "Find session by source file path")
 	return cmd
 }

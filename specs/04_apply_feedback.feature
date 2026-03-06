@@ -30,9 +30,8 @@ Feature: Apply Feedback
 
   # --- JSON Output Structure ---
 
-  @partial
+  @implemented
   Scenario: JSON contains all annotation fields
-    # Note: Has sessionId, startLine, endLine; missing sourceFile, createdAt
     Given a session exists with a comment annotation on lines 42-45
     When I run the command `fabbro apply <session-id> --json`
     Then the JSON output should include:
@@ -169,7 +168,7 @@ Feature: Apply Feedback
 
   # --- Content Hash Verification ---
 
-  @planned
+  @implemented
   Scenario: Warning when source content has changed
     Given a session was created from file "document.md"
     And "document.md" has been modified since the session was created
@@ -180,7 +179,7 @@ Feature: Apply Feedback
 
   # --- Output Formats ---
 
-  @planned
+  @implemented
   Scenario: Compact JSON output for piping
     Given a session exists with annotations
     When I run the command `fabbro apply <session-id> --json --compact`

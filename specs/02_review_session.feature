@@ -28,7 +28,7 @@ Feature: Review Session Creation
     And the session file should contain the content from "document.md"
     And the TUI should open with the content displayed
 
-  @planned
+  @implemented
   Scenario: Creating a review session with a custom session ID
     Given I have content piped to stdin
     When I run the command `fabbro review --stdin --id my-review`
@@ -87,7 +87,7 @@ Feature: Review Session Creation
 
   # --- Editor fallback mode ---
 
-  @planned
+  @implemented
   Scenario: Opening session in external editor instead of TUI
     Given I have content piped to stdin
     When I run the command `fabbro review --stdin --editor`
@@ -95,7 +95,7 @@ Feature: Review Session Creation
     And the $EDITOR should be opened with the session file
     And the TUI should NOT be launched
 
-  @planned
+  @implemented
   Scenario: Non-interactive mode creates session without opening anything
     Given I have content piped to stdin
     When I run the command `fabbro review --stdin --no-interactive`
