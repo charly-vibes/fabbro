@@ -237,6 +237,41 @@ This document tracks implementation status for all scenarios in the fabbro speci
 
 ---
 
+## 09_web_docx_upload.feature
+
+| # | Scenario | Status | Notes |
+|---|----------|--------|-------|
+| 1 | Dropping a .docx file starts a review session | ❌ | Not implemented |
+| 2 | Extracted text preserves paragraph structure | ❌ | Not implemented |
+| 3 | Drop zone label includes .docx | ❌ | Not implemented |
+| 4 | Handling a corrupt .docx file | ❌ | Not implemented |
+| 5 | Handling an empty .docx file | ❌ | Not implemented |
+| 6 | Rejecting .doc (legacy Word) files | ❌ | Not implemented |
+
+**Summary:** 0 ✅, 0 🔶, 6 ❌
+
+---
+
+## 10_web_html_to_text.feature
+
+| # | Scenario | Status | Notes |
+|---|----------|--------|-------|
+| 1 | Markdown response is used as-is | ❌ | Not implemented |
+| 2 | HTML response is converted to plain text | ❌ | Not implemented |
+| 3 | Plain text response is used as-is | ❌ | Not implemented |
+| 4 | Script and style elements are removed | ❌ | Not implemented |
+| 5 | Navigation and footer elements are removed | ❌ | Not implemented |
+| 6 | Article element content is preferred | ❌ | Not implemented |
+| 7 | Main element content is preferred when no article exists | ❌ | Not implemented |
+| 8 | Body content is used as fallback | ❌ | Not implemented |
+| 9 | Markdown token count is surfaced when available | ❌ | Not implemented |
+| 10 | Missing token count header returns null | ❌ | Not implemented |
+| 11 | GitHub URLs still use the GitHub API | ❌ | Not implemented |
+
+**Summary:** 0 ✅, 0 🔶, 11 ❌
+
+---
+
 ## Overall Summary
 
 | Spec | ✅ Implemented | 🔶 Partial | ❌ Not Implemented | Total |
@@ -249,9 +284,11 @@ This document tracks implementation status for all scenarios in the fabbro speci
 | 06_fem_markup | 13 | 0 | 8 | 21 |
 | 07_web_notes_sidebar | 12 | 0 | 0 | 12 |
 | 08_web_search | 15 | 0 | 0 | 15 |
-| **TOTAL** | **109** | **2** | **42** | **153** |
+| 09_web_docx_upload | 0 | 0 | 6 | 6 |
+| 10_web_html_to_text | 0 | 0 | 11 | 11 |
+| **TOTAL** | **109** | **2** | **59** | **170** |
 
-**Coverage: 111/153 scenarios (73%)**
+**Coverage: 111/170 scenarios (65%)**
 
 ---
 
