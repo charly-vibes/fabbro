@@ -8,10 +8,13 @@ import (
 	"strings"
 	"testing"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charly-vibes/fabbro/internal/config"
 	"github.com/charly-vibes/fabbro/internal/fem"
 	"github.com/charly-vibes/fabbro/internal/session"
 )
+
+func noopTUI(tea.Model) error { return nil }
 
 func TestTracerBullet(t *testing.T) {
 	tmpDir := t.TempDir()
@@ -132,7 +135,7 @@ func TestRealMainHelp(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"--help"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"--help"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d", code)
@@ -146,7 +149,7 @@ func TestRealMainVersion(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"--version"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"--version"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d", code)
@@ -165,7 +168,7 @@ func TestInitCommand(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"init"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"init"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d", code)
@@ -186,7 +189,7 @@ func TestInitCommandAlreadyInitialized(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"init"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"init"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d", code)
@@ -205,7 +208,7 @@ func TestApplyCommandNotInitialized(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"apply", "some-id"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"apply", "some-id"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 1 {
 		t.Errorf("expected exit code 1, got %d", code)
@@ -235,7 +238,7 @@ Test content {>> a comment <<}`
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"apply", sess.ID, "--json"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"apply", sess.ID, "--json"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d", code)
@@ -274,7 +277,7 @@ Test content {>> a comment <<}`
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"apply", sess.ID, "--json"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"apply", sess.ID, "--json"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d", code)
@@ -323,7 +326,7 @@ Test content {>> a comment <<}`
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"apply", sess.ID, "--json", "--compact"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"apply", sess.ID, "--json", "--compact"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
@@ -369,7 +372,7 @@ Test content {>> a comment <<}`
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"apply", sess.ID}, stdin, &stdout, &stderr)
+	code := realMain([]string{"apply", sess.ID}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d", code)
@@ -407,7 +410,7 @@ Test content {>> a comment <<}`
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"apply", "--file", "plans/my-plan.md", "--json"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"apply", "--file", "plans/my-plan.md", "--json"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d. stderr: %s", code, stderr.String())
@@ -437,7 +440,7 @@ func TestApplyCommandByFileNotFound(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"apply", "--file", "nonexistent.md"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"apply", "--file", "nonexistent.md"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 1 {
 		t.Errorf("expected exit code 1, got %d", code)
@@ -455,7 +458,7 @@ func TestApplyCommandMutualExclusivity(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"apply", "session-123", "--file", "doc.md"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"apply", "session-123", "--file", "doc.md"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 1 {
 		t.Errorf("expected exit code 1, got %d", code)
@@ -473,7 +476,7 @@ func TestApplyCommandNoInput(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"apply"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"apply"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 1 {
 		t.Errorf("expected exit code 1, got %d", code)
@@ -501,7 +504,7 @@ func TestApplyCommandContentHashWarning(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"apply", sess.ID}, stdin, &stdout, &stderr)
+	code := realMain([]string{"apply", sess.ID}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d", code)
@@ -532,7 +535,7 @@ func TestApplyCommandContentHashNoWarningForStdin(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"apply", sess.ID}, stdin, &stdout, &stderr)
+	code := realMain([]string{"apply", sess.ID}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d", code)
@@ -555,7 +558,7 @@ func TestReviewCommandNotInitialized(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("content")
 
-	code := realMain([]string{"review", "--stdin"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"review", "--stdin"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 1 {
 		t.Errorf("expected exit code 1, got %d", code)
@@ -569,13 +572,12 @@ func TestReviewCommandWithCustomID(t *testing.T) {
 	defer os.Chdir(origDir)
 
 	t.Setenv("FABBRO_PROJECT_ROOT_STOP", tmpDir)
-	t.Setenv("FABBRO_NO_TUI", "1")
 	config.Init()
 
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("test content")
 
-	code := realMain([]string{"review", "--stdin", "--id", "my-review"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"review", "--stdin", "--id", "my-review"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
@@ -599,7 +601,6 @@ func TestReviewCommandWithInvalidID(t *testing.T) {
 	defer os.Chdir(origDir)
 
 	t.Setenv("FABBRO_PROJECT_ROOT_STOP", tmpDir)
-	t.Setenv("FABBRO_NO_TUI", "1")
 	config.Init()
 
 	tests := []struct {
@@ -618,7 +619,7 @@ func TestReviewCommandWithInvalidID(t *testing.T) {
 			var stdout, stderr strings.Builder
 			stdin := strings.NewReader("test content")
 
-			code := realMain([]string{"review", "--stdin", "--id", tt.id}, stdin, &stdout, &stderr)
+			code := realMain([]string{"review", "--stdin", "--id", tt.id}, stdin, &stdout, &stderr, noopTUI)
 
 			if code != 1 {
 				t.Errorf("expected exit code 1 for invalid ID %q, got %d", tt.id, code)
@@ -640,7 +641,7 @@ func TestReviewCommandWithEditor(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("editor test content")
 
-	code := realMain([]string{"review", "--stdin", "--editor"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"review", "--stdin", "--editor"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
@@ -664,7 +665,7 @@ func TestReviewCommandWithNoInteractive(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("non-interactive content")
 
-	code := realMain([]string{"review", "--stdin", "--no-interactive"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"review", "--stdin", "--no-interactive"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
@@ -691,18 +692,17 @@ func TestReviewCommandWithDuplicateID(t *testing.T) {
 	defer os.Chdir(origDir)
 
 	t.Setenv("FABBRO_PROJECT_ROOT_STOP", tmpDir)
-	t.Setenv("FABBRO_NO_TUI", "1")
 	config.Init()
 
 	// Create first session
 	var stdout1, stderr1 strings.Builder
 	stdin1 := strings.NewReader("first content")
-	realMain([]string{"review", "--stdin", "--id", "dup-test"}, stdin1, &stdout1, &stderr1)
+	realMain([]string{"review", "--stdin", "--id", "dup-test"}, stdin1, &stdout1, &stderr1, noopTUI)
 
 	// Try to create duplicate
 	var stdout2, stderr2 strings.Builder
 	stdin2 := strings.NewReader("second content")
-	code := realMain([]string{"review", "--stdin", "--id", "dup-test"}, stdin2, &stdout2, &stderr2)
+	code := realMain([]string{"review", "--stdin", "--id", "dup-test"}, stdin2, &stdout2, &stderr2, noopTUI)
 
 	if code != 1 {
 		t.Errorf("expected exit code 1 for duplicate ID, got %d", code)
@@ -716,13 +716,12 @@ func TestReviewCommandWithoutStdinFlag(t *testing.T) {
 	defer os.Chdir(origDir)
 
 	t.Setenv("FABBRO_PROJECT_ROOT_STOP", tmpDir)
-	t.Setenv("FABBRO_NO_TUI", "1")
 	config.Init()
 
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"review"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"review"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 1 {
 		t.Errorf("expected exit code 1, got %d", code)
@@ -740,7 +739,7 @@ func TestApplyCommandSessionNotFound(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"apply", "nonexistent-session"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"apply", "nonexistent-session"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 1 {
 		t.Errorf("expected exit code 1, got %d", code)
@@ -751,7 +750,7 @@ func TestUnknownCommand(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"unknown"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"unknown"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 1 {
 		t.Errorf("expected exit code 1 for unknown command, got %d", code)
@@ -765,7 +764,6 @@ func TestReviewCommandWithFile(t *testing.T) {
 	defer os.Chdir(origDir)
 
 	t.Setenv("FABBRO_PROJECT_ROOT_STOP", tmpDir)
-	t.Setenv("FABBRO_NO_TUI", "1")
 	config.Init()
 
 	// Create a test file
@@ -776,7 +774,7 @@ func TestReviewCommandWithFile(t *testing.T) {
 	stdin := strings.NewReader("")
 
 	// Note: TUI will fail without a TTY, but we can verify session creation
-	realMain([]string{"review", "document.md"}, stdin, &stdout, &stderr)
+	realMain([]string{"review", "document.md"}, stdin, &stdout, &stderr, noopTUI)
 
 	// Verify the session was created (message appears before TUI attempt)
 	if !strings.Contains(stdout.String(), "Created session:") {
@@ -812,7 +810,7 @@ func TestReviewCommandWithNonExistentFile(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"review", "missing.md"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"review", "missing.md"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 1 {
 		t.Errorf("expected exit code 1, got %d", code)
@@ -832,7 +830,7 @@ func TestReviewCommandRejectsOversizedStdin(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader(largeInput)
 
-	code := realMain([]string{"review", "--stdin"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"review", "--stdin"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 1 {
 		t.Errorf("expected exit code 1, got %d", code)
@@ -859,7 +857,7 @@ func TestReviewCommandRejectsOversizedFile(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"review", largeFile}, stdin, &stdout, &stderr)
+	code := realMain([]string{"review", largeFile}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 1 {
 		t.Errorf("expected exit code 1, got %d", code)
@@ -886,7 +884,7 @@ func TestReviewCommandRejectsStdinAndFile(t *testing.T) {
 	stdin := strings.NewReader("stdin content")
 
 	// Pass both --stdin and a file path
-	code := realMain([]string{"review", "--stdin", testFile}, stdin, &stdout, &stderr)
+	code := realMain([]string{"review", "--stdin", testFile}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 1 {
 		t.Errorf("expected exit code 1, got %d", code)
@@ -903,7 +901,6 @@ func TestReviewCommandJSONOutput(t *testing.T) {
 	defer os.Chdir(origDir)
 
 	t.Setenv("FABBRO_PROJECT_ROOT_STOP", tmpDir)
-	t.Setenv("FABBRO_NO_TUI", "1")
 	config.Init()
 
 	// Create a test file
@@ -914,7 +911,7 @@ func TestReviewCommandJSONOutput(t *testing.T) {
 	stdin := strings.NewReader("")
 
 	// Note: TUI will fail without a TTY, but session creation and JSON output happen first
-	realMain([]string{"review", "--json", "test.md"}, stdin, &stdout, &stderr)
+	realMain([]string{"review", "--json", "test.md"}, stdin, &stdout, &stderr, noopTUI)
 
 	output := stdout.String()
 
@@ -949,7 +946,7 @@ func TestCompletionCommand(t *testing.T) {
 			var stdout, stderr strings.Builder
 			stdin := strings.NewReader("")
 
-			code := realMain([]string{"completion", shell}, stdin, &stdout, &stderr)
+			code := realMain([]string{"completion", shell}, stdin, &stdout, &stderr, noopTUI)
 
 			if code != 0 {
 				t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
@@ -965,7 +962,7 @@ func TestCompletionCommandInvalidShell(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"completion", "invalid"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"completion", "invalid"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 1 {
 		t.Errorf("expected exit code 1, got %d", code)
@@ -996,7 +993,7 @@ Test content {>> a comment <<} {?? a question ??}`
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"session", "list"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"session", "list"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
@@ -1031,7 +1028,7 @@ Test content {>> a comment <<}`
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"session", "list", "--json"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"session", "list", "--json"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
@@ -1066,7 +1063,7 @@ func TestSessionListEmptyShowsHelpfulMessage(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"session", "list"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"session", "list"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d", code)
@@ -1096,7 +1093,7 @@ func TestSessionExportToStdout(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"session", "export", sess.ID}, stdin, &stdout, &stderr)
+	code := realMain([]string{"session", "export", sess.ID}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
@@ -1125,7 +1122,7 @@ func TestSessionExportToFile(t *testing.T) {
 	stdin := strings.NewReader("")
 
 	outputFile := filepath.Join(tmpDir, "review.fem")
-	code := realMain([]string{"session", "export", sess.ID, "--output", outputFile}, stdin, &stdout, &stderr)
+	code := realMain([]string{"session", "export", sess.ID, "--output", outputFile}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
@@ -1152,7 +1149,7 @@ func TestSessionExportNonexistent(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"session", "export", "nonexistent"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"session", "export", "nonexistent"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 1 {
 		t.Errorf("expected exit code 1, got %d", code)
@@ -1178,7 +1175,7 @@ func TestSessionCleanDryRun(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"session", "clean", "--older-than", "7d", "--dry-run"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"session", "clean", "--older-than", "7d", "--dry-run"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
@@ -1217,7 +1214,7 @@ func TestSessionCleanWithForce(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"session", "clean", "--older-than", "7d", "--force"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"session", "clean", "--older-than", "7d", "--force"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
@@ -1245,7 +1242,7 @@ func TestSessionCleanSafetyLimit(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"session", "clean", "--older-than", "0d"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"session", "clean", "--older-than", "0d"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 1 {
 		t.Errorf("expected exit code 1, got %d", code)
@@ -1266,7 +1263,7 @@ func TestSessionCleanNoMatches(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"session", "clean", "--older-than", "7d", "--force"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"session", "clean", "--older-than", "7d", "--force"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
@@ -1291,7 +1288,7 @@ func TestSessionDeleteWithForce(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"session", "delete", sess.ID, "--force"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"session", "delete", sess.ID, "--force"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
@@ -1320,7 +1317,7 @@ func TestSessionDeleteNonexistent(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"session", "delete", "nonexistent", "--force"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"session", "delete", "nonexistent", "--force"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 1 {
 		t.Errorf("expected exit code 1, got %d", code)
@@ -1341,7 +1338,7 @@ func TestSessionDeleteWithConfirmation(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("y\n")
 
-	code := realMain([]string{"session", "delete", sess.ID}, stdin, &stdout, &stderr)
+	code := realMain([]string{"session", "delete", sess.ID}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
@@ -1368,7 +1365,7 @@ func TestSessionDeleteAborted(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("n\n")
 
-	code := realMain([]string{"session", "delete", sess.ID}, stdin, &stdout, &stderr)
+	code := realMain([]string{"session", "delete", sess.ID}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
@@ -1397,7 +1394,7 @@ func TestSessionResumeNonexistent(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"session", "resume", "nonexistent"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"session", "resume", "nonexistent"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 1 {
 		t.Errorf("expected exit code 1, got %d", code)
@@ -1411,7 +1408,6 @@ func TestSessionResumeWithEditor(t *testing.T) {
 	defer os.Chdir(origDir)
 
 	config.Init()
-	t.Setenv("FABBRO_NO_TUI", "1")
 	// Use 'true' as editor — it's a no-op command that exits 0
 	t.Setenv("EDITOR", "true")
 
@@ -1420,7 +1416,7 @@ func TestSessionResumeWithEditor(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"session", "resume", sess.ID, "--editor"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"session", "resume", sess.ID, "--editor"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
@@ -1447,7 +1443,7 @@ func TestSessionResumeWithEditorNoEditorSet(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"session", "resume", sess.ID, "--editor"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"session", "resume", sess.ID, "--editor"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 1 {
 		t.Errorf("expected exit code 1, got %d", code)
@@ -1477,7 +1473,7 @@ Test content {>> a comment <<} {?? a question ??} {-- remove this --}`
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"session", "show", sess.ID}, stdin, &stdout, &stderr)
+	code := realMain([]string{"session", "show", sess.ID}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
@@ -1521,7 +1517,7 @@ func TestSessionShowNonexistent(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"session", "show", "nonexistent"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"session", "show", "nonexistent"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 1 {
 		t.Errorf("expected exit code 1, got %d", code)
@@ -1550,7 +1546,7 @@ Test content`
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"session", "show", sess.ID}, stdin, &stdout, &stderr)
+	code := realMain([]string{"session", "show", sess.ID}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
@@ -1566,7 +1562,7 @@ func TestPrimeCommand(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"prime"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"prime"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
@@ -1595,7 +1591,7 @@ func TestPrimeCommandJSON(t *testing.T) {
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
-	code := realMain([]string{"prime", "--json"}, stdin, &stdout, &stderr)
+	code := realMain([]string{"prime", "--json"}, stdin, &stdout, &stderr, noopTUI)
 
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())

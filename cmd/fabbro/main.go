@@ -24,17 +24,21 @@ var version = "dev"
 
 const maxInputBytes = 10 * 1024 * 1024 // 10MB
 
-// noTUI returns true if FABBRO_NO_TUI=1 is set (for testing)
-func noTUI() bool {
-	return os.Getenv("FABBRO_NO_TUI") == "1"
+// TUIRunner launches the TUI with the given model. Production code uses
+// runTUI; tests inject a no-op to skip the interactive UI.
+type TUIRunner func(model tea.Model) error
+
+func runTUI(model tea.Model) error {
+	_, err := tea.NewProgram(model).Run()
+	return err
 }
 
 func main() {
-	os.Exit(realMain(os.Args[1:], os.Stdin, os.Stdout, os.Stderr))
+	os.Exit(realMain(os.Args[1:], os.Stdin, os.Stdout, os.Stderr, runTUI))
 }
 
-func realMain(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
-	rootCmd := buildRootCmd(stdin, stdout)
+func realMain(args []string, stdin io.Reader, stdout, stderr io.Writer, tui TUIRunner) int {
+	rootCmd := buildRootCmd(stdin, stdout, tui)
 	rootCmd.SetArgs(args)
 	rootCmd.SetOut(stdout)
 	rootCmd.SetErr(stderr)
@@ -45,7 +49,7 @@ func realMain(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	return 0
 }
 
-func buildRootCmd(stdin io.Reader, stdout io.Writer) *cobra.Command {
+func buildRootCmd(stdin io.Reader, stdout io.Writer, tuiRun TUIRunner) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   "fabbro",
 		Short: "A code review annotation tool",
@@ -57,11 +61,11 @@ A code review annotation tool with a terminal UI.`,
 	}
 
 	rootCmd.AddCommand(buildInitCmd(stdout))
-	rootCmd.AddCommand(buildReviewCmd(stdin, stdout))
+	rootCmd.AddCommand(buildReviewCmd(stdin, stdout, tuiRun))
 	rootCmd.AddCommand(buildApplyCmd(stdout))
-	rootCmd.AddCommand(buildSessionCmd(stdin, stdout))
+	rootCmd.AddCommand(buildSessionCmd(stdin, stdout, tuiRun))
 	rootCmd.AddCommand(buildCompletionCmd())
-	rootCmd.AddCommand(buildTutorCmd(stdout))
+	rootCmd.AddCommand(buildTutorCmd(stdout, tuiRun))
 	rootCmd.AddCommand(buildPrimeCmd(stdout))
 
 	return rootCmd
@@ -138,7 +142,7 @@ Post-conditions:
 	}
 }
 
-func buildReviewCmd(stdin io.Reader, stdout io.Writer) *cobra.Command {
+func buildReviewCmd(stdin io.Reader, stdout io.Writer, tuiRun TUIRunner) *cobra.Command {
 	var stdinFlag bool
 	var jsonFlag bool
 	var idFlag string
@@ -253,13 +257,8 @@ Post-conditions:
 				return editorCmd.Run()
 			}
 
-			if noTUI() {
-				return nil
-			}
-
 			model := tui.NewWithFile(sess, sourceFile)
-			p := tea.NewProgram(model)
-			if _, err := p.Run(); err != nil {
+			if err := tuiRun(model); err != nil {
 				return fmt.Errorf("TUI error: %w", err)
 			}
 
@@ -381,7 +380,7 @@ Post-conditions:
 	return cmd
 }
 
-func buildSessionCmd(stdin io.Reader, stdout io.Writer) *cobra.Command {
+func buildSessionCmd(stdin io.Reader, stdout io.Writer, tuiRun TUIRunner) *cobra.Command {
 	sessionCmd := &cobra.Command{
 		Use:   "session",
 		Short: "Manage editing sessions",
@@ -393,7 +392,7 @@ Each session is identified by a unique ID and stored in .fabbro/sessions/.`,
 
 	sessionCmd.AddCommand(buildSessionListCmd(stdout))
 	sessionCmd.AddCommand(buildSessionShowCmd(stdout))
-	sessionCmd.AddCommand(buildSessionResumeCmd(stdout))
+	sessionCmd.AddCommand(buildSessionResumeCmd(stdout, tuiRun))
 	sessionCmd.AddCommand(buildSessionDeleteCmd(stdin, stdout))
 	sessionCmd.AddCommand(buildSessionCleanCmd(stdin, stdout))
 	sessionCmd.AddCommand(buildSessionExportCmd(stdout))
@@ -766,7 +765,7 @@ Post-conditions:
 	return cmd
 }
 
-func buildSessionResumeCmd(stdout io.Writer) *cobra.Command {
+func buildSessionResumeCmd(stdout io.Writer, tuiRun TUIRunner) *cobra.Command {
 	var editorFlag bool
 	cmd := &cobra.Command{
 		Use:   "resume <session-id>",
@@ -834,13 +833,8 @@ Post-conditions:
 
 			fmt.Fprintf(stdout, "Resuming session: %s\n", sess.ID)
 
-			if noTUI() {
-				return nil
-			}
-
 			model := tui.NewWithAnnotations(sess, sess.SourceFile, annotations)
-			p := tea.NewProgram(model)
-			if _, err := p.Run(); err != nil {
+			if err := tuiRun(model); err != nil {
 				return fmt.Errorf("TUI error: %w", err)
 			}
 
@@ -851,7 +845,7 @@ Post-conditions:
 	return cmd
 }
 
-func buildTutorCmd(stdout io.Writer) *cobra.Command {
+func buildTutorCmd(stdout io.Writer, tuiRun TUIRunner) *cobra.Command {
 	return &cobra.Command{
 		Use:   "tutor",
 		Short: "Start the interactive tutorial",
@@ -872,13 +866,8 @@ Your practice session is temporary and won't be saved.`,
 			fmt.Fprintln(stdout, "Welcome to the fabbro tutor!")
 			fmt.Fprintln(stdout, "")
 
-			if noTUI() {
-				return nil
-			}
-
 			model := tui.NewWithFile(sess, "(tutorial)")
-			p := tea.NewProgram(model)
-			if _, err := p.Run(); err != nil {
+			if err := tuiRun(model); err != nil {
 				return fmt.Errorf("TUI error: %w", err)
 			}
 
