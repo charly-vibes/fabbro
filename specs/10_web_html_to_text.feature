@@ -13,14 +13,14 @@ Feature: Web HTML-to-Text Fallback
 
   # --- Content-Type detection ---
 
-  @planned
+  @implemented
   Scenario: Markdown response is used as-is
     Given the URL returns Content-Type "text/markdown"
     When the content is fetched
     Then the raw response text should be used without conversion
     And the content type should be reported as "text/markdown"
 
-  @planned
+  @implemented
   Scenario: HTML response is converted to plain text
     Given the URL returns Content-Type "text/html"
     And the response body contains "<h1>Title</h1><p>Hello world</p>"
@@ -29,7 +29,7 @@ Feature: Web HTML-to-Text Fallback
     And no HTML tags should appear in the content
     And the content type should be reported as "text/html"
 
-  @planned
+  @implemented
   Scenario: Plain text response is used as-is
     Given the URL returns Content-Type "text/plain"
     When the content is fetched
@@ -37,14 +37,14 @@ Feature: Web HTML-to-Text Fallback
 
   # --- Non-content element stripping ---
 
-  @planned
+  @implemented
   Scenario: Script and style elements are removed
     Given the URL returns HTML containing script and style tags
     When the content is fetched
     Then no JavaScript code should appear in the content
     And no CSS rules should appear in the content
 
-  @planned
+  @implemented
   Scenario: Navigation and footer elements are removed
     Given the URL returns HTML with nav, header, and footer elements
     When the content is fetched
@@ -53,20 +53,20 @@ Feature: Web HTML-to-Text Fallback
 
   # --- Content extraction priority ---
 
-  @planned
+  @implemented
   Scenario: Article element content is preferred
     Given the URL returns HTML with a nav and an article element
     When the content is fetched
     Then the content should come from the article element
     And navigation text should not appear
 
-  @planned
+  @implemented
   Scenario: Main element content is preferred when no article exists
     Given the URL returns HTML with a main element but no article
     When the content is fetched
     Then the content should come from the main element
 
-  @planned
+  @implemented
   Scenario: Body content is used as fallback
     Given the URL returns HTML with no article or main element
     When the content is fetched
@@ -75,13 +75,13 @@ Feature: Web HTML-to-Text Fallback
 
   # --- Response metadata ---
 
-  @planned
+  @implemented
   Scenario: Markdown token count is surfaced when available
     Given the URL returns a response with header "x-markdown-tokens: 3150"
     When the content is fetched
     Then the result should include a markdown token count of 3150
 
-  @planned
+  @implemented
   Scenario: Missing token count header returns null
     Given the URL returns a response without the x-markdown-tokens header
     When the content is fetched
@@ -89,7 +89,7 @@ Feature: Web HTML-to-Text Fallback
 
   # --- No regression ---
 
-  @planned
+  @implemented
   Scenario: GitHub URLs still use the GitHub API
     Given I enter a GitHub file URL
     When the content is fetched
