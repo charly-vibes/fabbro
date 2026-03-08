@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Fetch / HTML-to-Text Tests</title>
+  <style>
+    body { font-family: monospace; padding: 1rem; }
+    .pass { color: green; }
+    .fail { color: red; }
+    .summary { margin-top: 1rem; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>Fetch / HTML-to-Text Tests</h1>
+  <div id="results"></div>
+  <script type="module">
+    import { htmlToText } from './fetch.js';
+
+    const results = document.getElementById('results');
+    let passed = 0;
+    let failed = 0;
+
+    function assert(condition, name, detail) {
+      const el = document.createElement('div');
+      if (condition) {
+        passed++;
+        el.className = 'pass';
+        el.textContent = `✓ ${name}`;
+      } else {
+        failed++;
+        el.className = 'fail';
+        el.textContent = `✗ ${name}` + (detail ? ` — ${detail}` : '');
+      }
+      results.appendChild(el);
+    }
+
+    function fmt(v) { return JSON.stringify(v); }
+
+    // --- Content-Type detection (htmlToText unit tests) ---
+
+    // 1. Simple HTML conversion
+    {
+      const result = htmlToText('<h1>Title</h1><p>Hello world</p>');
+      assert(result.includes('Title'), '1. contains "Title"', `got ${fmt(result)}`);
+      assert(result.includes('Hello world'), '1. contains "Hello world"', `got ${fmt(result)}`);
+      assert(!result.includes('<'), '1. no HTML tags', `got ${fmt(result)}`);
+    }
+
+    // 2. Script and style elements are removed
+    {
+      const html = '<p>visible</p><script>alert("xss")</script><style>.x{color:red}</style>';
+      const result = htmlToText(html);
+      assert(result.includes('visible'), '2. keeps visible text', `got ${fmt(result)}`);
+      assert(!result.includes('alert'), '2. no script content', `got ${fmt(result)}`);
+      assert(!result.includes('color'), '2. no style content', `got ${fmt(result)}`);
+    }
+
+    // 3. Nav, header, footer elements are removed
+    {
+      const html = '<nav>Menu Link</nav><main><p>Main content</p></main><footer>Footer info</footer>';
+      const result = htmlToText(html);
+      assert(result.includes('Main content'), '3. keeps main content', `got ${fmt(result)}`);
+      assert(!result.includes('Menu Link'), '3. no nav text', `got ${fmt(result)}`);
+      assert(!result.includes('Footer info'), '3. no footer text', `got ${fmt(result)}`);
+    }
+
+    // 4. Article element is preferred
+    {
+      const html = '<nav>Nav text</nav><article><p>Article content</p></article><aside>Sidebar</aside>';
+      const result = htmlToText(html);
+      assert(result.includes('Article content'), '4. article content present', `got ${fmt(result)}`);
+      assert(!result.includes('Nav text'), '4. no nav text', `got ${fmt(result)}`);
+      assert(!result.includes('Sidebar'), '4. no aside text (outside article)', `got ${fmt(result)}`);
+    }
+
+    // 5. Main element used when no article
+    {
+      const html = '<div>Outside</div><main><p>Main content here</p></main>';
+      const result = htmlToText(html);
+      assert(result.includes('Main content here'), '5. main content present', `got ${fmt(result)}`);
+      assert(!result.includes('Outside'), '5. no outside text', `got ${fmt(result)}`);
+    }
+
+    // 6. Body fallback when no article or main
+    {
+      const html = '<div><p>Body content</p></div>';
+      const result = htmlToText(html);
+      assert(result.includes('Body content'), '6. body fallback works', `got ${fmt(result)}`);
+    }
+
+    // 7. Noscript elements are removed
+    {
+      const html = '<p>visible</p><noscript>Enable JavaScript</noscript>';
+      const result = htmlToText(html);
+      assert(!result.includes('Enable JavaScript'), '7. no noscript content', `got ${fmt(result)}`);
+    }
+
+    // 8. Whitespace is collapsed
+    {
+      const html = '<p>word1    word2</p>\n\n\n\n<p>word3</p>';
+      const result = htmlToText(html);
+      assert(!result.includes('    '), '8. no runs of spaces', `got ${fmt(result)}`);
+      assert(!result.includes('\n\n\n'), '8. no triple newlines', `got ${fmt(result)}`);
+    }
+
+    // 9. Header inside article is kept (only top-level header stripped)
+    {
+      const html = '<header>Site header</header><article><header><h1>Article Title</h1></header><p>Body</p></article>';
+      const result = htmlToText(html);
+      assert(result.includes('Article Title'), '9. article header kept', `got ${fmt(result)}`);
+      assert(!result.includes('Site header'), '9. site header stripped', `got ${fmt(result)}`);
+    }
+
+    // 10. Plain text passthrough (no HTML)
+    {
+      const result = htmlToText('Just plain text, no tags.');
+      assert(result.includes('Just plain text'), '10. plain text passes through', `got ${fmt(result)}`);
+    }
+
+    // Summary
+    const summary = document.createElement('div');
+    summary.className = 'summary ' + (failed === 0 ? 'pass' : 'fail');
+    summary.textContent = `${passed} passed, ${failed} failed, ${passed + failed} total`;
+    results.appendChild(summary);
+  </script>
+</body>
+</html>

@@ -1,3 +1,16 @@
+export function htmlToText(html) {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+
+  for (const el of doc.querySelectorAll("script, style, nav, footer, header, noscript")) {
+    el.remove();
+  }
+
+  const root = doc.querySelector("article") || doc.querySelector("main") || doc.body;
+  if (!root) return html;
+
+  return root.textContent.replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+}
+
 function parseGitHubUrl(url) {
   const match = url.match(
     /^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/([^/]+)\/(.+)/
@@ -54,7 +67,14 @@ async function fetchMarkdown(url) {
     throw new Error(`Could not fetch URL: ${res.status}`);
   }
 
-  return res.text();
+  const contentType = (res.headers.get("Content-Type") || "").split(";")[0].trim();
+  const tokensHeader = res.headers.get("x-markdown-tokens");
+  const markdownTokens = tokensHeader ? parseInt(tokensHeader, 10) : null;
+  const raw = await res.text();
+
+  const content = contentType === "text/html" ? htmlToText(raw) : raw;
+
+  return { content, contentType, markdownTokens };
 }
 
 export async function fetchContent(url) {
@@ -69,9 +89,11 @@ export async function fetchContent(url) {
     };
   }
 
-  const content = await fetchMarkdown(url);
+  const result = await fetchMarkdown(url);
   return {
-    content,
+    content: result.content,
+    contentType: result.contentType,
+    markdownTokens: result.markdownTokens,
     source: url,
     filename: new URL(url).pathname.split("/").pop() || "untitled",
   };
