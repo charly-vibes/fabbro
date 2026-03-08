@@ -71,7 +71,8 @@ async function renderLanding() {
       <textarea id="paste-input" placeholder="Paste text directly"></textarea>
       <button id="paste-btn">Start review</button>
       <div class="divider">— or —</div>
-      <div class="drop-zone" id="drop-zone">Drop a .md, .txt, .docx, .fem, or code file here</div>
+      <div class="drop-zone" id="drop-zone">Drop a .md, .txt, .docx, .fem, or code file here — or tap to upload</div>
+      <input type="file" id="file-input" accept=".md,.txt,.docx,.fem,.go,.py,.js,.ts,.rs,.rb,.java,.c,.h,.cpp,.hpp,.css,.html,.json,.yaml,.yml,.toml,.xml,.sh,.bash,.zsh,.fish,.sql,.lua,.ex,.exs,.zig,.nim,.kt,.swift,.r" hidden>
       <div id="error" class="error"></div>
       ${recent.length > 0 ? `
         <div class="divider">— recent sessions —</div>
@@ -164,6 +165,7 @@ async function renderLanding() {
   });
 
   const dropZone = document.getElementById('drop-zone');
+  const fileInput = document.getElementById('file-input');
   const acceptedExts = new Set([
     '.md', '.txt', '.docx', '.fem', '.go', '.py', '.js', '.ts', '.rs', '.rb', '.java',
     '.c', '.h', '.cpp', '.hpp', '.css', '.html', '.json', '.yaml', '.yml',
@@ -171,26 +173,7 @@ async function renderLanding() {
     '.ex', '.exs', '.zig', '.nim', '.kt', '.swift', '.r',
   ]);
 
-  dropZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropZone.classList.add('drop-zone--active');
-  });
-
-  dropZone.addEventListener('dragenter', (e) => {
-    e.preventDefault();
-    dropZone.classList.add('drop-zone--active');
-  });
-
-  dropZone.addEventListener('dragleave', () => {
-    dropZone.classList.remove('drop-zone--active');
-  });
-
-  dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropZone.classList.remove('drop-zone--active');
-    const file = e.dataTransfer.files[0];
-    if (!file) return;
-
+  function handleFile(file) {
     const name = file.name;
     const dotIdx = name.lastIndexOf('.');
     const ext = dotIdx >= 0 ? name.slice(dotIdx).toLowerCase() : '';
@@ -258,6 +241,37 @@ async function renderLanding() {
       }
     };
     reader.readAsText(file);
+  }
+
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('drop-zone--active');
+  });
+
+  dropZone.addEventListener('dragenter', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('drop-zone--active');
+  });
+
+  dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('drop-zone--active');
+  });
+
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('drop-zone--active');
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  });
+
+  dropZone.addEventListener('click', () => {
+    fileInput.click();
+  });
+
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files[0];
+    if (file) handleFile(file);
+    fileInput.value = '';
   });
 }
 
