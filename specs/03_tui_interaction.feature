@@ -248,7 +248,7 @@ Feature: TUI Interaction
     When I select one and press Enter
     Then the editor should open with that annotation's text
 
-  @planned
+  @implemented
   Scenario: Editing annotation range
     Given I have added a comment annotation on lines 42-45
     And the cursor is on line 42
