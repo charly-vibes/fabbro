@@ -9,14 +9,14 @@ Feature: Web Incremental Search
 
   # --- Opening / Closing Search ---
 
-  @planned
+  @implemented
   Scenario: Open search bar with / key
     Given I am in the editor view with the viewer focused
     When I press "/"
     Then a search bar should appear at the top of the viewer
     And focus should move to the search input
 
-  @planned
+  @implemented
   Scenario: Dismiss search with Escape
     Given the search bar is open
     When I press "Escape"
@@ -24,7 +24,7 @@ Feature: Web Incremental Search
     And all search highlights should be removed
     And focus should return to the viewer
 
-  @planned
+  @implemented
   Scenario: Confirm search with Enter
     Given the search bar is open with matches
     When I press "Enter"
@@ -33,7 +33,7 @@ Feature: Web Incremental Search
     And n/N navigation should still work
     And focus should return to the viewer
 
-  @planned
+  @implemented
   Scenario: / key is ignored when typing in textarea or input
     Given I am editing an annotation in a textarea
     When I press "/"
@@ -42,27 +42,27 @@ Feature: Web Incremental Search
 
   # --- Incremental Highlighting ---
 
-  @planned
+  @implemented
   Scenario: Matches highlight as the user types
     Given the search bar is open
     When I type "func"
     Then all occurrences of "func" in the document should be highlighted
     And the highlights should use a distinct search-match style
 
-  @planned
+  @implemented
   Scenario: Highlights update incrementally
     Given the search bar is open and I have typed "fun"
     When I type "c" to make "func"
     Then the highlights should update to show only "func" matches
 
-  @planned
+  @implemented
   Scenario: No matches found
     Given the search bar is open
     When I type "xyznonexistent"
     Then no highlights should appear
     And the match counter should display "0/0"
 
-  @planned
+  @implemented
   Scenario: Search is case-insensitive
     Given the document contains "Hello" and "hello"
     When I search for "hello"
@@ -70,13 +70,13 @@ Feature: Web Incremental Search
 
   # --- Match Counter ---
 
-  @planned
+  @implemented
   Scenario: Match counter shows current position
     Given the search bar is open and there are 12 matches for "the"
     When the first match is active
     Then the match counter should display "1/12"
 
-  @planned
+  @implemented
   Scenario: Counter updates on navigation
     Given the match counter shows "1/12"
     When I press "n" or the down-arrow in the search bar
@@ -84,33 +84,33 @@ Feature: Web Incremental Search
 
   # --- Match Navigation ---
 
-  @planned
+  @implemented
   Scenario: Navigate to next match with n
     Given the search bar is closed but matches were found
     When I press "n" in the viewer
     Then the viewer should scroll to the next match
     And the current match should be visually distinct
 
-  @planned
+  @implemented
   Scenario: Navigate to previous match with N
     Given the current match is 5/12
     When I press "N" (Shift+n) in the viewer
     Then the current match should become 4/12
     And the viewer should scroll to it
 
-  @planned
+  @implemented
   Scenario: Navigation wraps around at end
     Given the current match is 12/12
     When I press "n"
     Then the current match should wrap to 1/12
 
-  @planned
+  @implemented
   Scenario: Navigation wraps around at beginning
     Given the current match is 1/12
     When I press "N"
     Then the current match should wrap to 12/12
 
-  @planned
+  @implemented
   Scenario: First match is scrolled to when search begins
     Given the search bar is open
     When I type a query that has matches
