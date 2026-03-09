@@ -11,14 +11,14 @@ Feature: Web DOCX File Upload
 
   # --- Drag and drop ---
 
-  @planned
+  @implemented
   Scenario: Dropping a .docx file starts a review session
     When I drop a file named "report.docx" onto the drop zone
     Then the text content should be extracted from the .docx file
     And a new review session should start with the extracted text
     And the filename should show "report.docx"
 
-  @planned
+  @implemented
   Scenario: Extracted text preserves paragraph structure
     Given I have a .docx file with multiple paragraphs and headings
     When I drop the file onto the drop zone
@@ -28,25 +28,25 @@ Feature: Web DOCX File Upload
 
   # --- Drop zone label ---
 
-  @planned
+  @implemented
   Scenario: Drop zone label includes .docx
     Then the drop zone should mention ".docx" as a supported format
 
   # --- Error handling ---
 
-  @planned
+  @implemented
   Scenario: Handling a corrupt .docx file
     When I drop a corrupt or invalid .docx file onto the drop zone
     Then an error message should say "Could not read .docx file. The file may be corrupt."
     And I should remain on the landing page
 
-  @planned
+  @implemented
   Scenario: Handling an empty .docx file
     When I drop a .docx file that contains no text
     Then an error message should say "This document appears to be empty."
     And I should remain on the landing page
 
-  @planned
+  @implemented
   Scenario: Rejecting .doc (legacy Word) files
     When I drop a file named "legacy.doc" onto the drop zone
     Then an error message should say "Legacy .doc files are not supported. Please save as .docx."
