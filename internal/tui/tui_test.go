@@ -3697,6 +3697,146 @@ func TestAnnotationsPanel_SortedByLine(t *testing.T) {
 	}
 }
 
+// --- Edit Annotation Range Tests ---
+
+func TestEditAnnotationRange_RActivatesSelection(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3\nline4\nline5")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	// Add annotation on lines 2-4 (1-indexed)
+	m.annotations = append(m.annotations, fem.Annotation{
+		StartLine: 2, EndLine: 4, Type: "comment", Text: "test comment",
+	})
+
+	// Move cursor to line 2 (0-indexed: 1)
+	m = sendKey(m, 'j')
+	if m.cursor != 1 {
+		t.Fatalf("expected cursor at 1, got %d", m.cursor)
+	}
+
+	// Press R to activate range editing
+	m = sendKey(m, 'R')
+
+	if !m.selection.active {
+		t.Fatal("expected selection to be active after R")
+	}
+	start, end := m.selection.lines()
+	if start != 1 || end != 3 {
+		t.Errorf("expected selection (1, 3) matching annotation range, got (%d, %d)", start, end)
+	}
+	if m.rangeEditAnnIndex < 0 {
+		t.Error("expected rangeEditAnnIndex to be set")
+	}
+}
+
+func TestEditAnnotationRange_EnterCommitsNewRange(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3\nline4\nline5")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	// Add annotation on lines 2-4 (1-indexed)
+	m.annotations = append(m.annotations, fem.Annotation{
+		StartLine: 2, EndLine: 4, Type: "comment", Text: "test comment",
+	})
+
+	// Move to line 2, press R
+	m = sendKey(m, 'j')
+	m = sendKey(m, 'R')
+
+	// Extend selection to line 5 (0-indexed: 4)
+	m = sendKey(m, 'j') // cursor now at 4 (0-indexed)
+
+	// Press Enter to commit
+	m = sendKeyEnter(m)
+
+	// Selection should be cleared
+	if m.selection.active {
+		t.Error("expected selection to be cleared after Enter")
+	}
+
+	// Annotation range should be updated to lines 2-5 (1-indexed)
+	if m.annotations[0].StartLine != 2 {
+		t.Errorf("expected StartLine 2, got %d", m.annotations[0].StartLine)
+	}
+	if m.annotations[0].EndLine != 5 {
+		t.Errorf("expected EndLine 5, got %d", m.annotations[0].EndLine)
+	}
+	if !m.dirty {
+		t.Error("expected dirty flag to be set")
+	}
+}
+
+func TestEditAnnotationRange_EscCancels(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3\nline4\nline5")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m.annotations = append(m.annotations, fem.Annotation{
+		StartLine: 2, EndLine: 4, Type: "comment", Text: "test comment",
+	})
+
+	m = sendKey(m, 'j')
+	m = sendKey(m, 'R')
+	m = sendKey(m, 'j') // extend
+
+	// Cancel with Esc
+	m = sendKeyEsc(m)
+
+	if m.selection.active {
+		t.Error("expected selection cleared after Esc")
+	}
+	// Annotation should remain unchanged
+	if m.annotations[0].EndLine != 4 {
+		t.Errorf("expected EndLine unchanged at 4, got %d", m.annotations[0].EndLine)
+	}
+	if m.rangeEditAnnIndex != -1 {
+		t.Errorf("expected rangeEditAnnIndex reset to -1, got %d", m.rangeEditAnnIndex)
+	}
+}
+
+func TestEditAnnotationRange_NoAnnotationShowsError(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	// No annotations, press R
+	m = sendKey(m, 'R')
+
+	if m.lastError != "No annotation on this line" {
+		t.Errorf("expected error message, got %q", m.lastError)
+	}
+	if m.selection.active {
+		t.Error("expected no selection")
+	}
+}
+
+func TestEditAnnotationRange_MultipleAnnotationsShowsPicker(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3\nline4")
+	m := New(sess)
+	m.width = 80
+	m.height = 20
+
+	m.annotations = append(m.annotations,
+		fem.Annotation{StartLine: 1, EndLine: 2, Type: "comment", Text: "first"},
+		fem.Annotation{StartLine: 1, EndLine: 3, Type: "question", Text: "second"},
+	)
+
+	// Press R on line 1 with multiple annotations
+	m = sendKey(m, 'R')
+
+	if m.mode != modePalette {
+		t.Errorf("expected modePalette for picker, got %d", m.mode)
+	}
+	if m.paletteKind != "rangePick" {
+		t.Errorf("expected paletteKind 'rangePick', got %q", m.paletteKind)
+	}
+}
+
 func TestTextObjectGrowBoundary(t *testing.T) {
 	sess := newTestSession("line0\nline1\nline2")
 	m := New(sess)

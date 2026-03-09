@@ -677,6 +677,12 @@ func (m Model) renderHelpPanel(width int) string {
 	writeRow("  i", "inline edit")
 	writeRow("", "")
 
+	// Editing section
+	writeRow("EDITING (no selection)", "")
+	writeRow("  e", "edit annotation text")
+	writeRow("  R", "edit annotation range")
+	writeRow("", "")
+
 	// General section
 	writeRow("GENERAL", "")
 	writeRow("  a", "annotations list")

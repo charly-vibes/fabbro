@@ -209,6 +209,7 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "esc":
 		m.selection = selection{}
 		m.search = searchState{}
+		m.rangeEditAnnIndex = -1
 
 	case "v":
 		if m.selection.active {
@@ -247,6 +248,21 @@ func (m Model) handleNormalMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "r":
 		if m.selection.active {
 			m.openInputMode("change")
+		}
+
+	case "R":
+		if !m.selection.active {
+			m.tryEditAnnotationRange()
+		}
+
+	case "enter":
+		if m.rangeEditAnnIndex >= 0 && m.selection.active {
+			start, end := m.selection.lines()
+			m.annotations[m.rangeEditAnnIndex].StartLine = start + 1
+			m.annotations[m.rangeEditAnnIndex].EndLine = end + 1
+			m.dirty = true
+			m.selection = selection{}
+			m.rangeEditAnnIndex = -1
 		}
 
 	case "i":
@@ -399,7 +415,7 @@ func (m *Model) cyclePreviewAnnotation(direction int) {
 }
 
 func (m Model) handlePaletteMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	if m.paletteKind == "annPick" {
+	if m.paletteKind == "annPick" || m.paletteKind == "rangePick" {
 		return m.handleAnnotationPicker(msg)
 	}
 
@@ -471,10 +487,16 @@ func (m Model) handleAnnotationPicker(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "enter":
 		if len(m.paletteItems) > 0 {
 			annIndex := m.paletteItems[m.paletteCursor]
+			kind := m.paletteKind
 			m.paletteKind = ""
 			m.paletteItems = nil
 			m.paletteCursor = 0
-			m.openEditorForAnnotation(annIndex)
+			if kind == "rangePick" {
+				m.mode = modeNormal
+				m.startRangeEdit(annIndex)
+			} else {
+				m.openEditorForAnnotation(annIndex)
+			}
 		}
 	case "esc":
 		m.mode = modeNormal
@@ -559,6 +581,37 @@ func (m *Model) tryEditAnnotation() {
 	m.paletteKind = "annPick"
 	m.paletteItems = indices
 	m.paletteCursor = 0
+}
+
+func (m *Model) tryEditAnnotationRange() {
+	cursorLine := m.cursor + 1
+	indices := m.annotationsOnLine(cursorLine)
+
+	if len(indices) == 0 {
+		m.lastError = "No annotation on this line"
+		return
+	}
+
+	if len(indices) == 1 {
+		m.startRangeEdit(indices[0])
+		return
+	}
+
+	m.mode = modePalette
+	m.paletteKind = "rangePick"
+	m.paletteItems = indices
+	m.paletteCursor = 0
+}
+
+func (m *Model) startRangeEdit(annIndex int) {
+	ann := m.annotations[annIndex]
+	m.selection = selection{
+		active: true,
+		anchor: ann.StartLine - 1,
+		cursor: ann.EndLine - 1,
+	}
+	m.cursor = ann.EndLine - 1
+	m.rangeEditAnnIndex = annIndex
 }
 
 func (m *Model) openEditorForAnnotation(annIndex int) {

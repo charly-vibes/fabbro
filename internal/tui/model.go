@@ -89,6 +89,7 @@ type Model struct {
 	previewLine       int          // line number (1-indexed) for which previewIndex is valid
 	version           string       // fabbro version for display in help
 	annotationsCursor int          // cursor position in annotations list view
+	rangeEditAnnIndex int          // index into annotations for range editing (-1 if not active)
 }
 
 func New(sess *session.Session) Model {
@@ -118,9 +119,10 @@ func NewWithAll(sess *session.Session, sourceFile string, annotations []fem.Anno
 		annotations:     annotations,
 		highlighter:     highlight.New(sourceFile, sess.Content),
 		sourceFile:      sourceFile,
-		viewportTop:     -1, // auto-follow cursor
-		autoViewportTop: 0,
-		version:         version,
+		viewportTop:       -1, // auto-follow cursor
+		autoViewportTop:   0,
+		version:           version,
+		rangeEditAnnIndex: -1,
 	}
 }
 
