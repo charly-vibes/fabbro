@@ -410,13 +410,18 @@ Feature: TUI Interaction
     When I press "Q" or "Ctrl+C"
     Then the TUI should exit immediately without saving
 
-  @planned
+  @implemented
   Scenario: Exiting with confirmation prompt
-    # Future: Add confirmation before discarding unsaved changes
     Given I have added annotations that are not saved
-    When I press "Ctrl+C"
+    When I press "Ctrl+C" twice
     Then a confirmation prompt should appear
-    And it should ask "Save changes before exiting? (y/n/cancel)"
+    And it should offer "[y]save & quit [n]discard & quit [Esc]cancel"
+    When I press "y"
+    Then the session should be saved and the TUI should exit
+    When I press "n"
+    Then the TUI should exit without saving
+    When I press "Esc"
+    Then the prompt should close and return to normal mode
 
   @implemented
   Scenario: Viewing help

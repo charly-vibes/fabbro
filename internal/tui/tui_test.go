@@ -217,6 +217,103 @@ func TestQuitConfirmShowsUnsavedWarning(t *testing.T) {
 	}
 }
 
+func TestQuitConfirmDirty_YSavesAndQuits(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	sess := &session.Session{
+		ID:        "quit-save-test",
+		Content:   "hello",
+		CreatedAt: time.Date(2026, 1, 11, 12, 0, 0, 0, time.UTC),
+	}
+	m := New(sess)
+	m.mode = modeQuitConfirm
+	m.dirty = true
+	m.annotations = []fem.Annotation{{StartLine: 1, EndLine: 1, Type: "comment", Text: "nice"}}
+	m.width = 80
+	m.height = 20
+
+	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'y'}})
+	if cmd == nil {
+		t.Error("expected quit command after 'y' with dirty, got nil")
+	}
+
+	// Verify the session file was saved
+	sessionsDir, _ := config.GetSessionsDir()
+	path := filepath.Join(sessionsDir, "quit-save-test.fem")
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		t.Error("expected session file to be saved, but it doesn't exist")
+	}
+}
+
+func TestQuitConfirmDirty_NDiscardsAndQuits(t *testing.T) {
+	sess := newTestSession("content")
+	m := New(sess)
+	m.mode = modeQuitConfirm
+	m.dirty = true
+
+	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'n'}})
+	if cmd == nil {
+		t.Error("expected quit command after 'n' with dirty, got nil")
+	}
+}
+
+func TestQuitConfirmDirty_EscCancels(t *testing.T) {
+	sess := newTestSession("content")
+	m := New(sess)
+	m.mode = modeQuitConfirm
+	m.dirty = true
+
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = newModel.(Model)
+	if m.mode != modeNormal {
+		t.Errorf("expected modeNormal after Esc, got %v", m.mode)
+	}
+}
+
+func TestQuitConfirmDirty_ViewShowsSaveOption(t *testing.T) {
+	sess := newTestSession("content")
+	m := New(sess)
+	m.mode = modeQuitConfirm
+	m.dirty = true
+	m.width = 80
+	m.height = 20
+
+	view := m.View()
+	if !strings.Contains(view, "y") || !strings.Contains(view, "n") {
+		t.Errorf("expected save/discard/cancel options in view, got:\n%s", view)
+	}
+}
+
+func TestQuitConfirmClean_YQuits(t *testing.T) {
+	sess := newTestSession("content")
+	m := New(sess)
+	m.mode = modeQuitConfirm
+	m.dirty = false
+
+	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'y'}})
+	if cmd == nil {
+		t.Error("expected quit command from 'y' in clean quit confirm, got nil")
+	}
+}
+
+func TestQuitConfirmClean_AnyOtherKeyCancels(t *testing.T) {
+	sess := newTestSession("content")
+	m := New(sess)
+	m.mode = modeQuitConfirm
+	m.dirty = false
+
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'x'}})
+	m = newModel.(Model)
+	if m.mode != modeNormal {
+		t.Errorf("expected modeNormal after cancel, got %v", m.mode)
+	}
+}
+
 func TestQKeyDoesNotQuit(t *testing.T) {
 	sess := newTestSession("content")
 	m := New(sess)

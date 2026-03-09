@@ -710,6 +710,23 @@ func (m Model) handleEditorMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleQuitConfirmMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.dirty {
+		switch msg.String() {
+		case "y", "Y":
+			if err := m.save(); err != nil {
+				m.lastError = fmt.Sprintf("Save failed: %s", err)
+				m.mode = modeNormal
+				return m, clearMessageAfter(2 * time.Second)
+			}
+			return m, tea.Quit
+		case "n", "N":
+			return m, tea.Quit
+		default:
+			m.mode = modeNormal
+			m.lastMessage = "Quit cancelled"
+			return m, clearMessageAfter(2 * time.Second)
+		}
+	}
 	switch msg.String() {
 	case "y", "Y":
 		return m, tea.Quit

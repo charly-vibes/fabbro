@@ -263,7 +263,7 @@ func (m Model) View() string {
 		}
 	case modeQuitConfirm:
 		if m.dirty {
-			b.WriteString("⚠ Unsaved changes! Quit anyway? [y/n] ")
+			b.WriteString("⚠ Unsaved changes! [y]save & quit [n]discard & quit [Esc]cancel ")
 		} else {
 			b.WriteString("Quit? [y/n] ")
 		}
