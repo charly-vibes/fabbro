@@ -14,7 +14,8 @@ export function show(rect, { onAnnotate }) {
   hide();
   toolbarEl = document.createElement('div');
   toolbarEl.className = 'toolbar';
-  toolbarEl.style.left = `${rect.left + rect.width / 2 - 75}px`;
+  const left = Math.max(8, Math.min(rect.left + rect.width / 2 - 75, window.innerWidth - 200));
+  toolbarEl.style.left = `${left}px`;
   toolbarEl.style.top = `${rect.top - 40 + window.scrollY}px`;
   toolbarEl.style.position = 'absolute';
 
