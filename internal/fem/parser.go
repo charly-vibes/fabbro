@@ -1,6 +1,7 @@
 package fem
 
 import (
+	"regexp"
 	"strings"
 )
 
@@ -11,25 +12,82 @@ type Annotation struct {
 	EndLine   int    `json:"endLine"`
 }
 
+// blockDeleteOpen matches a line that is only a block delete opener: {-- text --}
+var blockDeleteOpen = regexp.MustCompile(`^\s*\{--\s*(.*?)\s*--\}\s*$`)
+
+// blockDeleteClose matches a line that is only a block delete closer: {--/--}
+var blockDeleteClose = regexp.MustCompile(`^\s*\{--/--\}\s*$`)
+
 func Parse(content string) ([]Annotation, string, error) {
 	lines := strings.Split(content, "\n")
+
+	// Pre-pass: find block delete regions and mark lines to skip for inline parsing.
+	type blockDelete struct {
+		openLine  int    // 0-indexed
+		closeLine int    // 0-indexed
+		text      string // reason text from the opening marker
+	}
+	var blocks []blockDelete
+	skipLines := make(map[int]bool)
+
+	for i := 0; i < len(lines); i++ {
+		if m := blockDeleteOpen.FindStringSubmatch(lines[i]); m != nil {
+			// Look ahead for a matching {--/--}
+			for j := i + 1; j < len(lines); j++ {
+				if blockDeleteClose.MatchString(lines[j]) {
+					blocks = append(blocks, blockDelete{
+						openLine:  i,
+						closeLine: j,
+						text:      m[1],
+					})
+					skipLines[i] = true
+					skipLines[j] = true
+					i = j // advance past the block
+					break
+				}
+			}
+		}
+	}
+
 	var annotations []Annotation
+
+	// Emit block delete annotations first.
+	for _, b := range blocks {
+		text := b.text
+		// Strip "DELETE:" or "DELETE" prefix if present
+		text = strings.TrimPrefix(text, "DELETE:")
+		text = strings.TrimSpace(text)
+		if text == "" {
+			text = strings.TrimSpace(b.text)
+		}
+		startLine := b.openLine + 2 // first content line (1-indexed)
+		endLine := b.closeLine      // last content line (1-indexed, line before closer)
+		annotations = append(annotations, Annotation{
+			Type:      "delete",
+			Text:      text,
+			StartLine: startLine,
+			EndLine:   endLine,
+		})
+	}
+
+	// Inline pass: parse each non-skipped line for inline annotations.
 	var cleanLines []string
-
 	for i, line := range lines {
-		cleanLine := line
+		if skipLines[i] {
+			cleanLines = append(cleanLines, "")
+			continue
+		}
 
+		cleanLine := line
 		for _, at := range AnnotationTypes {
 			pattern := patterns[at.Name]
 			matches := pattern.FindAllStringSubmatch(line, -1)
 
 			for _, match := range matches {
 				if len(match) >= 2 {
-					// Skip annotations with nested markers (invalid syntax)
 					if containsNestedMarker(match[1]) {
 						continue
 					}
-					// Only remove from cleanLine if we're accepting this annotation
 					cleanLine = pattern.ReplaceAllString(cleanLine, "")
 					lineNum := i + 1
 					annotations = append(annotations, Annotation{
@@ -41,7 +99,6 @@ func Parse(content string) ([]Annotation, string, error) {
 				}
 			}
 		}
-
 		cleanLines = append(cleanLines, cleanLine)
 	}
 

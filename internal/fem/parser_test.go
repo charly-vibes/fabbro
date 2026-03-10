@@ -333,6 +333,116 @@ func TestParse_EmptyAnnotationText(t *testing.T) {
 	}
 }
 
+func TestParse_BlockDeleteWithReason(t *testing.T) {
+	content := `Keep this line.
+{-- DELETE: Too verbose --}
+Delete this line.
+And this line too.
+{--/--}
+Keep this line as well.`
+
+	annotations, clean, err := Parse(content)
+	if err != nil {
+		t.Fatalf("Parse() returned error: %v", err)
+	}
+
+	// Should find one block delete annotation
+	if len(annotations) != 1 {
+		t.Fatalf("expected 1 annotation, got %d", len(annotations))
+	}
+
+	ann := annotations[0]
+	if ann.Type != "delete" {
+		t.Errorf("expected type 'delete', got %q", ann.Type)
+	}
+	if ann.Text != "Too verbose" {
+		t.Errorf("expected text 'Too verbose', got %q", ann.Text)
+	}
+	if ann.StartLine != 3 {
+		t.Errorf("expected StartLine=3, got %d", ann.StartLine)
+	}
+	if ann.EndLine != 4 {
+		t.Errorf("expected EndLine=4, got %d", ann.EndLine)
+	}
+
+	// Clean content: opening marker line and closing marker line removed,
+	// content lines between them preserved
+	expected := `Keep this line.
+
+Delete this line.
+And this line too.
+
+Keep this line as well.`
+	if clean != expected {
+		t.Errorf("expected clean=\n%q\ngot\n%q", expected, clean)
+	}
+}
+
+func TestParse_BlockDeleteWithoutReason(t *testing.T) {
+	content := `Before.
+{-- DELETE --}
+Middle line.
+{--/--}
+After.`
+
+	annotations, _, err := Parse(content)
+	if err != nil {
+		t.Fatalf("Parse() returned error: %v", err)
+	}
+
+	if len(annotations) != 1 {
+		t.Fatalf("expected 1 annotation, got %d", len(annotations))
+	}
+
+	ann := annotations[0]
+	if ann.Type != "delete" {
+		t.Errorf("expected type 'delete', got %q", ann.Type)
+	}
+	if ann.Text != "DELETE" {
+		t.Errorf("expected text 'DELETE', got %q", ann.Text)
+	}
+	if ann.StartLine != 3 {
+		t.Errorf("expected StartLine=3, got %d", ann.StartLine)
+	}
+	if ann.EndLine != 3 {
+		t.Errorf("expected EndLine=3, got %d", ann.EndLine)
+	}
+}
+
+func TestParse_BlockDeleteWithInlineAnnotations(t *testing.T) {
+	content := `Start.
+{-- DELETE: Remove this --}
+Line one.
+Line two. {>> also has a comment <<}
+{--/--}
+End.`
+
+	annotations, _, err := Parse(content)
+	if err != nil {
+		t.Fatalf("Parse() returned error: %v", err)
+	}
+
+	// Should find block delete + inline comment
+	if len(annotations) != 2 {
+		t.Fatalf("expected 2 annotations, got %d", len(annotations))
+	}
+
+	// Block delete should come first (processed in pre-pass)
+	if annotations[0].Type != "delete" {
+		t.Errorf("expected first annotation type 'delete', got %q", annotations[0].Type)
+	}
+	if annotations[0].StartLine != 3 {
+		t.Errorf("expected delete StartLine=3, got %d", annotations[0].StartLine)
+	}
+	if annotations[0].EndLine != 4 {
+		t.Errorf("expected delete EndLine=4, got %d", annotations[0].EndLine)
+	}
+
+	if annotations[1].Type != "comment" {
+		t.Errorf("expected second annotation type 'comment', got %q", annotations[1].Type)
+	}
+}
+
 func TestParse_WhitespaceOnlyAnnotation(t *testing.T) {
 	content := "text {>>   <<} with spaces"
 

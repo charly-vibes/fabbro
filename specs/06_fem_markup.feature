@@ -36,9 +36,8 @@ Feature: FEM Markup Language
 
   # --- Delete Annotation ---
 
-  @planned
+  @implemented
   Scenario: Block delete with reason
-    # Block markers {--/--} not implemented
     Given content with the following FEM markup:
       """
       Keep this line.
