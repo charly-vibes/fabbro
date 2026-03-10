@@ -28,7 +28,7 @@ Feature: Project Initialization
     And a message should indicate the project is already initialized
     And the command should exit with code 0
 
-  @planned
+  @implemented
   Scenario: Quiet initialization
     Given I am in a directory that has not been initialized
     When I run the command `fabbro init --quiet`
@@ -36,14 +36,14 @@ Feature: Project Initialization
     And no output should be printed to stdout
     And the command should exit with code 0
 
-  @planned
+  @implemented
   Scenario: Initializing in a subdirectory of an initialized project
     Given I am in a subdirectory of a project that has been initialized
     When I run the command `fabbro init`
     Then a new ".fabbro" directory should be created in the current subdirectory
     And a warning should indicate a parent directory is already initialized
 
-  @planned
+  @implemented
   Scenario: Initializing with agent integration scaffolding
     # Creates custom commands for various AI coding agents (Amp, Claude Code, Cursor)
     Given I am in a directory that has not been initialized

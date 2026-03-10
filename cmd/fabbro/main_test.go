@@ -178,6 +178,129 @@ func TestInitCommand(t *testing.T) {
 	}
 }
 
+func TestInitCommandQuiet(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	t.Setenv("FABBRO_PROJECT_ROOT_STOP", tmpDir)
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"init", "--quiet"}, stdin, &stdout, &stderr, noopTUI)
+
+	if code != 0 {
+		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
+	}
+	if stdout.String() != "" {
+		t.Errorf("expected no stdout output with --quiet, got %q", stdout.String())
+	}
+	// Verify it still initialized
+	if !config.IsInitialized() {
+		t.Error("expected fabbro to be initialized after init --quiet")
+	}
+}
+
+func TestInitCommandQuietAlreadyInitialized(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"init", "--quiet"}, stdin, &stdout, &stderr, noopTUI)
+
+	if code != 0 {
+		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
+	}
+	if stdout.String() != "" {
+		t.Errorf("expected no stdout output with --quiet, got %q", stdout.String())
+	}
+}
+
+func TestInitCommandWithAgents(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	t.Setenv("FABBRO_PROJECT_ROOT_STOP", tmpDir)
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"init", "--agents"}, stdin, &stdout, &stderr, noopTUI)
+
+	if code != 0 {
+		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
+	}
+
+	// Verify .fabbro/sessions was created
+	if !config.IsInitialized() {
+		t.Error("expected fabbro to be initialized")
+	}
+
+	// Verify .agents/commands/fabbro-review.md exists
+	agentsPath := filepath.Join(tmpDir, ".agents", "commands", "fabbro-review.md")
+	agentsContent, err := os.ReadFile(agentsPath)
+	if err != nil {
+		t.Fatalf("expected .agents/commands/fabbro-review.md to exist: %v", err)
+	}
+	if !strings.Contains(string(agentsContent), "fabbro") {
+		t.Error("expected .agents/commands/fabbro-review.md to contain fabbro workflow instructions")
+	}
+
+	// Verify .claude/commands/fabbro-review.md exists
+	claudePath := filepath.Join(tmpDir, ".claude", "commands", "fabbro-review.md")
+	claudeContent, err := os.ReadFile(claudePath)
+	if err != nil {
+		t.Fatalf("expected .claude/commands/fabbro-review.md to exist: %v", err)
+	}
+	if !strings.Contains(string(claudeContent), "fabbro") {
+		t.Error("expected .claude/commands/fabbro-review.md to contain fabbro workflow instructions")
+	}
+}
+
+func TestInitCommandSubdirectoryWarnsAboutParent(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	defer os.Chdir(origDir)
+
+	// Initialize in the parent directory
+	os.Chdir(tmpDir)
+	config.Init()
+
+	// Create and cd into a subdirectory
+	subDir := filepath.Join(tmpDir, "subproject")
+	os.MkdirAll(subDir, 0755)
+	os.Chdir(subDir)
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"init"}, stdin, &stdout, &stderr, noopTUI)
+
+	if code != 0 {
+		t.Errorf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
+	}
+
+	output := stdout.String()
+	// Should warn about parent
+	if !strings.Contains(output, "warning") && !strings.Contains(output, "Warning") {
+		t.Errorf("expected warning about parent initialization, got %q", output)
+	}
+	// Should still initialize in cwd
+	if _, err := os.Stat(filepath.Join(subDir, ".fabbro", "sessions")); err != nil {
+		t.Errorf("expected .fabbro/sessions to be created in subdirectory: %v", err)
+	}
+}
+
 func TestInitCommandAlreadyInitialized(t *testing.T) {
 	tmpDir := t.TempDir()
 	origDir, _ := os.Getwd()

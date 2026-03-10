@@ -110,8 +110,34 @@ PowerShell:
 	}
 }
 
+const agentCommandTemplate = `# fabbro review
+
+Start a fabbro code review session. Use this command to annotate code with
+FEM (Fabbro Editing Markup) for structured feedback.
+
+## Usage
+
+1. Run ` + "`fabbro review <file>`" + ` to open the TUI for a file
+2. Use ` + "`fabbro review --stdin`" + ` to review piped content
+3. Navigate with j/k, select with v, annotate with c or Space
+4. Save with w, quit with q
+5. Apply annotations with ` + "`fabbro apply <session-id>`" + `
+
+## FEM Annotation Types
+
+- ` + "`{>> text <<}`" + ` — comment
+- ` + "`{-- text --}`" + ` — delete
+- ` + "`{?? text ??}`" + ` — question
+- ` + "`{!! text !!}`" + ` — expand
+- ` + "`{== text ==}`" + ` — keep
+- ` + "`{~~ text ~~}`" + ` — unclear
+- ` + "`{++ text ++}`" + ` — change
+`
+
 func buildInitCmd(stdout io.Writer) *cobra.Command {
-	return &cobra.Command{
+	var quietFlag bool
+	var agentsFlag bool
+	cmd := &cobra.Command{
 		Use:   "init",
 		Short: "Initialize fabbro in the current directory",
 		Long: `Initialize fabbro in the current directory by creating a .fabbro/ folder.
@@ -129,17 +155,50 @@ Post-conditions:
   # Typical workflow after init
   fabbro init && fabbro review myfile.go`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if config.IsInitialized() {
-				fmt.Fprintln(stdout, "fabbro already initialized")
+			if config.IsInitializedHere() {
+				if !quietFlag {
+					fmt.Fprintln(stdout, "fabbro already initialized")
+				}
 				return nil
 			}
+
+			parentRoot, _ := config.FindProjectRoot()
+
 			if err := config.Init(); err != nil {
 				return fmt.Errorf("failed to initialize: %w", err)
 			}
-			fmt.Fprintln(stdout, "Initialized fabbro in .fabbro/")
+			if !quietFlag {
+				if parentRoot != "" {
+					fmt.Fprintf(stdout, "Warning: parent directory already initialized at %s\n", parentRoot)
+				}
+				fmt.Fprintln(stdout, "Initialized fabbro in .fabbro/")
+			}
+
+			if agentsFlag {
+				agentDirs := []string{
+					filepath.Join(".agents", "commands"),
+					filepath.Join(".claude", "commands"),
+				}
+				for _, dir := range agentDirs {
+					if err := os.MkdirAll(dir, 0755); err != nil {
+						return fmt.Errorf("failed to create %s: %w", dir, err)
+					}
+					dest := filepath.Join(dir, "fabbro-review.md")
+					if err := os.WriteFile(dest, []byte(agentCommandTemplate), 0644); err != nil {
+						return fmt.Errorf("failed to write %s: %w", dest, err)
+					}
+				}
+				if !quietFlag {
+					fmt.Fprintln(stdout, "Created agent command files in .agents/commands/ and .claude/commands/")
+				}
+			}
+
 			return nil
 		},
 	}
+	cmd.Flags().BoolVarP(&quietFlag, "quiet", "q", false, "Suppress output")
+	cmd.Flags().BoolVar(&agentsFlag, "agents", false, "Create agent integration scaffolding")
+	return cmd
 }
 
 func buildReviewCmd(stdin io.Reader, stdout io.Writer, tuiRun TUIRunner) *cobra.Command {
