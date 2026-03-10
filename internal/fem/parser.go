@@ -1,6 +1,7 @@
 package fem
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 )
@@ -99,6 +100,14 @@ func Parse(content string) ([]Annotation, string, error) {
 				}
 			}
 		}
+		// Check for unclosed opening markers on this line.
+		// After removing matched annotations, any remaining opener without its closer is unclosed.
+		for _, at := range AnnotationTypes {
+			if strings.Contains(cleanLine, at.Open) && !strings.Contains(cleanLine, at.Close) {
+				return nil, "", fmt.Errorf("unclosed %s marker on line %d", at.Open, i+1)
+			}
+		}
+
 		cleanLines = append(cleanLines, cleanLine)
 	}
 

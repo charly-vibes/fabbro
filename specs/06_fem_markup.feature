@@ -262,9 +262,8 @@ Feature: FEM Markup Language
     When the FEM is parsed
     Then the annotation text should be "Use {curly braces} in the output"
 
-  @planned
+  @implemented
   Scenario: Unclosed annotation marker
-    # No syntax error reporting
     Given content with the following FEM markup:
       """
       Content here. {>> This annotation is not closed

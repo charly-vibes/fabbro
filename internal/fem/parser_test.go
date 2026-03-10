@@ -1,6 +1,7 @@
 package fem
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -201,22 +202,50 @@ Third line {?? question ??}`
 
 // Edge case tests for parser limitations
 
-func TestParse_UnbalancedOpenMarkerIsPreserved(t *testing.T) {
-	content := "text with {>> unbalanced marker"
+func TestParse_UnclosedMarkerReturnsError(t *testing.T) {
+	content := "Content here. {>> This annotation is not closed"
 
-	annotations, clean, err := Parse(content)
-	if err != nil {
-		t.Fatalf("Parse() returned error: %v", err)
+	_, _, err := Parse(content)
+	if err == nil {
+		t.Fatal("expected error for unclosed marker, got nil")
 	}
 
-	// Should find no annotations (marker is not closed)
-	if len(annotations) != 0 {
-		t.Errorf("expected 0 annotations for unbalanced marker, got %d", len(annotations))
+	// Error should indicate the line number
+	errMsg := err.Error()
+	if !strings.Contains(errMsg, "line 1") {
+		t.Errorf("expected error to mention line 1, got %q", errMsg)
+	}
+	if !strings.Contains(errMsg, "unclosed") || !strings.Contains(errMsg, "{>>") {
+		t.Errorf("expected error to mention unclosed marker type, got %q", errMsg)
+	}
+}
+
+func TestParse_UnclosedMarkerOnLaterLine(t *testing.T) {
+	content := `Line one is fine.
+Line two is fine.
+Line three has {-- unclosed delete`
+
+	_, _, err := Parse(content)
+	if err == nil {
+		t.Fatal("expected error for unclosed marker, got nil")
 	}
 
-	// Unbalanced marker should remain in clean content
-	if clean != content {
-		t.Errorf("expected unbalanced marker preserved, got %q", clean)
+	if !strings.Contains(err.Error(), "line 3") {
+		t.Errorf("expected error to mention line 3, got %q", err.Error())
+	}
+}
+
+func TestParse_UnclosedMarkerWithValidAnnotations(t *testing.T) {
+	content := `Valid line {>> good comment <<}
+Bad line {?? unclosed question`
+
+	_, _, err := Parse(content)
+	if err == nil {
+		t.Fatal("expected error for unclosed marker, got nil")
+	}
+
+	if !strings.Contains(err.Error(), "line 2") {
+		t.Errorf("expected error to mention line 2, got %q", err.Error())
 	}
 }
 
