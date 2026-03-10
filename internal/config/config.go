@@ -43,6 +43,13 @@ func IsInitialized() bool {
 	return err == nil
 }
 
+// IsInitializedHere checks if the current working directory has a .fabbro dir
+// (as opposed to inheriting from a parent directory).
+func IsInitializedHere() bool {
+	info, err := os.Stat(SessionsDir)
+	return err == nil && info.IsDir()
+}
+
 func GetSessionsDir() (string, error) {
 	root, err := FindProjectRoot()
 	if err != nil {
