@@ -472,6 +472,71 @@ End.`
 	}
 }
 
+func TestParse_EscapedMarkupNotParsed(t *testing.T) {
+	content := `To add a comment, use the syntax \{>> comment <<\}`
+
+	annotations, clean, err := Parse(content)
+	if err != nil {
+		t.Fatalf("Parse() returned error: %v", err)
+	}
+
+	if len(annotations) != 0 {
+		t.Errorf("expected 0 annotations for escaped markup, got %d", len(annotations))
+	}
+
+	// Clean content should have backslashes removed, preserving literal markers
+	expected := `To add a comment, use the syntax {>> comment <<}`
+	if clean != expected {
+		t.Errorf("expected clean=%q, got %q", expected, clean)
+	}
+}
+
+func TestParse_EscapedAndRealAnnotationOnSameLine(t *testing.T) {
+	content := `Use \{>> like this <<\} for literal. {>> real comment <<}`
+
+	annotations, clean, err := Parse(content)
+	if err != nil {
+		t.Fatalf("Parse() returned error: %v", err)
+	}
+
+	if len(annotations) != 1 {
+		t.Fatalf("expected 1 annotation, got %d", len(annotations))
+	}
+
+	if annotations[0].Type != "comment" {
+		t.Errorf("expected type 'comment', got %q", annotations[0].Type)
+	}
+	if annotations[0].Text != "real comment" {
+		t.Errorf("expected text 'real comment', got %q", annotations[0].Text)
+	}
+
+	expected := `Use {>> like this <<} for literal. `
+	if clean != expected {
+		t.Errorf("expected clean=%q, got %q", expected, clean)
+	}
+}
+
+func TestParse_NestedBracesInAnnotationText(t *testing.T) {
+	content := `Code example. {>> Use {curly braces} in the output <<}`
+
+	annotations, clean, err := Parse(content)
+	if err != nil {
+		t.Fatalf("Parse() returned error: %v", err)
+	}
+
+	if len(annotations) != 1 {
+		t.Fatalf("expected 1 annotation, got %d", len(annotations))
+	}
+
+	if annotations[0].Text != "Use {curly braces} in the output" {
+		t.Errorf("expected text 'Use {curly braces} in the output', got %q", annotations[0].Text)
+	}
+
+	if clean != "Code example. " {
+		t.Errorf("expected clean='Code example. ', got %q", clean)
+	}
+}
+
 func TestParse_WhitespaceOnlyAnnotation(t *testing.T) {
 	content := "text {>>   <<} with spaces"
 

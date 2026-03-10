@@ -185,9 +185,8 @@ Feature: FEM Markup Language
 
   # --- Escaping FEM Syntax ---
 
-  @planned
+  @implemented
   Scenario: Escaped markup is not parsed
-    # Escaping not implemented
     Given content with the following FEM markup:
       """
       To add a comment, use the syntax \{>> comment <<\}
@@ -252,9 +251,8 @@ Feature: FEM Markup Language
     Then the annotation should have empty text
     And parsing should not fail
 
-  @planned
+  @implemented
   Scenario: Nested braces in annotation text
-    # Nested braces not handled correctly
     Given content with the following FEM markup:
       """
       Code example. {>> Use {curly braces} in the output <<}

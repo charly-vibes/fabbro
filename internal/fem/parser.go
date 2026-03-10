@@ -19,7 +19,15 @@ var blockDeleteOpen = regexp.MustCompile(`^\s*\{--\s*(.*?)\s*--\}\s*$`)
 // blockDeleteClose matches a line that is only a block delete closer: {--/--}
 var blockDeleteClose = regexp.MustCompile(`^\s*\{--/--\}\s*$`)
 
+// Sentinels for escaped braces during parsing.
+const escapeOpenBrace = "\x00ESC_OPEN\x00"
+const escapeCloseBrace = "\x00ESC_CLOSE\x00"
+
 func Parse(content string) ([]Annotation, string, error) {
+	// Replace escaped braces with sentinels before parsing.
+	content = strings.ReplaceAll(content, `\{`, escapeOpenBrace)
+	content = strings.ReplaceAll(content, `\}`, escapeCloseBrace)
+
 	lines := strings.Split(content, "\n")
 
 	// Pre-pass: find block delete regions and mark lines to skip for inline parsing.
@@ -112,5 +120,8 @@ func Parse(content string) ([]Annotation, string, error) {
 	}
 
 	cleanContent := strings.Join(cleanLines, "\n")
+	// Restore escaped braces to literal characters in clean output.
+	cleanContent = strings.ReplaceAll(cleanContent, escapeOpenBrace, "{")
+	cleanContent = strings.ReplaceAll(cleanContent, escapeCloseBrace, "}")
 	return annotations, cleanContent, nil
 }
