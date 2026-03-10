@@ -267,6 +267,112 @@ func TestInitCommandWithAgents(t *testing.T) {
 	}
 }
 
+func TestInitCommandWithAgentsUpdatesExistingAgentsMD(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	t.Setenv("FABBRO_PROJECT_ROOT_STOP", tmpDir)
+
+	// Create an existing AGENTS.md with custom content
+	existingContent := "# My Project Agents\n\nExisting instructions for agents.\n"
+	os.WriteFile(filepath.Join(tmpDir, "AGENTS.md"), []byte(existingContent), 0644)
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"init", "--agents"}, stdin, &stdout, &stderr, noopTUI)
+
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
+	}
+
+	// Read the updated AGENTS.md
+	updatedContent, err := os.ReadFile(filepath.Join(tmpDir, "AGENTS.md"))
+	if err != nil {
+		t.Fatalf("expected AGENTS.md to exist: %v", err)
+	}
+
+	content := string(updatedContent)
+
+	// Existing content should be preserved
+	if !strings.Contains(content, "My Project Agents") {
+		t.Error("existing AGENTS.md content was not preserved")
+	}
+	if !strings.Contains(content, "Existing instructions for agents.") {
+		t.Error("existing AGENTS.md body content was not preserved")
+	}
+
+	// Should contain the fabbro workflow section
+	if !strings.Contains(content, "fabbro") {
+		t.Error("AGENTS.md should contain fabbro workflow section")
+	}
+	if !strings.Contains(content, "review") {
+		t.Error("fabbro workflow section should document the review process")
+	}
+}
+
+func TestInitCommandWithAgentsCreatesAgentsMDWhenMissing(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	t.Setenv("FABBRO_PROJECT_ROOT_STOP", tmpDir)
+
+	// No existing AGENTS.md
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"init", "--agents"}, stdin, &stdout, &stderr, noopTUI)
+
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
+	}
+
+	// Should create AGENTS.md with fabbro workflow section
+	content, err := os.ReadFile(filepath.Join(tmpDir, "AGENTS.md"))
+	if err != nil {
+		t.Fatalf("expected AGENTS.md to be created: %v", err)
+	}
+
+	if !strings.Contains(string(content), "fabbro") {
+		t.Error("AGENTS.md should contain fabbro workflow section")
+	}
+	if !strings.Contains(string(content), "review") {
+		t.Error("fabbro workflow section should document the review process")
+	}
+}
+
+func TestInitCommandWithAgentsIdempotentAgentsMD(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	t.Setenv("FABBRO_PROJECT_ROOT_STOP", tmpDir)
+
+	// Create existing AGENTS.md that already has fabbro section
+	existingContent := "# My Project\n\n## fabbro workflow\n\nAlready has fabbro section.\n"
+	os.WriteFile(filepath.Join(tmpDir, "AGENTS.md"), []byte(existingContent), 0644)
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	// First init creates .fabbro
+	realMain([]string{"init", "--agents"}, stdin, &stdout, &stderr, noopTUI)
+
+	content, _ := os.ReadFile(filepath.Join(tmpDir, "AGENTS.md"))
+
+	// Should not duplicate the fabbro section
+	count := strings.Count(string(content), "## fabbro workflow")
+	if count != 1 {
+		t.Errorf("expected exactly 1 fabbro workflow section, found %d", count)
+	}
+}
+
 func TestInitCommandSubdirectoryWarnsAboutParent(t *testing.T) {
 	tmpDir := t.TempDir()
 	origDir, _ := os.Getwd()

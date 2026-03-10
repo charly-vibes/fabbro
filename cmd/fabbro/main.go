@@ -110,6 +110,28 @@ PowerShell:
 	}
 }
 
+const agentsWorkflowSection = `## fabbro workflow
+
+Use fabbro for structured code review with FEM (Fabbro Editing Markup) annotations.
+
+### Review Process
+
+1. Run ` + "`fabbro review <file>`" + ` to open the TUI for a file
+2. Navigate with j/k, select lines with v, annotate with c or Space
+3. Save the session with w, quit with q
+4. Apply annotations with ` + "`fabbro apply <session-id>`" + `
+
+### FEM Annotation Types
+
+- ` + "`{>> text <<}`" + ` — comment
+- ` + "`{-- text --}`" + ` — delete
+- ` + "`{?? text ??}`" + ` — question
+- ` + "`{!! text !!}`" + ` — expand
+- ` + "`{== text ==}`" + ` — keep
+- ` + "`{~~ text ~~}`" + ` — unclear
+- ` + "`{++ text ++}`" + ` — change
+`
+
 const agentCommandTemplate = `# fabbro review
 
 Start a fabbro code review session. Use this command to annotate code with
@@ -188,6 +210,27 @@ Post-conditions:
 						return fmt.Errorf("failed to write %s: %w", dest, err)
 					}
 				}
+
+				// Update or create AGENTS.md with fabbro workflow section
+				agentsMDPath := "AGENTS.md"
+				existing, err := os.ReadFile(agentsMDPath)
+				if err != nil && !os.IsNotExist(err) {
+					return fmt.Errorf("failed to read %s: %w", agentsMDPath, err)
+				}
+				content := string(existing)
+				if !strings.Contains(content, "## fabbro workflow") {
+					if content != "" && !strings.HasSuffix(content, "\n") {
+						content += "\n"
+					}
+					if content != "" {
+						content += "\n"
+					}
+					content += agentsWorkflowSection
+					if err := os.WriteFile(agentsMDPath, []byte(content), 0644); err != nil {
+						return fmt.Errorf("failed to write %s: %w", agentsMDPath, err)
+					}
+				}
+
 				if !quietFlag {
 					fmt.Fprintln(stdout, "Created agent command files in .agents/commands/ and .claude/commands/")
 				}

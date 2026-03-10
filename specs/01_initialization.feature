@@ -57,7 +57,7 @@ Feature: Project Initialization
     And the command files should contain fabbro workflow instructions
     And the command should exit with code 0
 
-  @planned
+  @implemented
   Scenario: Initializing with agents updates AGENTS.md
     Given I am in a directory with an existing AGENTS.md file
     When I run the command `fabbro init --agents`
