@@ -227,9 +227,8 @@ Feature: FEM Markup Language
     When the FEM is parsed and rendered without annotations
     Then the output should be "Text before  text after."
 
-  @planned
+  @implemented
   Scenario: Newlines in annotation text
-    # Multi-line annotation text not supported
     Given content with the following FEM markup:
       """
       {>> This is a multi-line

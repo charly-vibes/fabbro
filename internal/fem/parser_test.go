@@ -472,6 +472,62 @@ End.`
 	}
 }
 
+func TestParse_MultiLineAnnotationText(t *testing.T) {
+	content := `{>> This is a multi-line
+annotation that spans
+multiple lines <<}`
+
+	annotations, clean, err := Parse(content)
+	if err != nil {
+		t.Fatalf("Parse() returned error: %v", err)
+	}
+
+	if len(annotations) != 1 {
+		t.Fatalf("expected 1 annotation, got %d", len(annotations))
+	}
+
+	expectedText := "This is a multi-line\nannotation that spans\nmultiple lines"
+	if annotations[0].Text != expectedText {
+		t.Errorf("expected text=%q, got %q", expectedText, annotations[0].Text)
+	}
+
+	if annotations[0].StartLine != 1 {
+		t.Errorf("expected StartLine=1, got %d", annotations[0].StartLine)
+	}
+	if annotations[0].EndLine != 3 {
+		t.Errorf("expected EndLine=3, got %d", annotations[0].EndLine)
+	}
+
+	// All three lines should be cleaned
+	expected := "\n\n"
+	if clean != expected {
+		t.Errorf("expected clean=%q, got %q", expected, clean)
+	}
+}
+
+func TestParse_MultiLineAnnotationWithSurroundingContent(t *testing.T) {
+	content := `Before text. {>> This spans
+two lines <<} After text.`
+
+	annotations, clean, err := Parse(content)
+	if err != nil {
+		t.Fatalf("Parse() returned error: %v", err)
+	}
+
+	if len(annotations) != 1 {
+		t.Fatalf("expected 1 annotation, got %d", len(annotations))
+	}
+
+	if annotations[0].Text != "This spans\ntwo lines" {
+		t.Errorf("expected text='This spans\\ntwo lines', got %q", annotations[0].Text)
+	}
+
+	expected := "Before text. \n After text."
+	if clean != expected {
+		t.Errorf("expected clean=%q, got %q", expected, clean)
+	}
+}
+
 func TestParse_EscapedMarkupNotParsed(t *testing.T) {
 	content := `To add a comment, use the syntax \{>> comment <<\}`
 
