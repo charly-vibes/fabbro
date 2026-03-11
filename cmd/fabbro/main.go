@@ -197,10 +197,18 @@ Post-conditions:
 			}
 
 			if agentsFlag {
+				// .agents/commands is always created
 				agentDirs := []string{
 					filepath.Join(".agents", "commands"),
-					filepath.Join(".claude", "commands"),
 				}
+
+				// Only scaffold for agents detected in the project
+				for _, agentDir := range []string{".claude", ".cursor"} {
+					if info, err := os.Stat(agentDir); err == nil && info.IsDir() {
+						agentDirs = append(agentDirs, filepath.Join(agentDir, "commands"))
+					}
+				}
+
 				for _, dir := range agentDirs {
 					if err := os.MkdirAll(dir, 0755); err != nil {
 						return fmt.Errorf("failed to create %s: %w", dir, err)
@@ -232,7 +240,11 @@ Post-conditions:
 				}
 
 				if !quietFlag {
-					fmt.Fprintln(stdout, "Created agent command files in .agents/commands/ and .claude/commands/")
+					dirList := make([]string, len(agentDirs))
+					for i, d := range agentDirs {
+						dirList[i] = d + "/"
+					}
+					fmt.Fprintf(stdout, "Created agent command files in %s\n", strings.Join(dirList, ", "))
 				}
 			}
 

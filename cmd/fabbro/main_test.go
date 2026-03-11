@@ -232,6 +232,9 @@ func TestInitCommandWithAgents(t *testing.T) {
 
 	t.Setenv("FABBRO_PROJECT_ROOT_STOP", tmpDir)
 
+	// Pre-create .claude directory so agent detection finds it
+	os.MkdirAll(filepath.Join(tmpDir, ".claude"), 0755)
+
 	var stdout, stderr strings.Builder
 	stdin := strings.NewReader("")
 
@@ -344,6 +347,115 @@ func TestInitCommandWithAgentsCreatesAgentsMDWhenMissing(t *testing.T) {
 	if !strings.Contains(string(content), "review") {
 		t.Error("fabbro workflow section should document the review process")
 	}
+}
+
+func TestInitCommandWithAgentsDetectsAvailableAgents(t *testing.T) {
+	t.Run("only scaffolds for detected agents", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		origDir, _ := os.Getwd()
+		os.Chdir(tmpDir)
+		defer os.Chdir(origDir)
+
+		t.Setenv("FABBRO_PROJECT_ROOT_STOP", tmpDir)
+
+		// Create .claude directory to simulate Claude being in use
+		os.MkdirAll(filepath.Join(tmpDir, ".claude"), 0755)
+		// Do NOT create .cursor directory
+
+		var stdout, stderr strings.Builder
+		stdin := strings.NewReader("")
+
+		code := realMain([]string{"init", "--agents"}, stdin, &stdout, &stderr, noopTUI)
+		if code != 0 {
+			t.Fatalf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
+		}
+
+		// .claude/commands/fabbro-review.md should exist (agent detected)
+		claudePath := filepath.Join(tmpDir, ".claude", "commands", "fabbro-review.md")
+		if _, err := os.Stat(claudePath); err != nil {
+			t.Error("expected .claude/commands/fabbro-review.md to be created for detected agent")
+		}
+
+		// .cursor/commands should NOT be created (agent not detected)
+		cursorDir := filepath.Join(tmpDir, ".cursor", "commands")
+		if _, err := os.Stat(cursorDir); err == nil {
+			t.Error("expected .cursor/commands/ to NOT be created when .cursor is absent")
+		}
+
+		// .agents/commands should ALWAYS be created
+		agentsPath := filepath.Join(tmpDir, ".agents", "commands", "fabbro-review.md")
+		if _, err := os.Stat(agentsPath); err != nil {
+			t.Error("expected .agents/commands/fabbro-review.md to always be created")
+		}
+	})
+
+	t.Run("scaffolds for all detected agents", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		origDir, _ := os.Getwd()
+		os.Chdir(tmpDir)
+		defer os.Chdir(origDir)
+
+		t.Setenv("FABBRO_PROJECT_ROOT_STOP", tmpDir)
+
+		// Both agents present
+		os.MkdirAll(filepath.Join(tmpDir, ".claude"), 0755)
+		os.MkdirAll(filepath.Join(tmpDir, ".cursor"), 0755)
+
+		var stdout, stderr strings.Builder
+		stdin := strings.NewReader("")
+
+		code := realMain([]string{"init", "--agents"}, stdin, &stdout, &stderr, noopTUI)
+		if code != 0 {
+			t.Fatalf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
+		}
+
+		// Both should be scaffolded
+		for _, dir := range []string{".claude", ".cursor"} {
+			path := filepath.Join(tmpDir, dir, "commands", "fabbro-review.md")
+			if _, err := os.Stat(path); err != nil {
+				t.Errorf("expected %s/commands/fabbro-review.md to be created", dir)
+			}
+		}
+
+		// .agents always
+		agentsPath := filepath.Join(tmpDir, ".agents", "commands", "fabbro-review.md")
+		if _, err := os.Stat(agentsPath); err != nil {
+			t.Error("expected .agents/commands/fabbro-review.md to always be created")
+		}
+	})
+
+	t.Run("no agents detected still creates .agents/commands", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		origDir, _ := os.Getwd()
+		os.Chdir(tmpDir)
+		defer os.Chdir(origDir)
+
+		t.Setenv("FABBRO_PROJECT_ROOT_STOP", tmpDir)
+
+		// No .claude or .cursor directories
+
+		var stdout, stderr strings.Builder
+		stdin := strings.NewReader("")
+
+		code := realMain([]string{"init", "--agents"}, stdin, &stdout, &stderr, noopTUI)
+		if code != 0 {
+			t.Fatalf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
+		}
+
+		// .agents/commands should always be created
+		agentsPath := filepath.Join(tmpDir, ".agents", "commands", "fabbro-review.md")
+		if _, err := os.Stat(agentsPath); err != nil {
+			t.Error("expected .agents/commands/fabbro-review.md to always be created")
+		}
+
+		// Neither agent-specific dir should be created
+		for _, dir := range []string{".claude", ".cursor"} {
+			path := filepath.Join(tmpDir, dir, "commands")
+			if _, err := os.Stat(path); err == nil {
+				t.Errorf("expected %s/commands/ to NOT be created when %s is absent", dir, dir)
+			}
+		}
+	})
 }
 
 func TestInitCommandWithAgentsIdempotentAgentsMD(t *testing.T) {

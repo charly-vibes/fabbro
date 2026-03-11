@@ -65,7 +65,7 @@ Feature: Project Initialization
     And the fabbro workflow section should document the review process
     And existing AGENTS.md content should be preserved
 
-  @planned
+  @implemented
   Scenario: Agent scaffolding detects available agents
     # Only creates command files for agents that appear to be in use
     Given I am in a directory with a ".claude" directory
