@@ -349,17 +349,17 @@ Feature: TUI Interaction
 
   # --- Mouse Interaction (Phase 1.5) ---
 
-  @planned
+  @implemented
   Scenario: Clicking to position cursor
     When I click on line 42
     Then the cursor should move to line 42
 
-  @planned
+  @implemented
   Scenario: Click-drag to select range
     When I click on line 42 and drag to line 50
     Then lines 42-50 should be selected
 
-  @planned
+  @implemented
   Scenario: Right-click context menu
     Given the cursor is on line 42
     When I right-click

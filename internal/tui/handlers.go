@@ -25,6 +25,45 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.lastMessage = ""
 		return m, nil
 
+	case tea.MouseMsg:
+		if m.mode == modeNormal {
+			switch {
+			case msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress:
+				if line, ok := m.screenToLine(msg.Y); ok {
+					m.cursor = line
+					m.selection.active = true
+					m.selection.anchor = line
+					m.selection.cursor = line
+					m.mouseDragging = true
+					m.ensureCursorVisible()
+				}
+			case msg.Action == tea.MouseActionMotion && m.mouseDragging:
+				if line, ok := m.screenToLine(msg.Y); ok {
+					m.cursor = line
+					m.selection.cursor = line
+					m.ensureCursorVisible()
+				}
+			case msg.Action == tea.MouseActionRelease && m.mouseDragging:
+				m.mouseDragging = false
+				start, end := m.selection.lines()
+				if start == end {
+					m.selection.active = false
+				}
+			case msg.Button == tea.MouseButtonRight && msg.Action == tea.MouseActionPress:
+				if line, ok := m.screenToLine(msg.Y); ok {
+					m.cursor = line
+					if !m.selection.active {
+						m.selection.active = true
+						m.selection.anchor = line
+						m.selection.cursor = line
+					}
+					m.mode = modePalette
+					m.ensureCursorVisible()
+				}
+			}
+		}
+		return m, nil
+
 	case tea.KeyMsg:
 		m.lastError = ""
 		m.lastMessage = ""

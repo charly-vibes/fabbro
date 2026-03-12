@@ -3952,3 +3952,136 @@ func TestTextObjectGrowBoundary(t *testing.T) {
 		t.Errorf("expected selection (2, 2) at boundary, got (%d, %d)", start, end)
 	}
 }
+
+func TestMouseClickPositionsCursor(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3\nline4\nline5")
+	m := New(sess)
+	m.width = 80
+	m.height = 24
+
+	if m.cursor != 0 {
+		t.Fatalf("expected cursor at 0, got %d", m.cursor)
+	}
+
+	// Click on screen row 3 = content line 2 (0-indexed), since header takes row 0
+	msg := tea.MouseMsg{
+		X:      10,
+		Y:      3,
+		Action: tea.MouseActionPress,
+		Button: tea.MouseButtonLeft,
+	}
+	result, _ := m.Update(msg)
+	m = result.(Model)
+
+	if m.cursor != 2 {
+		t.Errorf("expected cursor at 2 after click on row 3, got %d", m.cursor)
+	}
+}
+
+func TestMouseClickInHeaderIgnored(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+	m.width = 80
+	m.height = 24
+	m.cursor = 1 // start on line 2
+
+	// Click on header row (Y=0)
+	msg := tea.MouseMsg{
+		X:      10,
+		Y:      0,
+		Action: tea.MouseActionPress,
+		Button: tea.MouseButtonLeft,
+	}
+	result, _ := m.Update(msg)
+	m = result.(Model)
+
+	if m.cursor != 1 {
+		t.Errorf("expected cursor to stay at 1 after header click, got %d", m.cursor)
+	}
+}
+
+func TestMouseDragSelectsRange(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3\nline4\nline5")
+	m := New(sess)
+	m.width = 80
+	m.height = 24
+
+	// Press on row 2 (content line 1)
+	press := tea.MouseMsg{X: 10, Y: 2, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft}
+	result, _ := m.Update(press)
+	m = result.(Model)
+
+	if !m.selection.active {
+		t.Fatal("expected selection active after press")
+	}
+
+	// Drag to row 4 (content line 3)
+	motion := tea.MouseMsg{X: 10, Y: 4, Action: tea.MouseActionMotion, Button: tea.MouseButtonNone}
+	result, _ = m.Update(motion)
+	m = result.(Model)
+
+	start, end := m.selection.lines()
+	if start != 1 || end != 3 {
+		t.Errorf("expected selection 1-3 during drag, got %d-%d", start, end)
+	}
+
+	// Release
+	release := tea.MouseMsg{X: 10, Y: 4, Action: tea.MouseActionRelease, Button: tea.MouseButtonNone}
+	result, _ = m.Update(release)
+	m = result.(Model)
+
+	if !m.selection.active {
+		t.Error("expected selection to remain active after drag (multi-line)")
+	}
+	start, end = m.selection.lines()
+	if start != 1 || end != 3 {
+		t.Errorf("expected selection 1-3 after release, got %d-%d", start, end)
+	}
+}
+
+func TestMouseClickReleaseClearsSelection(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3")
+	m := New(sess)
+	m.width = 80
+	m.height = 24
+
+	// Click and release on same line (single click)
+	press := tea.MouseMsg{X: 10, Y: 2, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft}
+	result, _ := m.Update(press)
+	m = result.(Model)
+
+	release := tea.MouseMsg{X: 10, Y: 2, Action: tea.MouseActionRelease, Button: tea.MouseButtonNone}
+	result, _ = m.Update(release)
+	m = result.(Model)
+
+	if m.selection.active {
+		t.Error("expected selection to be cleared after single-click release")
+	}
+}
+
+func TestMouseRightClickOpensPalette(t *testing.T) {
+	sess := newTestSession("line1\nline2\nline3\nline4\nline5")
+	m := New(sess)
+	m.width = 80
+	m.height = 24
+
+	// Right-click on screen row 2 = content line 1 (0-indexed)
+	msg := tea.MouseMsg{
+		X:      10,
+		Y:      2,
+		Action: tea.MouseActionPress,
+		Button: tea.MouseButtonRight,
+	}
+	result, _ := m.Update(msg)
+	m = result.(Model)
+
+	if m.cursor != 1 {
+		t.Errorf("expected cursor at 1 after right-click, got %d", m.cursor)
+	}
+	if m.mode != modePalette {
+		t.Errorf("expected modePalette after right-click, got %d", m.mode)
+	}
+	if !m.selection.active {
+		t.Error("expected selection to be active after right-click")
+	}
+}

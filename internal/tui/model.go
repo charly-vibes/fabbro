@@ -90,6 +90,7 @@ type Model struct {
 	version           string       // fabbro version for display in help
 	annotationsCursor int          // cursor position in annotations list view
 	rangeEditAnnIndex int          // index into annotations for range editing (-1 if not active)
+	mouseDragging     bool         // true during left-button drag for selection
 }
 
 func New(sess *session.Session) Model {
@@ -127,7 +128,50 @@ func NewWithAll(sess *session.Session, sourceFile string, annotations []fem.Anno
 }
 
 func (m Model) Init() tea.Cmd {
-	return tea.EnterAltScreen
+	return tea.Batch(tea.EnterAltScreen, tea.EnableMouseCellMotion)
+}
+
+// screenToLine converts a screen Y coordinate to a 0-indexed content line.
+// Returns the line index and whether the click was in the content area.
+func (m *Model) screenToLine(screenY int) (int, bool) {
+	const headerHeight = 1
+	contentY := screenY - headerHeight
+	if contentY < 0 {
+		return 0, false
+	}
+
+	visibleLines := m.height - 4
+	if visibleLines < 5 {
+		visibleLines = 10
+	}
+
+	prefixLen := 13
+	contentWidth := m.width - prefixLen
+	if contentWidth < 10 {
+		contentWidth = 40
+	}
+
+	start := m.autoViewportTop
+	if m.viewportTop >= 0 {
+		start = m.viewportTop
+	}
+	if start < 0 {
+		start = 0
+	}
+
+	screenRow := 0
+	for i := start; i < len(m.lines); i++ {
+		wrapped := wrapLine(m.lines[i], contentWidth)
+		rows := len(wrapped)
+		if contentY >= screenRow && contentY < screenRow+rows {
+			return i, true
+		}
+		screenRow += rows
+		if screenRow >= visibleLines {
+			break
+		}
+	}
+	return 0, false
 }
 
 func (m *Model) annotationsOnLine(lineNum int) []int {
