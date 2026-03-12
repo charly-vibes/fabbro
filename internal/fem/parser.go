@@ -3,6 +3,7 @@ package fem
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -18,6 +19,9 @@ var blockDeleteOpen = regexp.MustCompile(`^\s*\{--\s*(.*?)\s*--\}\s*$`)
 
 // blockDeleteClose matches a line that is only a block delete closer: {--/--}
 var blockDeleteClose = regexp.MustCompile(`^\s*\{--/--\}\s*$`)
+
+// sidecarLineRef matches [line N] or [lines N-M] at the start of annotation text.
+var sidecarLineRef = regexp.MustCompile(`^\[lines?\s+(\d+)(?:-(\d+))?\]\s*`)
 
 // Sentinels for escaped braces during parsing.
 const escapeOpenBrace = "\x00ESC_OPEN\x00"
@@ -209,6 +213,20 @@ func Parse(content string) ([]Annotation, string, error) {
 			cleanLines[i] = cleanLine
 		} else {
 			cleanLines = append(cleanLines, cleanLine)
+		}
+	}
+
+	// Post-process: resolve sidecar [line N] / [lines N-M] references.
+	for i := range annotations {
+		if m := sidecarLineRef.FindStringSubmatch(annotations[i].Text); m != nil {
+			start, _ := strconv.Atoi(m[1])
+			end := start
+			if m[2] != "" {
+				end, _ = strconv.Atoi(m[2])
+			}
+			annotations[i].StartLine = start
+			annotations[i].EndLine = end
+			annotations[i].Text = strings.TrimSpace(annotations[i].Text[len(m[0]):])
 		}
 	}
 

@@ -133,7 +133,19 @@ func TestParse_AllAnnotationTypes(t *testing.T) {
 			name:     "change",
 			input:    "text {++ [line 1] -> new content ++}",
 			wantType: "change",
-			wantText: "[line 1] -> new content",
+			wantText: "-> new content",
+		},
+		{
+			name:     "emphasize",
+			input:    "text {** EMPHASIZE: This is the key takeaway **}",
+			wantType: "emphasize",
+			wantText: "EMPHASIZE: This is the key takeaway",
+		},
+		{
+			name:     "section",
+			input:    "text {## SECTION: This entire section needs rewriting ##}",
+			wantType: "section",
+			wantText: "SECTION: This entire section needs rewriting",
 		},
 	}
 
@@ -590,6 +602,108 @@ func TestParse_NestedBracesInAnnotationText(t *testing.T) {
 
 	if clean != "Code example. " {
 		t.Errorf("expected clean='Code example. ', got %q", clean)
+	}
+}
+
+func TestParse_SidecarLineReference(t *testing.T) {
+	content := `Original content here.
+
+{>> [line 1] This needs clarification <<}`
+
+	annotations, _, err := Parse(content)
+	if err != nil {
+		t.Fatalf("Parse() returned error: %v", err)
+	}
+
+	if len(annotations) != 1 {
+		t.Fatalf("expected 1 annotation, got %d", len(annotations))
+	}
+
+	ann := annotations[0]
+	if ann.Type != "comment" {
+		t.Errorf("expected type 'comment', got %q", ann.Type)
+	}
+	if ann.StartLine != 1 {
+		t.Errorf("expected StartLine=1 (from line ref), got %d", ann.StartLine)
+	}
+	if ann.EndLine != 1 {
+		t.Errorf("expected EndLine=1 (from line ref), got %d", ann.EndLine)
+	}
+	if ann.Text != "This needs clarification" {
+		t.Errorf("expected text='This needs clarification', got %q", ann.Text)
+	}
+}
+
+func TestParse_SidecarLineRangeReference(t *testing.T) {
+	content := `Line one.
+Line two.
+Line three.
+
+{>> [lines 1-2] These lines need work <<}`
+
+	annotations, _, err := Parse(content)
+	if err != nil {
+		t.Fatalf("Parse() returned error: %v", err)
+	}
+
+	if len(annotations) != 1 {
+		t.Fatalf("expected 1 annotation, got %d", len(annotations))
+	}
+
+	ann := annotations[0]
+	if ann.StartLine != 1 {
+		t.Errorf("expected StartLine=1, got %d", ann.StartLine)
+	}
+	if ann.EndLine != 2 {
+		t.Errorf("expected EndLine=2, got %d", ann.EndLine)
+	}
+	if ann.Text != "These lines need work" {
+		t.Errorf("expected text='These lines need work', got %q", ann.Text)
+	}
+}
+
+func TestParse_SidecarWithMultipleAnnotationTypes(t *testing.T) {
+	content := `Some code here.
+More code.
+
+{?? [line 1] Why this approach? ??}
+{!! [line 2] EXPAND: Add error handling !!}`
+
+	annotations, _, err := Parse(content)
+	if err != nil {
+		t.Fatalf("Parse() returned error: %v", err)
+	}
+
+	if len(annotations) != 2 {
+		t.Fatalf("expected 2 annotations, got %d", len(annotations))
+	}
+
+	if annotations[0].Type != "question" || annotations[0].StartLine != 1 {
+		t.Errorf("first annotation: expected question on line 1, got %s on line %d", annotations[0].Type, annotations[0].StartLine)
+	}
+	if annotations[1].Type != "expand" || annotations[1].StartLine != 2 {
+		t.Errorf("second annotation: expected expand on line 2, got %s on line %d", annotations[1].Type, annotations[1].StartLine)
+	}
+}
+
+func TestParse_SidecarDoesNotAffectInlineAnnotations(t *testing.T) {
+	content := `Line one {>> inline comment <<}`
+
+	annotations, _, err := Parse(content)
+	if err != nil {
+		t.Fatalf("Parse() returned error: %v", err)
+	}
+
+	if len(annotations) != 1 {
+		t.Fatalf("expected 1 annotation, got %d", len(annotations))
+	}
+
+	// No [line N] prefix, so StartLine should be the physical line
+	if annotations[0].StartLine != 1 {
+		t.Errorf("expected StartLine=1, got %d", annotations[0].StartLine)
+	}
+	if annotations[0].Text != "inline comment" {
+		t.Errorf("expected text='inline comment', got %q", annotations[0].Text)
 	}
 }
 

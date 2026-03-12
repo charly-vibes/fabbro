@@ -23,7 +23,7 @@ Feature: FEM Markup Language
     And the annotation text should be "This needs clarification"
     And the annotation should be on line 1
 
-  @planned
+  @implemented
   Scenario: Comment with line reference (sidecar style)
     Given content with the following FEM markup:
       """
@@ -120,7 +120,8 @@ Feature: FEM Markup Language
       """
     When the FEM is parsed
     Then a "change" annotation should be extracted
-    And the annotation text should be "[line 1] -> const x = bar()"
+    And the annotation should reference line 1
+    And the annotation text should be "-> const x = bar()"
 
   @implemented
   Scenario: Multi-line change annotation
@@ -136,9 +137,8 @@ Feature: FEM Markup Language
 
   # --- Emphasize Annotation ---
 
-  @planned
+  @implemented
   Scenario: Emphasize syntax
-    # {** ... **} not implemented
     Given content with the following FEM markup:
       """
       {** EMPHASIZE: This is the key takeaway **}
@@ -149,9 +149,8 @@ Feature: FEM Markup Language
 
   # --- Section-level Annotation ---
 
-  @planned
+  @implemented
   Scenario: Section annotation
-    # {## ... ##} not implemented
     Given content with the following FEM markup:
       """
       {## SECTION: This entire section needs rewriting ##}

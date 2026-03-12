@@ -23,6 +23,8 @@ var AnnotationTypes = []AnnotationType{
 	{Name: "keep", Open: "{==", Close: "==}", Prompt: "Reason to keep:"},
 	{Name: "unclear", Open: "{~~", Close: "~~}", Prompt: "What's unclear:"},
 	{Name: "change", Open: "{++", Close: "++}", Prompt: "Replacement text:"},
+	{Name: "emphasize", Open: "{**", Close: "**}", Prompt: "What to emphasize:"},
+	{Name: "section", Open: "{##", Close: "##}", Prompt: "Section feedback:"},
 }
 
 // Markers maps annotation type to opening and closing delimiters (with spaces for rendering).
