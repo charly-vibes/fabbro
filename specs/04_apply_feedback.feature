@@ -157,9 +157,8 @@ Feature: Apply Feedback
     Then an error message should indicate the session was not found
     And the command should exit with code 1
 
-  @planned
+  @implemented
   Scenario: Applying session with malformed FEM
-    # No FEM syntax validation currently
     Given a session file contains invalid FEM syntax
     When I run the command `fabbro apply <session-id> --json`
     Then an error message should indicate the parsing error

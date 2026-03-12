@@ -888,6 +888,44 @@ func TestApplyCommandContentHashNoWarningForStdin(t *testing.T) {
 	}
 }
 
+func TestApplyCommandMalformedFEM(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	sess, _ := session.Create("Test content", "")
+	femContent := `---
+session_id: ` + sess.ID + `
+created_at: 2026-01-11T22:00:00Z
+---
+
+Line one is fine.
+Line two has {>> unclosed annotation`
+
+	sessionPath := filepath.Join(config.SessionsDir, sess.ID+".fem")
+	os.WriteFile(sessionPath, []byte(femContent), 0644)
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+
+	code := realMain([]string{"apply", sess.ID, "--json"}, stdin, &stdout, &stderr, noopTUI)
+
+	if code != 1 {
+		t.Errorf("expected exit code 1, got %d", code)
+	}
+
+	errOutput := stderr.String()
+	if !strings.Contains(errOutput, "parse") {
+		t.Errorf("expected error to mention parsing, got %q", errOutput)
+	}
+	if !strings.Contains(errOutput, "line") {
+		t.Errorf("expected error to include line number, got %q", errOutput)
+	}
+}
+
 func TestReviewCommandNotInitialized(t *testing.T) {
 	tmpDir := t.TempDir()
 	origDir, _ := os.Getwd()
