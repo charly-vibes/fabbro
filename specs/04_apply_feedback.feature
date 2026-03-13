@@ -78,9 +78,8 @@ Feature: Apply Feedback
     When I run the command `fabbro apply <session-id> --json`
     Then the JSON should contain a "comment" annotation on line 42
 
-  @planned
+  @implemented
   Scenario: Parsing block delete annotation
-    # Block markers {--/--} not yet implemented
     Given a session file contains:
       """
       Line 9 content
