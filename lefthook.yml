@@ -13,6 +13,9 @@ pre-commit:
     lint:
       glob: "*.go"
       run: go vet ./...
+    staticcheck:
+      glob: "*.go"
+      run: staticcheck ./...
     format-check:
       glob: "*.go"
       run: |
