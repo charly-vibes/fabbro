@@ -11,11 +11,27 @@ fabbro lets you annotate code for review using [FEM (Fabbro Editing Markup)](doc
 
 ## Installation
 
+### Homebrew (macOS & Linux)
+
+```bash
+brew tap charly-vibes/charly
+brew install fabbro
+```
+
+### Scoop (Windows)
+
+```powershell
+scoop bucket add charly https://github.com/charly-vibes/scoop-charly
+scoop install fabbro
+```
+
+### Go
+
 ```bash
 go install github.com/charly-vibes/fabbro/cmd/fabbro@latest
 ```
 
-Or build from source:
+### From Source
 
 ```bash
 git clone https://github.com/charly-vibes/fabbro.git
