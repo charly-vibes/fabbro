@@ -1,7 +1,7 @@
 {
   "database": "dolt",
   "backend": "dolt",
-  "dolt_mode": "server",
+  "dolt_mode": "embedded",
   "dolt_database": "fabbro",
   "project_id": "4ea8a1b7-fc5b-4d84-8738-094de158e476"
 }
