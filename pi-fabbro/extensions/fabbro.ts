@@ -32,6 +32,30 @@ type FabbroAvailability = {
   resolvedCommand?: FabbroCommand;
 };
 
+type FabbroApplyResult = {
+  sessionId: string;
+  sourceFile: string;
+  createdAt: string;
+  annotations: Array<{
+    type: string;
+    text: string;
+    startLine: number;
+    endLine: number;
+  }>;
+  warnings: string[];
+  stderr?: string;
+  command: string;
+  annotationCount: number;
+};
+
+type FabbroSessionListEntry = {
+  id: string;
+  createdAt: string;
+  sourceFile?: string;
+  annotations: number;
+  resumeCommand: string;
+};
+
 class CancelledError extends Error {
   constructor() {
     super("Review creation cancelled");
@@ -221,6 +245,23 @@ function extractSessionId(output: string): string {
   return sessionId;
 }
 
+function parseJSON<T>(commandLabel: string, raw: string): T {
+  try {
+    return JSON.parse(raw) as T;
+  } catch (error) {
+    const details = error instanceof Error ? error.message : String(error);
+    throw new Error(`${commandLabel} returned invalid JSON: ${details}`);
+  }
+}
+
+function extractWarnings(stderr: string): string[] {
+  return stderr
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => line.replace(/^warning:\s*/i, ""));
+}
+
 async function getPrimeInfo(pi: ExtensionAPI, cwd: string) {
   const status = await ensureFabbro(pi, cwd);
   const result = await execWithPi(pi, status.resolvedCommand!, ["prime", "--json"]);
@@ -228,12 +269,7 @@ async function getPrimeInfo(pi: ExtensionAPI, cwd: string) {
     throw new Error((result.stderr || result.stdout || "fabbro prime failed").trim());
   }
 
-  try {
-    return JSON.parse(result.stdout);
-  } catch (error) {
-    const details = error instanceof Error ? error.message : String(error);
-    throw new Error(`fabbro prime returned invalid JSON: ${details}`);
-  }
+  return parseJSON("fabbro prime", result.stdout);
 }
 
 async function createReviewSession(pi: ExtensionAPI, content: string, cwd: string, signal?: AbortSignal) {
@@ -257,6 +293,58 @@ async function createReviewSession(pi: ExtensionAPI, content: string, cwd: strin
     command: fabbro.display,
     contentPreview: trimmedContent.slice(0, 200),
     bytes: Buffer.byteLength(content, "utf8"),
+  };
+}
+
+async function listSessions(pi: ExtensionAPI, cwd: string): Promise<FabbroSessionListEntry[]> {
+  const status = await ensureFabbro(pi, cwd);
+  const fabbro = status.resolvedCommand!;
+  const result = await execWithPi(pi, fabbro, ["session", "list", "--json"]);
+
+  if (result.code !== 0) {
+    throw new Error((result.stderr || result.stdout || "fabbro session list failed").trim());
+  }
+
+  const sessions = parseJSON<Array<Omit<FabbroSessionListEntry, "resumeCommand">>>(
+    "fabbro session list --json",
+    result.stdout,
+  );
+
+  return (Array.isArray(sessions) ? sessions : []).map((session) => ({
+    ...session,
+    resumeCommand: `fabbro session resume ${session.id}`,
+  }));
+}
+
+async function applyFeedback(pi: ExtensionAPI, sessionId: string, cwd: string): Promise<FabbroApplyResult> {
+  const trimmedSessionId = sessionId.trim();
+  if (!trimmedSessionId) {
+    throw new Error("Session ID is required. Provide it after /fabbro-apply or via the fabbro_apply_feedback tool.");
+  }
+
+  const status = await ensureFabbro(pi, cwd);
+  const fabbro = status.resolvedCommand!;
+  const result = await execWithPi(pi, fabbro, ["apply", trimmedSessionId, "--json"]);
+
+  if (result.code !== 0) {
+    const output = [result.stderr.trim(), result.stdout.trim()].filter(Boolean).join("\n");
+    throw new Error(output || `${fabbro.display} apply ${trimmedSessionId} --json failed`);
+  }
+
+  const feedback = parseJSON<Omit<FabbroApplyResult, "warnings" | "stderr" | "command" | "annotationCount">>(
+    `fabbro apply ${trimmedSessionId} --json`,
+    result.stdout,
+  );
+  const warnings = extractWarnings(result.stderr || "");
+  const annotations = Array.isArray(feedback.annotations) ? feedback.annotations : [];
+
+  return {
+    ...feedback,
+    annotations,
+    warnings,
+    stderr: result.stderr.trim() || undefined,
+    command: fabbro.display,
+    annotationCount: annotations.length,
   };
 }
 
@@ -352,6 +440,55 @@ export default function fabbroExtension(pi: ExtensionAPI) {
     },
   });
 
+  pi.registerTool({
+    name: "fabbro_apply_feedback",
+    label: "Apply Fabbro Feedback",
+    description: "Load structured feedback from `fabbro apply <session-id> --json`",
+    promptSnippet: "Load structured fabbro annotations for an existing review session.",
+    promptGuidelines: [
+      "Use fabbro_apply_feedback after a human has reviewed a session in fabbro.",
+      "If warnings are returned, surface them because they may indicate source drift or other review caveats.",
+    ],
+    parameters: Type.Object({
+      sessionId: Type.String({ description: "The fabbro session ID to apply with `fabbro apply <id> --json`" }),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      const feedback = await applyFeedback(pi, params.sessionId, ctx.cwd);
+      const warningSummary = feedback.warnings.length > 0 ? `\nWarnings:\n- ${feedback.warnings.join("\n- ")}` : "";
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Loaded fabbro feedback for ${feedback.sessionId} (${feedback.annotationCount} annotations).${warningSummary}`,
+          },
+        ],
+        details: feedback,
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: "fabbro_list_sessions",
+    label: "List Fabbro Sessions",
+    description: "List fabbro sessions via `fabbro session list --json`",
+    promptSnippet: "List the available fabbro sessions and show how to resume them outside pi.",
+    promptGuidelines: [
+      "Use fabbro_list_sessions when you need to discover an existing session to inspect or resume.",
+      "Recommend the returned `fabbro session resume <id>` command when the human needs to continue review in the external TUI.",
+    ],
+    parameters: Type.Object({}),
+    async execute(_toolCallId, _params, _signal, _onUpdate, ctx) {
+      const sessions = await listSessions(pi, ctx.cwd);
+      const summary = sessions.length
+        ? sessions.slice(0, 10).map((session) => `- ${session.id} (${session.annotations} annotations) → ${session.resumeCommand}`).join("\n")
+        : "No sessions found.";
+      return {
+        content: [{ type: "text", text: `Loaded ${sessions.length} fabbro session(s).\n${summary}` }],
+        details: { sessions },
+      };
+    },
+  });
+
   pi.registerCommand("fabbro-status", {
     description: "Check whether the fabbro CLI is available for the pi integration",
     handler: async (_args, ctx) => {
@@ -375,9 +512,11 @@ export default function fabbroExtension(pi: ExtensionAPI) {
         "- verify a usable fabbro command is available",
         "- expose `fabbro prime --json` to pi as a tool",
         "- create non-interactive review sessions from generated text",
-        "- LLM tools: `fabbro_prime`, `fabbro_create_review`",
+        "- load structured feedback from an existing session",
+        "- list available sessions and show resume commands",
+        "- LLM tools: `fabbro_prime`, `fabbro_create_review`, `fabbro_apply_feedback`, `fabbro_list_sessions`",
         `- fabbro status: ${status.message}`,
-        "Next phases will add feedback retrieval and session listing commands.",
+        "Next phases will assess reuse boundaries and workflow validation.",
       ].join("\n");
 
       if (ctx.hasUI) {
@@ -395,6 +534,57 @@ export default function fabbroExtension(pi: ExtensionAPI) {
         ctx.ui.setStatus(STATUS_KEY, "fabbro primer loaded");
       }
       printOrNotify(ctx, JSON.stringify(primer, null, 2), "info");
+    },
+  });
+
+  pi.registerCommand("fabbro-apply", {
+    description: "Load structured feedback from an existing fabbro session",
+    handler: async (args, ctx) => {
+      const feedback = await applyFeedback(pi, args, ctx.cwd);
+      const message = [
+        `Loaded fabbro feedback for ${feedback.sessionId}.`,
+        `Annotations: ${feedback.annotationCount}`,
+        `Resolver used: ${feedback.command}`,
+        feedback.warnings.length > 0 ? `Warnings:\n- ${feedback.warnings.join("\n- ")}` : null,
+        JSON.stringify(
+          {
+            sessionId: feedback.sessionId,
+            sourceFile: feedback.sourceFile,
+            createdAt: feedback.createdAt,
+            annotations: feedback.annotations,
+          },
+          null,
+          2,
+        ),
+      ]
+        .filter(Boolean)
+        .join("\n");
+
+      if (ctx.hasUI) {
+        ctx.ui.setStatus(STATUS_KEY, `feedback ${feedback.sessionId}`);
+      }
+      printOrNotify(ctx, message, feedback.warnings.length > 0 ? "warning" : "success");
+    },
+  });
+
+  pi.registerCommand("fabbro-sessions", {
+    description: "List fabbro sessions and show how to resume them outside pi",
+    handler: async (_args, ctx) => {
+      const sessions = await listSessions(pi, ctx.cwd);
+      const message = sessions.length
+        ? [
+            `Found ${sessions.length} fabbro session(s).`,
+            ...sessions.map(
+              (session) =>
+                `${session.id} | ${session.createdAt} | ${session.sourceFile || "(stdin)"} | ${session.annotations} annotations | ${session.resumeCommand}`,
+            ),
+          ].join("\n")
+        : "No fabbro sessions found. Create one with /fabbro-review or fabbro review <file>.";
+
+      if (ctx.hasUI) {
+        ctx.ui.setStatus(STATUS_KEY, sessions.length > 0 ? `${sessions.length} sessions` : "no sessions");
+      }
+      printOrNotify(ctx, message, "info");
     },
   });
 

@@ -8,6 +8,49 @@ fabbro provides a command-line interface for managing code review sessions.
 fabbro [command] [flags]
 ```
 
+## Machine-readable output
+
+For automation and AI agent integration, many commands support a `--json` flag.
+
+### Success contract
+
+When `--json` is active and the command succeeds (exit code 0):
+
+- Output on `stdout` is a single valid JSON object or array.
+- Output on `stderr` may contain human-readable warnings (e.g. source drift warnings), but these should not be treated as fatal errors.
+
+### Failure contract (v1)
+
+Current failure behavior (v1):
+
+- Exit code is `1`.
+- Output on `stderr` is a human-readable error message.
+- `stdout` is typically empty.
+
+### Failure contract (planned v2)
+
+A future update (v2) will introduce structured JSON errors:
+
+- If `--json` is active, errors will be written to `stderr` as a JSON object:
+  ```json
+  {
+    "error": "Short description",
+    "message": "Detailed actionable message",
+    "code": "semantic_error_code"
+  }
+  ```
+- Exit codes will follow a semantic taxonomy (e.g. usage vs data errors).
+
+## Exit codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | Success |
+| 1 | General error (current v1) |
+| 64 | Usage error (planned v2) |
+| 65 | Data error / missing resource (planned v2) |
+| 74 | IO error (planned v2) |
+
 ## Commands
 
 ### `fabbro init`

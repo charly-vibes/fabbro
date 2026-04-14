@@ -11,10 +11,10 @@ Create a pi package/extension that integrates fabbro's CLI-native review workflo
 
 - [x] Phase 1: Scaffold package
 - [x] Phase 2: Session creation and priming
-- [ ] Phase 3: Feedback retrieval
-- [ ] Phase 4: Session discovery and helper UX
-- [ ] Phase 5: Reuse assessment and workflow validation
-- [ ] Phase 6: Contract hardening (follow-up)
+- [x] Phase 3: Feedback retrieval
+- [x] Phase 4: Session discovery and helper UX
+- [x] Phase 5: Reuse assessment and workflow validation
+- [x] Phase 6: Contract hardening (follow-up)
 
 ## Approach
 
