@@ -3,6 +3,8 @@
 **Design Document v1.0**  
 *Learning from beads, optimized for human-AI collaboration*
 
+> Historical note: this is an early design artifact. Some command names, feature assumptions, and workflow details differ from the current implementation. For current behavior, prefer `README.md`, `docs/cli.md`, `docs/tui.md`, and the newer research documents.
+
 ---
 
 ## Executive Summary
@@ -239,18 +241,18 @@ fabbro review --last                    # Review last Claude response
 fabbro review --last --format minimal   # Use minimal template
 
 # Resume interrupted review
-fabbro resume <session-id>              # Continue editing
-fabbro sessions                         # List active sessions
-fabbro show <session-id>                # Show session details
+fabbro session resume <session-id>      # Continue editing
+fabbro session list                     # List active sessions
+fabbro session show <session-id>        # Show session details
 
 # Apply feedback (parse and format for Claude)
 fabbro apply <session-id>               # Human-readable output
 fabbro apply <session-id> --json        # JSON for Claude
 
 # Session management
-fabbro list                             # List all sessions
-fabbro delete <session-id>              # Delete session
-fabbro clean --older-than 7d            # Clean old sessions
+fabbro session list                     # List all sessions
+fabbro session delete <session-id>      # Delete session
+fabbro session clean --older-than 7d    # Clean old sessions
 
 # Configuration
 fabbro config set editor "code --wait"  # Set preferred editor
@@ -869,8 +871,8 @@ fabbro apply session-xyz
 - Auto-detect `$EDITOR` (fallback to vim)
 - Template system (standard, minimal)
 - Session persistence (`.fabbro/sessions/`)
-- `fabbro resume <session-id>` command
-- `fabbro sessions` list command
+- `fabbro session resume <session-id>` command
+- `fabbro session list` command
 
 **Implementation**:
 ```python
@@ -2157,10 +2159,10 @@ A: No, but git integration is recommended for session persistence.
 A: Quick inline for <500 lines, editor session for detailed review of long documents.
 
 **Q: Can I resume an interrupted review?**  
-A: Yes: `fabbro resume <session-id>`
+A: Yes: `fabbro session resume <session-id>`
 
 **Q: How do I see my review history?**  
-A: `fabbro sessions` lists all sessions. `fabbro show <session-id>` shows details.
+A: `fabbro session list` lists all sessions. `fabbro session show <session-id>` shows details.
 
 **Q: Can I create custom templates?**  
 A: Yes! Add `.md` files to `.fabbro/templates/custom/` and use: `fabbro review --template custom/mytemplate`

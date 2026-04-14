@@ -1,0 +1,18 @@
+{
+  "name": "pi-fabbro",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "keywords": ["pi-package"],
+  "pi": {
+    "extensions": ["./extensions"]
+  },
+  "peerDependencies": {
+    "@mariozechner/pi-coding-agent": "*",
+    "@sinclair/typebox": "*"
+  },
+  "scripts": {
+    "check": "echo 'No build step required; load with pi -e ./pi-fabbro'",
+    "smoke": "./scripts/smoke-test.sh"
+  }
+}

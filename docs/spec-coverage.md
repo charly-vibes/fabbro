@@ -8,7 +8,7 @@ This document tracks implementation status for all scenarios in the fabbro speci
 - ❌ Not Implemented — Planned but not yet built
 - 🚫 Deprecated — Removed from roadmap
 
-**Last updated:** 2026-02-27
+**Last updated:** 2026-04-14
 
 ---
 
@@ -18,13 +18,13 @@ This document tracks implementation status for all scenarios in the fabbro speci
 |---|----------|--------|-------|
 | 1 | Initializing a new project | 🔶 | Creates `.fabbro/sessions/`; no `templates/`, `config.yaml`, or `.gitignore` |
 | 2 | Initializing an already initialized project | ✅ | Works correctly |
-| 3 | Quiet initialization | ❌ | `--quiet` flag not implemented |
-| 4 | Initializing in a subdirectory of an initialized project | ❌ | No parent detection/warning |
-| 5 | Initializing with agent integration scaffolding | ❌ | `--agents` flag not implemented |
-| 6 | Initializing with agents updates AGENTS.md | ❌ | `--agents` flag not implemented |
-| 7 | Agent scaffolding detects available agents | ❌ | `--agents` flag not implemented |
+| 3 | Quiet initialization | ✅ | `--quiet` implemented |
+| 4 | Initializing in a subdirectory of an initialized project | ✅ | Detects parent root and warns |
+| 5 | Initializing with agent integration scaffolding | ✅ | `--agents` implemented |
+| 6 | Initializing with agents updates AGENTS.md | ✅ | Appends `## fabbro workflow` section when missing |
+| 7 | Agent scaffolding detects available agents | ✅ | Creates `.claude/` and `.cursor/` command files only when those dirs exist |
 
-**Summary:** 1 ✅, 1 🔶, 5 ❌
+**Summary:** 6 ✅, 1 🔶, 0 ❌
 
 ---
 
@@ -34,16 +34,16 @@ This document tracks implementation status for all scenarios in the fabbro speci
 |---|----------|--------|-------|
 | 1 | Creating a review session from stdin | ✅ | Works with `fabbro review --stdin` |
 | 2 | Creating a review session from a file | ✅ | Works with `fabbro review <file>` |
-| 3 | Creating a review session with a custom session ID | ❌ | `--id` flag not implemented |
+| 3 | Creating a review session with a custom session ID | ✅ | `--id` implemented |
 | 4 | Session file contains metadata header | ✅ | YAML frontmatter with `session_id`, `created_at` |
 | 5 | Session file preserves original content | ✅ | Content preserved correctly |
 | 6 | Attempting to review without initialization | ✅ | Returns error with exit code 1 |
 | 7 | Attempting to review a non-existent file | ✅ | Returns "file not found" error |
 | 8 | Attempting to review with no input | ✅ | Returns error suggesting `--stdin` or file path |
-| 9 | Opening session in external editor instead of TUI | ❌ | `--editor` flag not implemented |
-| 10 | Non-interactive mode creates session without opening anything | ❌ | `--no-interactive` not implemented |
+| 9 | Opening session in external editor instead of TUI | ✅ | `--editor` implemented |
+| 10 | Non-interactive mode creates session without opening anything | ✅ | `--no-interactive` implemented |
 
-**Summary:** 7 ✅, 0 🔶, 3 ❌
+**Summary:** 10 ✅, 0 🔶, 0 ❌
 
 ---
 
@@ -109,7 +109,7 @@ This document tracks implementation status for all scenarios in the fabbro speci
 |---|----------|--------|-------|
 | 1 | Applying feedback outputs human-readable summary | ✅ | Works without `--json` |
 | 2 | Applying feedback as JSON | ✅ | `--json` outputs valid JSON |
-| 3 | JSON contains all annotation fields | 🔶 | Has `sessionId`, `sourceFile`, `startLine`, `endLine`; missing `createdAt` |
+| 3 | JSON contains all annotation fields | ✅ | Includes `sessionId`, `sourceFile`, `createdAt`, `annotations` |
 | 4 | JSON includes all annotation types | ✅ | All types supported including `change` |
 | 5 | Parsing inline comment annotation | ✅ | `{>> ... <<}` works |
 | 6 | Parsing block delete annotation | ❌ | Block markers `{--/--}` not implemented |
@@ -121,8 +121,8 @@ This document tracks implementation status for all scenarios in the fabbro speci
 | 12 | Multi-line annotations span correct range | ✅ | StartLine/EndLine correct for multi-line |
 | 13 | Applying non-existent session | ✅ | Returns error |
 | 14 | Applying session with malformed FEM | ❌ | No FEM syntax validation |
-| 15 | Warning when source content has changed | ❌ | Content hash not implemented |
-| 16 | Compact JSON output for piping | ❌ | `--compact` not implemented |
+| 15 | Warning when source content has changed | ✅ | Content hash verification implemented |
+| 16 | Compact JSON output for piping | ✅ | `--compact` implemented |
 | 17 | Pretty-printed JSON output | ✅ | Default is pretty-printed |
 | 18 | Apply by source file path | ✅ | `--file` flag finds session by source |
 | 19 | Apply by file returns latest session | ✅ | Returns most recent session for file |
@@ -131,7 +131,7 @@ This document tracks implementation status for all scenarios in the fabbro speci
 | 22 | JSON output includes sourceFile | ✅ | `sourceFile` field in JSON output |
 | 23 | stdin session has empty sourceFile | ✅ | `sourceFile: ""` for stdin sessions |
 
-**Summary:** 18 ✅, 1 🔶, 4 ❌
+**Summary:** 21 ✅, 0 🔶, 2 ❌
 
 ---
 
@@ -139,26 +139,26 @@ This document tracks implementation status for all scenarios in the fabbro speci
 
 | # | Scenario | Status | Notes |
 |---|----------|--------|-------|
-| 1 | Listing all sessions | ❌ | `fabbro sessions` not implemented |
-| 2 | Listing sessions in JSON format | ❌ | Not implemented |
-| 3 | No sessions exist | ❌ | Not implemented |
-| 4 | Showing session details | ❌ | `fabbro show` not implemented |
-| 5 | Showing session with annotation breakdown | ❌ | Not implemented |
-| 6 | Showing non-existent session | ❌ | Not implemented |
-| 7 | Resuming an interrupted review | ❌ | `fabbro resume` not implemented |
-| 8 | Resuming in editor mode | ❌ | Not implemented |
-| 9 | Resuming non-existent session | ❌ | Not implemented |
-| 10 | Deleting a session | ❌ | `fabbro delete` not implemented |
-| 11 | Deleting a session with --force | ❌ | Not implemented |
-| 12 | Deleting non-existent session | ❌ | Not implemented |
-| 13 | Cleaning sessions older than threshold | ❌ | `fabbro clean` not implemented |
-| 14 | Dry-run cleaning | ❌ | Not implemented |
-| 15 | Exporting session as standalone file | ❌ | `fabbro export` not implemented |
-| 16 | Exporting session to stdout | ❌ | Not implemented |
-| 17 | Partial session ID matching | ❌ | Not implemented |
-| 18 | Ambiguous partial session ID | ❌ | Not implemented |
+| 1 | Listing all sessions | ✅ | `fabbro session list` implemented |
+| 2 | Listing sessions in JSON format | ✅ | `fabbro session list --json` implemented |
+| 3 | No sessions exist | ✅ | Helpful empty-state output |
+| 4 | Showing session details | ✅ | `fabbro session show` implemented |
+| 5 | Showing session with annotation breakdown | ✅ | Annotation counts by type shown |
+| 6 | Showing non-existent session | ✅ | Returns error |
+| 7 | Resuming an interrupted review | ✅ | `fabbro session resume` implemented |
+| 8 | Resuming in editor mode | ✅ | `--editor` implemented |
+| 9 | Resuming non-existent session | ✅ | Returns error |
+| 10 | Deleting a session | ✅ | Confirmation prompt implemented |
+| 11 | Deleting a session with --force | ✅ | Implemented |
+| 12 | Deleting non-existent session | ✅ | Returns error |
+| 13 | Cleaning sessions older than threshold | ✅ | Implemented |
+| 14 | Dry-run cleaning | ✅ | Implemented |
+| 15 | Exporting session as standalone file | ✅ | `fabbro session export --output` implemented |
+| 16 | Exporting session to stdout | ✅ | Implemented |
+| 17 | Partial session ID matching | ✅ | Prefix matching implemented |
+| 18 | Ambiguous partial session ID | ✅ | Ambiguity error lists matches |
 
-**Summary:** 0 ✅, 0 🔶, 18 ❌
+**Summary:** 18 ✅, 0 🔶, 0 ❌
 
 ---
 
@@ -276,39 +276,37 @@ This document tracks implementation status for all scenarios in the fabbro speci
 
 | Spec | ✅ Implemented | 🔶 Partial | ❌ Not Implemented | Total |
 |------|---------------|-----------|-------------------|-------|
-| 01_initialization | 1 | 1 | 5 | 7 |
-| 02_review_session | 7 | 0 | 3 | 10 |
+| 01_initialization | 6 | 1 | 0 | 7 |
+| 02_review_session | 10 | 0 | 0 | 10 |
 | 03_tui_interaction | 43 | 0 | 4 | 47 |
-| 04_apply_feedback | 18 | 1 | 4 | 23 |
-| 05_session_management | 0 | 0 | 18 | 18 |
+| 04_apply_feedback | 21 | 0 | 2 | 23 |
+| 05_session_management | 18 | 0 | 0 | 18 |
 | 06_fem_markup | 13 | 0 | 8 | 21 |
 | 07_web_notes_sidebar | 12 | 0 | 0 | 12 |
 | 08_web_search | 15 | 0 | 0 | 15 |
 | 09_web_docx_upload | 0 | 0 | 6 | 6 |
 | 10_web_html_to_text | 0 | 0 | 11 | 11 |
-| **TOTAL** | **109** | **2** | **59** | **170** |
+| **TOTAL** | **138** | **1** | **31** | **170** |
 
-**Coverage: 111/170 scenarios (65%)**
+**Coverage: 139/170 scenarios (82%)**
 
 ---
 
 ## Priority Implementation Recommendations
 
 ### High Priority (Core Workflow)
-1. Session management commands (`sessions`, `show`, `resume`, `delete`)
-2. Block delete markers for multi-line annotations
-3. `createdAt` field in JSON output
+1. Block delete markers for multi-line annotations
+2. FEM syntax validation/reporting for malformed markup
+3. Remaining TUI interaction gaps (`R` range editing, quit confirmation)
 
 ### Medium Priority (UX Improvements)
-1. Custom session ID (`--id` flag)
-2. Confirmation prompt before discarding unsaved changes
-3. Annotation range editing (`R` key)
-4. Agent integration scaffolding (`--agents` flag)
+1. Mouse support
+2. `emphasize` and `section` annotation types
+3. FEM escaping and nested-brace handling
+4. Formal JSON schema contract + CI validation
 
 ### Low Priority (Nice to Have)
-1. Mouse support
-2. `--editor` and `--no-interactive` modes
-3. `emphasize` and `section` annotation types
-4. FEM syntax escaping, nested braces, and error reporting
-5. Compact JSON output (`--compact` flag)
-6. Session cleaning and export commands
+1. Additional agent-focused machine-readable error contracts
+2. Semantic exit codes
+3. Advanced diff-aware workflows
+4. MCP integration if CLI-native workflows prove insufficient

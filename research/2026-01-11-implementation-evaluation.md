@@ -6,14 +6,18 @@
 
 ---
 
-## Current State
+## Historical Context
 
-The repository is in early setup phase:
+This document reflects the repository state on 2026-01-11 and is preserved as an early implementation evaluation.
+
+At the time of writing:
 - **specs/**: One Gherkin spec (`01_initialization.feature`) defining `fabbro init`
 - **research/**: Design document v1.0 (comprehensive, 2000+ lines)
 - **plans/**: Empty (ready for implementation plans)
 - **debates/**: Empty
 - **No source code yet**
+
+Many recommendations below have since been implemented and should be read as historical analysis, not current-state documentation.
 
 ---
 
@@ -47,7 +51,7 @@ fabbro init → fabbro review --stdin → $EDITOR → fabbro apply <session-id> 
 4. Minimal FEM subset: `{>> <<}`, `{-- --}`, `{!! !!}`, `{?? ??}`
 
 **Explicitly defer**:
-- `fabbro resume`
+- `fabbro session resume`
 - Advanced templates
 - SQLite caching
 - Rich FEM features (nested blocks, attributes)

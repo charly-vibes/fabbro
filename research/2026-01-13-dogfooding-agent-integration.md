@@ -1,489 +1,545 @@
 # Research: Dogfooding Fabbro with AI Coding Agents
 
 **Date:** 2026-01-13
-**Status:** Revised (Rule of 5 reviewed)
-**Goal:** Discover the "desired path" for agents interacting with fabbro and humans using it
+**Last revalidated:** 2026-04-14
+**Status:** Revised
+**Goal:** Discover the desired path for agents interacting with fabbro and humans using it
+
+## Validation Scope
+
+This document was revalidated against the current codebase and docs:
+
+- `cmd/fabbro/main.go`
+- `docs/cli.md`
+- `docs/tui.md`
+- `docs/fem.md`
+- `README.md`
+
+Unless otherwise noted, statements in **Current validated state** refer to the behavior implemented in the codebase as of the revalidation date above.
 
 ## Executive Summary
 
-This document explores how fabbro should integrate with AI coding agents (Claude Code, Gemini CLI, Amp) based on research into existing tools like Steve Yegge's Beads and broader CLI-agent design patterns. The key insight: **tools that work well for agents are structured, queryable, and designed for the agentic feedback loop** (the cycle of agent action → human feedback → agent revision).
+fabbro already has the core primitives needed for a useful agent workflow:
 
-### Fabbro Today
+- non-interactive session creation
+- structured JSON output for annotation extraction
+- session listing and resume commands
+- agent scaffolding via `fabbro init --agents`
+- an AI-oriented primer via `fabbro prime --json`
 
-Current agent-relevant capabilities:
-- `fabbro review --stdin` — Pipe content for review, opens TUI
-- `fabbro apply <session-id> --json` — Extract annotations as structured JSON
-- JSON schema uses camelCase: `sessionId`, `startLine`, `endLine`, `type`, `content`
+The main insight still holds: **tools that work well for agents are structured, queryable, and designed for the agentic feedback loop** (agent action → human feedback → agent revision).
 
-What's missing for agents:
-- Non-interactive session creation
-- Session listing/management commands
-- Programmatic annotation injection
-- MCP server for dynamic discovery
-- Agent integration scaffolding (`fabbro init --agents`)
+The strongest near-term path is:
+
+1. use fabbro's existing CLI as the agent integration surface
+2. validate the human-review loop with Claude Code, Amp, pi, and similar tools
+3. add tighter integrations only where repeated friction is proven
+4. defer MCP until the CLI-native path is clearly insufficient
 
 ---
 
-## Part 1: Lessons from Beads
+## Part 1: Current Validated State
+
+### Agent-Relevant Capabilities Already Implemented
+
+Current fabbro capabilities relevant to agents:
+
+- `fabbro review --stdin` — create a review session from piped content and open the TUI
+- `fabbro review <file>` — create a review session from a file and open the TUI
+- `fabbro review --stdin --no-interactive` — create a session without opening the TUI or editor; prints the session ID to stdout
+- `fabbro review <file> --no-interactive` — same for file-based review
+- `fabbro review --json` — output session creation info as JSON when running interactively
+- `fabbro review --editor` — open the created session in `$EDITOR` instead of the TUI
+- `fabbro apply <session-id> --json` — extract annotations as structured JSON
+- `fabbro apply --file <path> --json` — find the latest session for a source file and extract annotations as JSON
+- `fabbro session list --json` — list sessions as structured JSON
+- `fabbro session resume <session-id>` — resume a session in the TUI
+- `fabbro session resume <session-id> --editor` — open a session in `$EDITOR`
+- `fabbro init --agents` — scaffold agent integration files and append a fabbro workflow section to `AGENTS.md`
+- `fabbro prime --json` — output AI-optimized workflow context
+
+### Current JSON Shape
+
+`fabbro apply --json` currently returns a top-level object with:
+
+- `sessionId`
+- `sourceFile`
+- `createdAt`
+- `annotations`
+
+Each annotation contains:
+
+- `type`
+- `startLine`
+- `endLine`
+- `text`
+
+Example:
+
+```json
+{
+  "sessionId": "abc12345",
+  "sourceFile": "src/main.go",
+  "createdAt": "2026-01-11T12:00:00Z",
+  "annotations": [
+    {
+      "type": "comment",
+      "text": "Consider error handling",
+      "startLine": 5,
+      "endLine": 5
+    }
+  ]
+}
+```
+
+### Current Exit Code Contract
+
+Documented CLI exit codes are currently simple:
+
+- `0` = success
+- `1` = error
+
+Structured error JSON and semantic nonzero codes are still proposals, not current behavior.
+
+### Remaining Gaps for Agents
+
+Confirmed gaps that still matter for agents:
+
+- no structured JSON error output contract yet
+- no semantic exit code taxonomy yet
+- no programmatic annotation injection command such as `fabbro annotate`
+- no MCP server
+- no formal versioned JSON schema doc or schema validation in CI
+- no agent-specific workflow validation report comparing multiple agent environments side by side
+
+---
+
+## Part 2: Lessons from Beads
 
 ### Why Beads Works for Agents
 
-Beads (steveyegge/beads) has become the de facto issue tracker for AI coding agents. Key insights from Steve Yegge:
+Beads (`steveyegge/beads`) has become a strong reference point for AI-agent-friendly CLI design. Useful takeaways:
 
-1. **Structured data, not markdown** — Agents struggle with parsing markdown plans. They need queryable, structured data (JSONL).
-
-2. **Git as database** — JSONL stored in `.beads/` directory, versioned with code. Self-healing through git history.
-
-3. **Agent-optimized output** — JSON output, dependency tracking, auto-ready task detection.
-
-4. **Lightweight CLI** — Single binary, simple commands (`bd list`, `bd ready`, `bd show`, `bd close`).
-
-5. **MCP server for deep integration** — `beads-mcp` allows agents to discover and use beads tools dynamically.
+1. **Structured data, not markdown** — agents are more reliable with queryable structured state than with freeform plans.
+2. **Git as database** — state stored alongside code creates good local ergonomics and auditability.
+3. **Agent-optimized output** — JSON output, identifiers, and dependency-aware workflows reduce ambiguity.
+4. **Lightweight CLI** — small composable commands make orchestration easy.
+5. **Optional deeper integration** — MCP can help, but the CLI must already stand on its own.
 
 ### Beads Workflow Pattern
 
-```
+```text
 Human: "What should we work on?"
-Agent: [runs `bd ready`] → Shows unblocked issues
+Agent: [runs `bd ready`] → shows unblocked issues
 Human: "Let's do bd-123"
 Agent: [runs `bd update bd-123 --status=in_progress`]
        [does the work]
        [runs `bd close bd-123`]
 Human: "What's next?"
-Agent: [runs `bd ready`] → Cycle continues
+Agent: [runs `bd ready`] → cycle continues
 ```
 
-**Key insight:** The agent and human reason about work together using issue IDs as shared reference points.
+**Key insight:** the agent and human reason together using durable, queryable identifiers.
+
+For fabbro, the equivalent durable identifiers are session IDs.
 
 ---
 
-## Part 2: Agent-Friendly CLI Design Patterns
+## Part 3: Agent-Friendly CLI Design Patterns
 
-From InfoQ's "Keep the Terminal Relevant: Patterns for AI Agent Driven CLIs":
+From the broader CLI-agent literature, the most relevant patterns for fabbro are:
 
 ### Pattern 1: Machine-Friendly Escape Hatches
 
-Every command needs:
-- `--json` flag for structured output
-- Semantic exit codes (0=success, 1=error, specific codes for specific failures)
-- Consistent output to stdout (data) vs stderr (diagnostics)
+Every important command should have:
 
-**Status legend:** ✅ Done | 🔶 Partial | ❌ Not started
+- `--json` for structured output where appropriate
+- consistent stdout vs stderr behavior
+- documented exit codes
 
-**Fabbro status:** ✅ `fabbro apply --json` exists. ❌ Need more commands with JSON output.
+**Current fabbro assessment:**
+
+- `fabbro apply --json` exists
+- `fabbro session list --json` exists
+- `fabbro prime --json` exists
+- `fabbro review --json` exists for interactive session creation, while `--no-interactive` prints the raw session ID
+- stderr warnings are used for source drift during `apply`
+- semantic error payloads are not implemented yet
 
 ### Pattern 2: Output Formats as API Contracts
 
-CLI outputs are versioned APIs:
-- Breaking changes require major version bumps
-- Define explicit JSON schemas
-- CI should validate output schemas
+CLI outputs that agents rely on should be treated like APIs:
 
-**Fabbro status:** ✅ Just canonicalized JSON schema to camelCase. Need to document schema formally.
+- document them explicitly
+- avoid silent breaking changes
+- validate them in tests or CI where possible
+
+**Current fabbro assessment:**
+
+- the JSON field names are stable and readable
+- the schema is documented in prose, but not yet formalized as a versioned contract
 
 ### Pattern 3: MCP for Dynamic Discovery
 
-Model Context Protocol allows agents to:
-- Discover tool capabilities dynamically
-- Execute CLIs through constrained, versioned schemas
-- Avoid brittleness from output format changes
+MCP can help agents discover tools dynamically, but it should complement a strong CLI rather than compensate for a weak one.
 
-**Fabbro status:** ❌ No MCP server yet. This is a priority for agent integration.
+**Current fabbro assessment:**
 
-### Pattern 4: Real-Time Feedback
+- no MCP server yet
+- the current CLI is already strong enough to validate real workflows first
 
-Long-running tasks need progress reporting:
-- Event streaming for agents to detect failures early
-- Graceful termination (handle SIGTERM)
-- Consistent output streams
+### Pattern 4: Minimal Friction in Human Handoff
 
-**Fabbro status:** 🔶 TUI is interactive, but `fabbro apply` is fast enough to not need streaming.
+When an agent creates something for human review, the handoff needs to be obvious and low-friction.
+
+**Current fabbro assessment:**
+
+- non-interactive session creation works well for agent orchestration
+- `fabbro session resume <id>` is the human handoff command
+- the TUI is still a separate context switch, so UX around handoff remains worth researching
 
 ---
 
-## Part 3: Agent-Specific Integration Points
+## Part 4: Agent-Specific Integration Points
 
 ### Claude Code
 
-**Integration options:**
-1. **Custom slash commands** — `.claude/commands/review.md` for `/review` command
-2. **CLAUDE.md instructions** — Tell Claude about fabbro workflow
-3. **MCP server** — Deepest integration, allows dynamic tool discovery
+Useful integration surfaces:
 
-**Desired workflow:**
-```
-User: Review this output
-Claude: [creates session] → echo "$CONTENT" | fabbro review --stdin --no-interactive
-        [prints session ID to stdout, e.g., "session-abc123"]
-        [tells human]: "Session created. Run: fabbro resume session-abc123"
-Human: [runs fabbro resume session-abc123]
-        [adds annotations in TUI, saves with 'w', exits with 'q']
-Claude: [runs fabbro apply session-abc123 --json]
-        [parses annotations, makes code changes]
-```
+1. custom slash commands in `.claude/commands/`
+2. `CLAUDE.md` or project context instructions
+3. later, optional MCP
 
 ### Gemini CLI
 
-**Integration options:**
-1. **GEMINI.md context file** — Similar to CLAUDE.md
-2. **MCP server** — Gemini CLI supports MCP
-3. **Tool definitions** — Define fabbro as available tool
+Useful integration surfaces:
 
-**Considerations:**
-- Gemini CLI has built-in Google service tools
-- May prefer non-interactive mode for automation
+1. `GEMINI.md` or equivalent context file
+2. shell-command orchestration
+3. later, optional MCP
 
-### Amp (Sourcegraph)
+### Amp / AGENTS.md-driven agents
 
-**Integration options:**
-1. **AGENTS.md** — Already using this pattern
-2. **MCP server** — `beads-mcp` pattern
-3. **Skills** — Amp has built-in skill system
+Useful integration surfaces:
 
-**Considerations:**
-- Amp already uses beads successfully
-- Can follow same patterns: issue-driven workflow, JSON output, MCP
+1. `AGENTS.md`
+2. generated command files from `fabbro init --agents`
+3. shell-command workflows with JSON outputs
+
+### pi.dev
+
+Useful integration surfaces:
+
+1. a pi extension that wraps the fabbro CLI
+2. slash commands for review/session operations
+3. custom tools that call `fabbro review`, `fabbro apply`, `fabbro session list`, and `fabbro prime`
+
+**Important takeaway:** fabbro does not need deep integration with every agent from day one. The best common denominator is its CLI.
 
 ---
 
-## Part 4: Proposed Agent Workflow for Fabbro
+## Part 5: Proposed Workflow
 
-### The Desired Path
+This section describes the recommended workflow shape. Steps are labeled as current behavior when already supported.
 
-#### Phase 1: Human Reviews AI Output
+### Phase 1: Human Reviews AI Output
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│ AI generates long-form content (docs, code, explanations)  │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│ Human: "Review this with fabbro"                            │
-│ Agent: echo "$CONTENT" | fabbro review --stdin --no-interactive │
-│        → Creates session, prints session ID to stdout       │
-│        → Tells human: "Run: fabbro resume <session-id>"     │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│ Human: fabbro resume <session-id>                           │
-│        → Opens TUI, adds annotations using FEM syntax:      │
-│                                                             │
-│   FEM Annotation Syntax:                                    │
-│   - {>> comment <<} — General feedback                      │
-│   - {-- deletion --} — Mark for removal                     │
-│   - {++ addition ++} — Mark for inclusion                   │
-│   - {~~ old ~> new ~~} — Suggest replacement                │
-│   - {== highlight ==} — Highlight important section         │
-│   - {?? question ??} — Ask for clarification                │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│ Human saves (w) and exits                                   │
-│ Session ID printed to stdout                                │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│ Agent: fabbro apply <session-id> --json                     │
-│        → Parses annotations, returns structured feedback    │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│ Agent processes each annotation:                            │
-│   - "comment" → Consider feedback, may revise               │
-│   - "delete" → Remove or shorten section                    │
-│   - "question" → Answer in next revision                    │
-│   - "expand" → Add more detail                              │
-│   - "keep" → Preserve this section                          │
-└─────────────────────────────────────────────────────────────┘
+#### Current supported flow
+
+```text
+AI generates content
+  ↓
+Agent runs: echo "$CONTENT" | fabbro review --stdin --no-interactive
+  ↓
+Agent captures the session ID from stdout
+  ↓
+Agent tells human: Run `fabbro session resume <session-id>`
+  ↓
+Human opens the session in the TUI
+  ↓
+Human adds annotations and saves with `w`
+  ↓
+Human exits via `Ctrl+C Ctrl+C` or the command palette
+  ↓
+Agent runs: fabbro apply <session-id> --json
+  ↓
+Agent revises content based on structured feedback
 ```
 
-#### Phase 2: AI Reviews Human Code
+#### Current FEM annotation types
 
+Canonical FEM syntax today:
+
+- `{>> text <<}` — comment
+- `{-- text --}` — delete
+- `{?? text ??}` — question
+- `{!! text !!}` — expand
+- `{== text ==}` — keep
+- `{~~ text ~~}` — unclear
+- `{++ text ++}` — change
+
+### Phase 2: AI Reviews Human Code
+
+This is still mostly a proposal.
+
+#### Proposed future flow
+
+```text
+Human: "Review my changes"
+  ↓
+Agent runs: git diff | fabbro review --stdin --no-interactive
+  ↓
+Agent captures session ID
+  ↓
+Agent adds annotations programmatically (future, requires fabbro annotate or equivalent)
+  ↓
+Human runs: fabbro session resume <session-id>
+  ↓
+Human reviews, edits, accepts, rejects, or extends feedback in TUI
 ```
-┌─────────────────────────────────────────────────────────────┐
-│ Human: "Review my changes"                                  │
-│ Agent: git diff | fabbro review --stdin --no-interactive    │
-│        → Creates session, gets session ID                   │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│ Agent adds annotations programmatically:                     │
-│   fabbro annotate <session-id> \                            │
-│     --line=42 --type=comment --text="Consider error handling"│
-│   fabbro annotate <session-id> \                            │
-│     --line=55 --type=question --text="Why not use constants?"│
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│ Agent: "Review ready. Run: fabbro resume <session-id>"      │
-│ Human opens session in TUI, sees AI feedback                │
-│ Human can respond, ask clarifications, accept/reject        │
-└─────────────────────────────────────────────────────────────┘
-```
+
+This phase depends on capabilities fabbro does not yet have, especially programmatic annotation injection.
 
 ### Non-Interactive Mode for Automation
 
-For CI/CD and automated workflows:
+Current supported behavior:
 
 ```bash
 # Create session without opening TUI
-echo "$CONTENT" | fabbro review --stdin --no-interactive
-# Output: session-id-abc123
+printf '%s' "$CONTENT" | fabbro review --stdin --no-interactive
+# Output: <session-id>
 
 # Later, apply feedback
-fabbro apply session-id-abc123 --json
+fabbro apply <session-id> --json
 ```
 
 ---
 
-## Part 5: Implementation Priorities
+## Part 6: Current Priorities
 
-### Must Have (for dogfooding)
+### Already Shipped
 
-1. **`--no-interactive` flag for `review`** — Create session without opening TUI
-2. **Session ID output to stdout** — So agents can capture it
-3. **Robust JSON schema** — ✅ Done (sessionId, startLine, endLine)
-4. **AGENTS.md documentation** — ✅ Already exists
-5. **Error output format** — Structured JSON errors for agent error handling:
-   ```json
-   {"error": "session not found", "code": "SESSION_NOT_FOUND", "sessionId": "abc123"}
-   ```
-   Exit codes: 0=success, 1=general error, 2=session not found, 3=invalid input
+These items are done and should be treated as validated primitives, not future work:
 
-### Should Have (for agent integration)
+1. non-interactive review session creation
+2. session ID output suitable for capture by agents
+3. file input for `review`
+4. session listing in JSON
+5. session resume command
+6. agent scaffolding via `fabbro init --agents`
+7. AI primer output via `fabbro prime --json`
 
-6. **MCP server** — `fabbro-mcp` for dynamic tool discovery
-7. **File input for `review`** — `fabbro review document.md`
-8. **`fabbro sessions --json`** — List sessions as structured data
-9. **Session resume** — `fabbro resume <session-id>`
-10. **`fabbro annotate`** — Programmatic annotation injection for AI reviewers:
-    ```bash
-    fabbro annotate <session-id> --line=42 --type=comment --text="..."
-    fabbro annotate <session-id> --range=10-15 --type=question --text="..."
-    ```
+### Next Up
 
-### Nice to Have (for power users)
+These are the highest-value remaining items for agent integration:
 
-11. **Annotation templates** — Common patterns (e.g., "needs more examples")
-12. **Diff integration** — `git diff | fabbro review` with line mapping
-13. **Multi-line annotation support** — JSON schema with `startLine` != `endLine`
+1. **Structured JSON errors**
+   - Goal: reliable machine-readable failure modes
+   - Example proposal:
+     ```json
+     {"error":"session not found","code":"SESSION_NOT_FOUND","sessionId":"abc123"}
+     ```
 
----
+2. **Semantic exit codes**
+   - Goal: distinguish invalid input, missing session, parse failure, and initialization problems
 
-## Part 6: Agent Integration Scaffolding (OpenSpec/Goose Pattern)
+3. **Programmatic annotation injection**
+   - Goal: enable AI-generated review suggestions before the human opens the TUI
+   - Likely surface: `fabbro annotate <session-id> ...`
 
-### Lesson from OpenSpec
+4. **Formal JSON schema contract**
+   - Goal: document and test the output that agents depend on
 
-OpenSpec's `openspec init` command scaffolds per-agent integration files:
-- Detects which agents are available (Claude Code, Cursor, Amp, etc.)
-- Creates custom slash commands in `.claude/commands/`, `.cursor/commands/`, etc.
-- Writes managed `AGENTS.md` stub at project root
-- Agents discover fabbro naturally through their existing context mechanisms
+5. **Cross-agent workflow validation**
+   - Goal: compare Claude Code, Gemini CLI, Amp, and pi using the same baseline flow
 
-**Key insight:** Tools don't need to "hook into" agents — they create **file-based artifacts** that agents discover.
+### Deferred / Conditional
 
-### Lesson from Block's Goose
+These should happen only if the CLI-native path proves insufficient:
 
-Goose takes the opposite approach — it's the **orchestrator** that wraps other tools:
-- MCP-first architecture (everything is an extension)
-- Can use Claude Code, Cursor, Gemini CLI as backend providers
-- Recipes (YAML workflows) for automation
-- Deeplinks for one-click extension install
-
-### Proposed: `fabbro init --agents`
-
-```bash
-# Initialize fabbro with agent integration files
-fabbro init --agents
-
-# What it creates:
-.fabbro/
-├── sessions/
-├── config.yaml
-└── .gitignore
-
-.agents/commands/
-└── fabbro-review.md      # Custom command for Amp
-
-.claude/commands/
-└── fabbro-review.md      # Custom command for Claude Code
-
-.cursor/commands/
-└── fabbro-review.md      # Custom command for Cursor
-
-# Also appends to AGENTS.md:
-# ## Fabbro Review Workflow
-# Use `fabbro review --stdin --no-interactive` to create sessions...
-```
-
-### Command File Template
-
-```markdown
----
-description: Review content with fabbro TUI
----
-
-Create a fabbro review session for the provided content.
-
-1. Run: `echo "$CONTENT" | fabbro review --stdin --no-interactive`
-2. Capture the session ID from stdout
-3. Tell the user: "Session created. Run: fabbro resume <session-id>"
-4. After user annotates, run: `fabbro apply <session-id> --json`
-5. Process annotations and revise content accordingly
-```
+1. MCP server
+2. deeper agent-specific integrations beyond generated command files and docs
+3. advanced diff-aware workflows with automatic line mapping
 
 ---
 
-## Part 7: Non-Obtrusive TUI UX (Open Research)
+## Part 7: Agent Integration Scaffolding
 
-**Problem:** When agents invoke fabbro, the TUI shouldn't disrupt terminal flow.
+### Current State: `fabbro init --agents`
 
-### Questions to Research
+This feature is already implemented.
 
-1. **Launch mode:** Should fabbro open inline, in new pane, or floating overlay?
-2. **Session handoff:** Agent creates session → how does human seamlessly enter TUI?
-3. **Notification:** How to signal "session ready for review" without interrupting?
-4. **Fast exit:** How to make review feel like a quick aside, not a context switch?
+Current behavior:
+
+- creates `.agents/commands/fabbro-review.md`
+- creates `.claude/commands/fabbro-review.md` if `.claude/` exists
+- creates `.cursor/commands/fabbro-review.md` if `.cursor/` exists
+- appends a `## fabbro workflow` section to `AGENTS.md` if it is not already present
+
+This is a strong pattern because it uses file-based agent discovery rather than requiring custom runtime integration.
+
+### Why This Matters
+
+OpenSpec is still a useful reference here: agent tooling often works best when it scaffolds artifacts that agents already know how to consume.
+
+For fabbro, the core lesson is:
+
+> prefer project-local command and context artifacts first; add runtime protocols only when they solve a real validated problem.
+
+---
+
+## Part 8: Non-Obtrusive TUI UX
+
+**Problem:** the agent workflow is already workable, but the human handoff into the TUI may still feel heavier than ideal.
+
+### Questions Worth Researching
+
+1. Should `fabbro session resume` remain full-screen only?
+2. Is a popup-based terminal experience better in tmux or zellij?
+3. How should agents notify users that a session is ready?
+4. What is the fastest exit path that still feels safe?
+5. Which parts of the handoff are universal across Claude Code, Amp, Gemini CLI, and pi?
 
 ### Reference Patterns
 
 | Tool | Pattern |
 |------|---------|
-| **fzf** | Floating overlay, instant dismiss |
-| **lazygit** | Full-screen but launches fast, `q` exits instantly |
-| **gum** | Inline prompts, no screen takeover |
-| **charmbracelet/pop** | Desktop notifications from CLI |
-| **tmux popup** | Floating pane within terminal multiplexer |
+| `fzf` | Fast takeover and dismissal |
+| `lazygit` | Full-screen but quick in and out |
+| `gum` | Lightweight inline prompting |
+| `charmbracelet/pop` | External notification |
+| `tmux popup` | Floating pane inside terminal workflow |
 
-### Possible Approaches
+### Candidate Approaches
 
-1. **tmux/zellij popup** — `fabbro resume` opens in floating pane
-2. **$EDITOR pattern** — Like `git commit`, opens TUI and waits
-3. **Background + notify** — Session created in background, notify when ready
-4. **Inline mode** — Minimal TUI that doesn't clear screen
-
-**Status:** See issue `fabbro-d3d` for research task.
+1. tmux/zellij popup wrappers around `fabbro session resume`
+2. tighter editor-based workflows via `--editor`
+3. shell notifications after session creation
+4. a lighter-weight resume mode if the current TUI feels too heavy in practice
 
 ---
 
-## Part 8: Related TUI Tools
+## Part 9: Related Tooling References
 
-Tools researched for patterns applicable to fabbro:
-
-| Tool | Key Pattern for Fabbro |
-|------|------------------------|
-| **Elia** (darrenburns/elia) | Keyboard-centric UI, conversation persistence → model for session management |
-| **Ralph TUI** (subsy/ralph-tui) | Agent loop orchestration with prd.json (product requirements doc) and Beads → completion detection via `<promise>COMPLETE</promise>` token |
-| **OpenCode** (sst/opencode) | Open-source Claude Code alternative with MCP → reference for `fabbro-mcp` implementation |
-| **OpenSpec** (Fission-AI/OpenSpec) | Agent scaffolding via `init` command → model for `fabbro init --agents` |
-| **Goose** (block/goose) | MCP-first orchestrator, CLI providers, recipes → reference for `fabbro-mcp` |
+| Tool | Relevant Lesson for Fabbro |
+|------|-----------------------------|
+| Beads | durable IDs and structured CLI workflows for agent coordination |
+| OpenSpec | scaffold agent-readable project artifacts during init |
+| Goose | treat protocols like MCP as optional orchestration layers, not starting points |
+| OpenCode | useful reference if fabbro later adds MCP-facing tooling |
+| pi | extension-based orchestration around existing CLIs rather than forced deep embedding |
 
 ---
 
-## Part 9: Experiments to Run
+## Part 10: Experiments to Run
 
-### Experiment 1: Claude Code Integration
+### Experiment 1: Claude Code Baseline
 
-**Goal:** Validate human-reviews-AI workflow with slash command.
+**Goal:** validate the current CLI-native human-review loop.
 
 **Steps:**
-1. Create `.claude/commands/review.md`:
-   ```markdown
-   ---
-   description: Create a fabbro review session from content
-   ---
-   
-   Create a fabbro review session for the provided content.
-   Use `echo "$CONTENT" | fabbro review --stdin --no-interactive`.
-   Tell the user the session ID and instruct them to run `fabbro resume <session-id>`.
-   After the user saves annotations, run `fabbro apply <session-id> --json` to get structured feedback.
+1. create or update a `.claude/commands/` command that runs:
+   ```bash
+   echo "$CONTENT" | fabbro review --stdin --no-interactive
+   ```
+2. confirm the agent captures the session ID correctly
+3. confirm the human can run:
+   ```bash
+   fabbro session resume <session-id>
+   ```
+4. confirm the agent can apply annotations with:
+   ```bash
+   fabbro apply <session-id> --json
    ```
 
-2. Test workflow with generated documentation
-
 **Success criteria:**
-- Agent creates session without blocking
-- Human can resume and annotate
-- Agent parses JSON output and acts on feedback
+- no command correction required during the loop
+- human can complete review without confusion
+- agent can reliably parse resulting JSON
 
-### Experiment 2: Gemini CLI Integration
+### Experiment 2: Amp / AGENTS.md Baseline
 
-**Goal:** Test cross-agent compatibility.
+**Goal:** validate that generated agent scaffolding is enough for good ergonomics.
 
 **Steps:**
-1. Create `GEMINI.md` with fabbro instructions
-2. Test: "Generate a README, then let me review it with fabbro"
+1. run `fabbro init --agents`
+2. perform a real review loop through an AGENTS-driven agent
+3. note where the user or agent had to improvise
 
 **Success criteria:**
-- Same workflow works with different agent
-- JSON output is parsed correctly
+- generated files are enough to bootstrap the workflow
+- any missing instructions are concrete and documentable
 
-### Experiment 3: Amp Integration (current)
+### Experiment 3: pi Extension Prototype
 
-**Goal:** Document friction points in current dogfooding.
+**Goal:** test whether a pi extension around the fabbro CLI is enough.
 
-Already using fabbro with Amp via AGENTS.md. Document findings:
-- What works well?
-- Where are friction points?
-- What's missing?
-
-**Success criteria:**
-- Documented list of improvements needed
-- At least one friction point addressed
-
-### Experiment 4: MCP Server Prototype
-
-**Goal:** Enable dynamic tool discovery.
-
-Build minimal `fabbro-mcp` with:
-- `fabbro_review` tool — Create session
-- `fabbro_apply` tool — Get annotations
-- `fabbro_annotate` tool — Add annotations programmatically
-- `fabbro_sessions` resource — List sessions
+**Steps:**
+1. create a pi extension that wraps:
+   - `fabbro prime --json`
+   - `fabbro review --stdin --no-interactive`
+   - `fabbro apply <id> --json`
+   - `fabbro session list --json`
+2. validate a review loop for generated docs or plans
 
 **Success criteria:**
-- Agent can discover fabbro tools via MCP
-- All tools work without AGENTS.md instructions
+- the extension does not need to embed the fabbro TUI
+- the CLI-native workflow feels sufficient inside pi
+
+### Experiment 4: MCP Spike Only If Needed
+
+**Goal:** determine whether MCP solves a demonstrated problem rather than an imagined one.
+
+**Steps:**
+1. first gather friction data from the CLI-native experiments above
+2. only then build a minimal `fabbro-mcp` spike if repeated integration pain remains
+
+**Success criteria:**
+- MCP scope is justified by observed failures or repeated manual glue
 
 ---
 
-## Part 10: Open Questions
+## Part 11: Open Questions
 
-1. **Should agents add annotations directly?** Or only humans?
-   - Pro: AI code review could add annotations via `fabbro annotate`
-   - Con: Loses the "human-in-the-loop" value prop
-   - **Proposed answer:** Support both. Phase 1 = human annotates AI output. Phase 2 = AI annotates human code. Human always has final say via TUI.
+1. **Should agents add annotations directly, or only humans?**
+   - Current state: humans annotate in the TUI
+   - Proposal: support both if fabbro gains programmatic annotation injection
 
-2. **How to handle multi-line annotations?** 
-   - Current: startLine == endLine (single line only)
-   - Needed: Block annotations spanning ranges
-   - **Proposed answer:** Add `--range=START-END` flag to `fabbro annotate`. JSON schema already supports `startLine` != `endLine`.
+2. **What should the annotation-injection API look like?**
+   - likely command surface: `fabbro annotate <session-id> ...`
+   - unresolved: line vs range semantics, merge behavior, conflict behavior
 
-3. **Session lifecycle?**
-   - When should sessions be auto-cleaned?
-   - How long should annotations persist?
-   - **Proposed answer:** Sessions persist until explicitly deleted. Add `fabbro sessions --cleanup --older-than=7d` for garbage collection.
+3. **How should fabbro formalize machine-readable failures?**
+   - structured JSON errors
+   - semantic exit codes
+   - stable error codes
 
-4. **Integration depth?**
-   - Light: CLI only, agent reads JSON output
-   - Medium: Custom slash commands
-   - Deep: MCP server with full tool discovery
-   - **Proposed answer:** Start with Medium (slash commands), graduate to Deep (MCP) once workflow is validated.
+4. **What is the minimum common denominator across agents?**
+   - CLI only?
+   - CLI + generated command files?
+   - CLI + agent-specific context files?
+   - when does it make sense to fork integrations by ecosystem?
 
-5. **Concurrent session handling?**
-   - What if multiple agents create sessions on same content?
-   - **Proposed answer:** Sessions are independent by design. Each gets unique ID. No collision possible.
+5. **When is MCP actually warranted?**
+   - after repeated real-world friction, not before
 
-6. **Empty input handling?**
-   - What should `echo "" | fabbro review --stdin --no-interactive` do?
-   - **Proposed answer:** Return error with exit code 3 (invalid input): `{"error": "empty input", "code": "EMPTY_INPUT"}`
+6. **What should happen with empty stdin in agent workflows?**
+   - proposal: return a structured invalid-input error once structured errors exist
+
+---
+
+## Recommendation
+
+**Recommended path:** treat fabbro's CLI as the primary integration surface.
+
+Concretely:
+
+1. standardize the current CLI-native review loop across agents
+2. tighten machine-readable errors and contracts
+3. prototype a pi extension and validate generated command files
+4. postpone MCP until real usage demonstrates that the CLI approach is not enough
+
+This path has the best cost/benefit ratio because it builds on capabilities fabbro already ships.
 
 ---
 
