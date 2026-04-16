@@ -283,7 +283,11 @@ func List() ([]*Session, error) {
 	return sessions, nil
 }
 
-// LoadPartial loads a session by exact or prefix match on the ID.
+// LoadPartial loads a session by exact or partial match on the ID.
+// Matching priority is:
+// 1. exact full-ID match
+// 2. full-ID prefix match
+// 3. prefix match on any hyphen-separated ID segment
 // Returns an error if no match or multiple matches are found.
 func LoadPartial(partial string) (*Session, error) {
 	sessions, err := List()
@@ -298,22 +302,37 @@ func LoadPartial(partial string) (*Session, error) {
 		}
 	}
 
-	// Prefix match
 	var matches []string
+	seen := make(map[string]bool)
+	addMatch := func(id string) {
+		if seen[id] {
+			return
+		}
+		seen[id] = true
+		matches = append(matches, id)
+	}
+
 	for _, sess := range sessions {
 		if strings.HasPrefix(sess.ID, partial) {
-			matches = append(matches, sess.ID)
+			addMatch(sess.ID)
+			continue
+		}
+
+		for _, segment := range strings.Split(sess.ID, "-") {
+			if strings.HasPrefix(segment, partial) {
+				addMatch(sess.ID)
+				break
+			}
 		}
 	}
 
 	switch len(matches) {
 	case 0:
-		return nil, fmt.Errorf("no session matching '%s'", partial)
+		return nil, fmt.Errorf("no session matching %q", partial)
 	case 1:
 		return Load(matches[0])
 	default:
-		return nil, fmt.Errorf("ambiguous session ID '%s' matches: %s",
-			partial, strings.Join(matches, ", "))
+		return nil, fmt.Errorf("ambiguous session ID %q matches: %s", partial, strings.Join(matches, ", "))
 	}
 }
 

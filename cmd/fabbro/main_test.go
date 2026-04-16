@@ -1703,6 +1703,61 @@ func TestSessionDeleteNonexistent(t *testing.T) {
 	}
 }
 
+func TestSessionShowAcceptsSegmentPrefixPartialID(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	sess, _ := session.Create("show me", "show.go")
+	parts := strings.SplitN(sess.ID, "-", 2)
+	if len(parts) != 2 || len(parts[1]) < 4 {
+		t.Fatalf("expected generated session ID with suffix segment, got %q", sess.ID)
+	}
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+	code := realMain([]string{"session", "show", parts[1][:4]}, stdin, &stdout, &stderr, noopTUI)
+
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d; stderr: %s", code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), sess.ID) {
+		t.Errorf("expected full session ID %q in output, got %q", sess.ID, stdout.String())
+	}
+}
+
+func TestSessionShowAmbiguousPartialIDListsCandidates(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	for _, id := range []string{"review-abc123", "review-abc456"} {
+		if _, err := session.CreateWithID(id, "content", "file.go"); err != nil {
+			t.Fatalf("CreateWithID(%q) failed: %v", id, err)
+		}
+	}
+
+	var stdout, stderr strings.Builder
+	stdin := strings.NewReader("")
+	code := realMain([]string{"session", "show", "abc"}, stdin, &stdout, &stderr, noopTUI)
+
+	if code != 1 {
+		t.Fatalf("expected exit code 1, got %d", code)
+	}
+	if !strings.Contains(stderr.String(), "ambiguous session ID") {
+		t.Fatalf("expected ambiguous error, got %q", stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "review-abc123") || !strings.Contains(stderr.String(), "review-abc456") {
+		t.Errorf("expected candidate session IDs in error, got %q", stderr.String())
+	}
+}
+
 func TestSessionDeleteWithConfirmation(t *testing.T) {
 	tmpDir := t.TempDir()
 	origDir, _ := os.Getwd()

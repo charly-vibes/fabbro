@@ -564,6 +564,30 @@ func TestLoadPartial_PrefixMatch(t *testing.T) {
 	}
 }
 
+func TestLoadPartial_SegmentPrefixMatch(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	config.Init()
+
+	sess, _ := Create("content", "file.go")
+	parts := strings.SplitN(sess.ID, "-", 2)
+	if len(parts) != 2 || len(parts[1]) < 4 {
+		t.Fatalf("expected generated session ID with suffix segment, got %q", sess.ID)
+	}
+
+	partial := parts[1][:4]
+	loaded, err := LoadPartial(partial)
+	if err != nil {
+		t.Fatalf("LoadPartial(%q) returned error: %v", partial, err)
+	}
+	if loaded.ID != sess.ID {
+		t.Errorf("expected ID=%s, got %s", sess.ID, loaded.ID)
+	}
+}
+
 func TestLoadPartial_NoMatch(t *testing.T) {
 	tmpDir := t.TempDir()
 	origDir, _ := os.Getwd()

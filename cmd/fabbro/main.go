@@ -634,7 +634,7 @@ Post-conditions:
 			sessionID := args[0]
 			sess, err := session.LoadPartial(sessionID)
 			if err != nil {
-				return fmt.Errorf("session not found: %s", sessionID)
+				return err
 			}
 
 			annotations, _, err := fem.Parse(sess.Content)
@@ -704,7 +704,7 @@ Post-conditions:
 			// Verify session exists and resolve partial ID
 			sess, err := session.LoadPartial(sessionID)
 			if err != nil {
-				return fmt.Errorf("session not found: %s", sessionID)
+				return err
 			}
 			sessionID = sess.ID
 
@@ -759,7 +759,7 @@ Post-conditions:
 			// Resolve partial ID
 			sess, err := session.LoadPartial(sessionID)
 			if err != nil {
-				return fmt.Errorf("session not found: %s", sessionID)
+				return err
 			}
 
 			sessionsDir, err := config.GetSessionsDir()
