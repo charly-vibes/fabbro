@@ -210,20 +210,20 @@ Following beads pattern for consistency:
 
 ```bash
 # Quick install (Unix)
-curl -fsSL https://raw.githubusercontent.com/username/fabbro/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/charly-vibes/fabbro/main/install.sh | bash
 
 # Quick install (Windows)
-irm https://raw.githubusercontent.com/username/fabbro/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/charly-vibes/fabbro/main/install.ps1 | iex
 
 # Via npm (for Claude Code Web)
 npm install -g fabbro
 
 # Via Homebrew
-brew tap username/fabbro
+brew tap charly-vibes/fabbro
 brew install fabbro
 
 # From source
-git clone https://github.com/username/fabbro
+git clone https://github.com/charly-vibes/fabbro
 cd fabbro
 go build -o fabbro ./cmd/fabbro
 ```
@@ -713,10 +713,10 @@ Would you like to:
 It looks like fabbro isn't installed. I can help you install it:
 
 For Unix/Linux/Mac:
-curl -fsSL https://raw.githubusercontent.com/username/fabbro/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/charly-vibes/fabbro/main/install.sh | bash
 
 For Windows (PowerShell):
-irm https://raw.githubusercontent.com/username/fabbro/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/charly-vibes/fabbro/main/install.ps1 | iex
 
 Or via npm:
 npm install -g fabbro
@@ -805,7 +805,7 @@ if ! command -v fabbro &> /dev/null; then
         echo "✓ Installed via npm"
     elif command -v go &> /dev/null; then
         echo "npm failed, trying go install..."
-        go install github.com/username/fabbro/cmd/fabbro@latest
+        go install github.com/charly-vibes/fabbro/cmd/fabbro@latest
         export PATH="$PATH:$HOME/go/bin"
         echo "✓ Installed via go"
     else
@@ -2016,7 +2016,7 @@ Common patterns:
 
 set -e
 
-REPO="username/fabbro"
+REPO="charly-vibes/fabbro"
 VERSION="${FABBRO_VERSION:-latest}"
 
 echo "📝 Installing fabbro..."
@@ -2074,7 +2074,7 @@ fi
 
 $ErrorActionPreference = "Stop"
 
-$Repo = "username/fabbro"
+$Repo = "charly-vibes/fabbro"
 $Version = if ($env:FABBRO_VERSION) { $env:FABBRO_VERSION } else { "latest" }
 
 Write-Host "📝 Installing fabbro..." -ForegroundColor Cyan
