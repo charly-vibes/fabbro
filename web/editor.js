@@ -6,7 +6,13 @@ import * as search from './search.js';
 import * as help from './help.js';
 import * as palette from './palette.js';
 
+let cleanupMountedEditor = null;
+
 export function mount(container, session, { onFinish, onChanged }) {
+  if (cleanupMountedEditor) {
+    cleanupMountedEditor();
+    cleanupMountedEditor = null;
+  }
   container.innerHTML = `
     <div class="editor-header">
       <span>${escapeHtml(session.filename)}</span>
@@ -103,19 +109,21 @@ export function mount(container, session, { onFinish, onChanged }) {
     }
   }
 
-  viewerEl.addEventListener('click', () => {
+  const handleViewerClick = () => {
     viewerFocused = true;
     viewerEl.classList.add('viewer--focused');
-  });
+  };
+  viewerEl.addEventListener('click', handleViewerClick);
 
-  document.addEventListener('mousedown', (e) => {
+  const handleDocumentMousedown = (e) => {
     if (!viewerEl.contains(e.target)) {
       viewerFocused = false;
       viewerEl.classList.remove('viewer--focused');
     }
-  });
+  };
+  document.addEventListener('mousedown', handleDocumentMousedown);
 
-  document.addEventListener('keydown', (e) => {
+  const handleDocumentKeydown = (e) => {
     if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
 
     if (e.key === '?') {
@@ -198,7 +206,8 @@ export function mount(container, session, { onFinish, onChanged }) {
         searchCtrl.navigate(-1);
       }
     }
-  });
+  };
+  document.addEventListener('keydown', handleDocumentKeydown);
 
   function openPalette() {
     const commands = [
@@ -231,7 +240,8 @@ export function mount(container, session, { onFinish, onChanged }) {
     });
   }
 
-  document.getElementById('finish-btn').addEventListener('click', onFinish);
+  const finishBtn = document.getElementById('finish-btn');
+  finishBtn.addEventListener('click', onFinish);
 
   let selectionCheckTimer = null;
   let lastSelectionKey = '';
@@ -248,7 +258,8 @@ export function mount(container, session, { onFinish, onChanged }) {
 
   linesEl.addEventListener('mouseup', scheduleSelectionCheck);
   linesEl.addEventListener('touchend', scheduleSelectionCheck);
-  document.addEventListener('selectionchange', () => {
+
+  const handleSelectionChange = () => {
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
 
@@ -259,7 +270,19 @@ export function mount(container, session, { onFinish, onChanged }) {
     if (key === lastSelectionKey) return;
     lastSelectionKey = key;
     scheduleSelectionCheck();
-  });
+  };
+  document.addEventListener('selectionchange', handleSelectionChange);
+
+  cleanupMountedEditor = () => {
+    clearTimeout(selectionCheckTimer);
+    viewerEl.removeEventListener('click', handleViewerClick);
+    finishBtn.removeEventListener('click', onFinish);
+    linesEl.removeEventListener('mouseup', scheduleSelectionCheck);
+    linesEl.removeEventListener('touchend', scheduleSelectionCheck);
+    document.removeEventListener('mousedown', handleDocumentMousedown);
+    document.removeEventListener('keydown', handleDocumentKeydown);
+    document.removeEventListener('selectionchange', handleSelectionChange);
+  };
 }
 
 function handleSelection(session, refresh, onChanged) {
