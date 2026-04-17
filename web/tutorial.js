@@ -28,7 +28,7 @@ const STEPS = [
   },
   {
     title: 'Step 1: Select text',
-    message: 'Click and drag to select some text in the code \u2014 try selecting <code>name == null</code> on line 4.',
+    message: 'Select some text in the code — click and drag on desktop, or long-press and adjust the selection handles on touch devices. Try selecting <code>name == null</code> on line 4.',
     target: '.viewer',
     waitFor: 'selection',
   },
@@ -40,7 +40,7 @@ const STEPS = [
   },
   {
     title: 'Step 3: Write your note',
-    message: 'Type your comment (e.g. \u201CUse strict equality === instead\u201D) and press <strong>Enter</strong> to save.',
+    message: 'Type your comment (e.g. “Use strict equality === instead”) and save it — press <strong>Enter</strong> on desktop or tap the on-screen <strong>Save</strong> button on touch devices.',
     waitFor: 'annotation-added',
   },
   {
@@ -100,10 +100,7 @@ export function stop() {
     observer.disconnect();
     observer = null;
   }
-  if (selectionHandler) {
-    document.removeEventListener('mouseup', selectionHandler);
-    selectionHandler = null;
-  }
+  teardownSelectionListener();
   clearHighlight();
 }
 
@@ -158,21 +155,43 @@ function showStep() {
 }
 
 function setupSelectionListener() {
-  if (selectionHandler) {
-    document.removeEventListener('mouseup', selectionHandler);
-  }
+  teardownSelectionListener();
+
+  let lastSelection = '';
   selectionHandler = () => {
     if (!active) return;
     const step = STEPS[currentStep];
     if (!step || step.waitFor !== 'selection') return;
+
     const sel = window.getSelection();
-    if (sel && !sel.isCollapsed) {
-      document.removeEventListener('mouseup', selectionHandler);
-      selectionHandler = null;
-      setTimeout(() => advance(), 200);
-    }
+    if (!sel || sel.isCollapsed || sel.rangeCount === 0) return;
+
+    const text = sel.toString().trim();
+    if (!text) return;
+
+    const range = sel.getRangeAt(0);
+    const viewer = document.querySelector('.viewer');
+    if (!viewer || !viewer.contains(range.startContainer) || !viewer.contains(range.endContainer)) return;
+
+    const key = `${text}:${range.startOffset}:${range.endOffset}`;
+    if (key === lastSelection) return;
+    lastSelection = key;
+
+    teardownSelectionListener();
+    setTimeout(() => advance(), 200);
   };
+
   document.addEventListener('mouseup', selectionHandler);
+  document.addEventListener('touchend', selectionHandler);
+  document.addEventListener('selectionchange', selectionHandler);
+}
+
+function teardownSelectionListener() {
+  if (!selectionHandler) return;
+  document.removeEventListener('mouseup', selectionHandler);
+  document.removeEventListener('touchend', selectionHandler);
+  document.removeEventListener('selectionchange', selectionHandler);
+  selectionHandler = null;
 }
 
 function advance() {

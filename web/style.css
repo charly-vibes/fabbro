@@ -327,6 +327,29 @@ mark {
   border-color: var(--color-toolbar-bg);
 }
 
+.annotation-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+.annotation-action {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8125rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: #ffffff;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.annotation-action--primary {
+  background: var(--color-toolbar-bg);
+  color: #ffffff;
+  border-color: var(--color-toolbar-bg);
+}
+
 /* Editor layout */
 .editor-layout {
   display: flex;
@@ -950,6 +973,14 @@ mark.search-match--current {
   /* Annotation input */
   .annotation-input {
     font-size: 0.8125rem;
+  }
+
+  .annotation-actions {
+    justify-content: stretch;
+  }
+
+  .annotation-action {
+    flex: 1;
   }
 
   /* Status bar */

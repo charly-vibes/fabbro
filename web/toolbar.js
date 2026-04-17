@@ -15,8 +15,11 @@ export function show(rect, { onAnnotate }) {
   toolbarEl = document.createElement('div');
   toolbarEl.className = 'toolbar';
   const left = Math.max(8, Math.min(rect.left + rect.width / 2 - 75, window.innerWidth - 200));
+  const topAbove = rect.top - 40 + window.scrollY;
+  const topBelow = rect.bottom + 8 + window.scrollY;
+  const top = topAbove < window.scrollY + 8 ? topBelow : topAbove;
   toolbarEl.style.left = `${left}px`;
-  toolbarEl.style.top = `${rect.top - 40 + window.scrollY}px`;
+  toolbarEl.style.top = `${top}px`;
   toolbarEl.style.position = 'absolute';
 
   const primaryTypes = ANNOTATION_TYPES.filter(t => t.primary);
@@ -64,15 +67,15 @@ export function show(rect, { onAnnotate }) {
   document.body.appendChild(toolbarEl);
 
   const dismiss = (e) => {
-    if (e.key === 'Escape' || (!toolbarEl.contains(e.target) && e.type === 'mousedown')) {
+    if (e.key === 'Escape' || (!toolbarEl.contains(e.target) && e.type === 'pointerdown')) {
       hide();
       document.removeEventListener('keydown', dismiss);
-      document.removeEventListener('mousedown', dismiss);
+      document.removeEventListener('pointerdown', dismiss);
     }
   };
   setTimeout(() => {
     document.addEventListener('keydown', dismiss);
-    document.addEventListener('mousedown', dismiss);
+    document.addEventListener('pointerdown', dismiss);
   }, 0);
 }
 

@@ -232,26 +232,54 @@ export function mount(container, session, { onFinish, onChanged }) {
   }
 
   document.getElementById('finish-btn').addEventListener('click', onFinish);
-  linesEl.addEventListener('mouseup', () => handleSelection(session, refresh, onChanged));
+
+  let selectionCheckTimer = null;
+  let lastSelectionKey = '';
+
+  function scheduleSelectionCheck() {
+    clearTimeout(selectionCheckTimer);
+    selectionCheckTimer = setTimeout(() => {
+      const handled = handleSelection(session, refresh, onChanged);
+      if (!handled) {
+        lastSelectionKey = '';
+      }
+    }, 50);
+  }
+
+  linesEl.addEventListener('mouseup', scheduleSelectionCheck);
+  linesEl.addEventListener('touchend', scheduleSelectionCheck);
+  document.addEventListener('selectionchange', () => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
+
+    const range = sel.getRangeAt(0);
+    if (!linesEl.contains(range.startContainer) || !linesEl.contains(range.endContainer)) return;
+
+    const key = [range.startOffset, range.endOffset, sel.toString()].join(':');
+    if (key === lastSelectionKey) return;
+    lastSelectionKey = key;
+    scheduleSelectionCheck();
+  });
 }
 
 function handleSelection(session, refresh, onChanged) {
   const sel = window.getSelection();
-  if (!sel || sel.isCollapsed) return;
+  if (!sel || sel.isCollapsed || sel.rangeCount === 0) return false;
 
   const range = sel.getRangeAt(0);
   const linesContainer = document.getElementById('lines');
-  if (!linesContainer.contains(range.startContainer) || !linesContainer.contains(range.endContainer)) return;
+  if (!linesContainer.contains(range.startContainer) || !linesContainer.contains(range.endContainer)) return false;
 
   const startOffset = getCanonicalOffset(range.startContainer, range.startOffset);
   const endOffset = getCanonicalOffset(range.endContainer, range.endOffset);
-  if (startOffset === null || endOffset === null || startOffset === endOffset) return;
+  if (startOffset === null || endOffset === null || startOffset === endOffset) return false;
 
   const [sOff, eOff] = startOffset <= endOffset ? [startOffset, endOffset] : [endOffset, startOffset];
 
   toolbar.show(range.getBoundingClientRect(), {
     onAnnotate: (type) => showAnnotationInput(session, sOff, eOff, type, refresh, onChanged),
   });
+  return true;
 }
 
 function showAnnotationInput(session, startOffset, endOffset, type, refresh, onChanged) {
@@ -280,30 +308,58 @@ function showAnnotationInput(session, startOffset, endOffset, type, refresh, onC
   const textarea = document.createElement('textarea');
   textarea.className = 'annotation-input';
   textarea.placeholder = type === 'suggest'
-    ? 'Enter replacement text… (Enter to save, Esc to cancel)'
-    : 'Add your comment… (Enter to save, Esc to cancel)';
+    ? 'Enter replacement text… (Save to keep, Esc to cancel)'
+    : 'Add your comment… (Save to keep, Esc to cancel)';
   inputDiv.appendChild(textarea);
+
+  const actions = document.createElement('div');
+  actions.className = 'annotation-actions';
+
+  const saveBtn = document.createElement('button');
+  saveBtn.type = 'button';
+  saveBtn.className = 'annotation-action annotation-action--primary';
+  saveBtn.textContent = 'Save';
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.type = 'button';
+  cancelBtn.className = 'annotation-action';
+  cancelBtn.textContent = 'Cancel';
+
+  actions.appendChild(saveBtn);
+  actions.appendChild(cancelBtn);
+  inputDiv.appendChild(actions);
   targetLine.after(inputDiv);
   textarea.focus();
+
+  function closeInput() {
+    inputDiv.remove();
+  }
+
+  function saveAnnotation() {
+    const text = textarea.value.trim();
+    if (!text) return;
+
+    session.annotations.push({
+      type,
+      text,
+      startOffset,
+      endOffset,
+    });
+    closeInput();
+    refresh();
+    if (onChanged) onChanged();
+  }
+
+  saveBtn.addEventListener('click', saveAnnotation);
+  cancelBtn.addEventListener('click', closeInput);
 
   textarea.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      const text = textarea.value.trim();
-      if (text) {
-        session.annotations.push({
-          type,
-          text,
-          startOffset,
-          endOffset,
-        });
-      }
-      inputDiv.remove();
-      refresh();
-      if (onChanged) onChanged();
+      saveAnnotation();
     }
     if (e.key === 'Escape') {
-      inputDiv.remove();
+      closeInput();
     }
   });
 }

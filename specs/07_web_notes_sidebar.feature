@@ -47,6 +47,13 @@ Feature: Web Notes Sidebar
     When I add another annotation
     Then the notes header should display "Notes (4)"
 
+  @implemented
+  Scenario: Adding a note on mobile after touch selection
+    Given I am using the editor on a touch device
+    When I select text with the native touch selection handles
+    Then the annotation toolbar should appear
+    And I should be able to save the annotation using an on-screen "Save" button
+
   # --- Type Badges ---
 
   @implemented
