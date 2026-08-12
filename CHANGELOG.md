@@ -4,6 +4,8 @@ All notable changes to fabbro are documented in this file.
 
 ## [Unreleased]
 
+> These changes are implemented and available from source. No tagged release has been cut yet — Homebrew, Scoop, and `go install` will activate on the first tag.
+
 ### Added
 
 - **Session Lookup by File** - `fabbro apply --file <path>` finds sessions by source file (2026-01-25)
