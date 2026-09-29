@@ -308,7 +308,7 @@ When a new plan is approved:
 ### Why bd?
 
 - Dependency-aware: Track blockers and relationships between issues
-- Git-friendly: Dolt-powered version control with native sync
+- Git-friendly: issues.jsonl is committed to git (source of truth)
 - Agent-optimized: JSON output, ready work detection, discovered-from links
 - Prevents duplicate tracking systems and confusion
 
@@ -367,10 +367,7 @@ bd close bd-42 --reason "Completed" --json
 
 ### Auto-Sync
 
-bd automatically syncs via Dolt:
-
-- Each write auto-commits to Dolt history
-- Use `bd dolt push`/`bd dolt pull` for remote sync
+bd runs embedded (`no-db: true`):
 - No manual export/import needed!
 
 ### Important Rules
