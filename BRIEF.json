@@ -1,0 +1,545 @@
+{
+  "ok": true,
+  "envelope_version": "0.1",
+  "cli_version": "0.1.0",
+  "envelope_kind": "ok",
+  "data": {
+    "schema_version": "brief.v1",
+    "as_of": "2026-11-18",
+    "generated_at": "2026-11-18T21:12:09.510591475Z",
+    "sources": [
+      {
+        "name": "beads",
+        "status": "present",
+        "observed_at": "2026-11-16T11:33:59Z",
+        "staleness": "fresh",
+        "detail": "1 malformed line(s) skipped in .beads/issues.jsonl"
+      },
+      {
+        "name": "git",
+        "status": "present",
+        "observed_at": "2026-11-16T11:38:52Z",
+        "staleness": "fresh",
+        "detail": null
+      },
+      {
+        "name": "openspec",
+        "status": "missing",
+        "observed_at": null,
+        "staleness": "unknown",
+        "detail": "openspec/ directory is missing or unreadable"
+      },
+      {
+        "name": "whisper",
+        "status": "missing",
+        "observed_at": null,
+        "staleness": "unknown",
+        "detail": null
+      },
+      {
+        "name": "curation",
+        "status": "present",
+        "observed_at": "2026-11-18T21:12:09.503748434Z",
+        "staleness": "fresh",
+        "detail": null
+      }
+    ],
+    "curation": {
+      "updated_at": "2026-11-18T21:12:09.503748434Z",
+      "confirmed_at": null
+    },
+    "purpose_lite": null,
+    "focus": [],
+    "in_flight": [
+      {
+        "id": "fabbro-85b2",
+        "title": "release: publish prebuilt binaries for the five targets on GitHub Releases",
+        "status": "open",
+        "priority": 1,
+        "blocked_by": [],
+        "age_days": 2,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-fyy6",
+        "title": "Correct fabbro prime q-key guidance",
+        "status": "open",
+        "priority": 1,
+        "blocked_by": [],
+        "age_days": 106,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-q803",
+        "title": "Prevent edited frontmatter session IDs from orphaning sessions",
+        "status": "open",
+        "priority": 1,
+        "blocked_by": [],
+        "age_days": 106,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-32p",
+        "title": "Implement structured JSON error output for agent-facing CLI commands",
+        "status": "open",
+        "priority": 2,
+        "blocked_by": [],
+        "age_days": 216,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-3e7",
+        "title": "Explore session-to-file sync using git",
+        "status": "open",
+        "priority": 2,
+        "blocked_by": [],
+        "age_days": 297,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-4yff",
+        "title": "docs: apply README front-door standard v0.4 (§5.1)",
+        "status": "open",
+        "priority": 2,
+        "blocked_by": [],
+        "age_days": 2,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-c66",
+        "title": "Review: editor mode (--editor flag)",
+        "status": "in_progress",
+        "priority": 2,
+        "blocked_by": [],
+        "age_days": 258,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-dqtc",
+        "title": "Fix license metadata mismatch: README says MIT, LICENSE is GPL-3.0",
+        "status": "open",
+        "priority": 2,
+        "blocked_by": [],
+        "age_days": 50,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-kwt",
+        "title": "Refactor TUI launch to use dependency injection",
+        "status": "open",
+        "priority": 2,
+        "blocked_by": [],
+        "age_days": 292,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-uk4",
+        "title": "CLI Ergonomics and DX Review",
+        "status": "open",
+        "priority": 2,
+        "blocked_by": [],
+        "age_days": 293,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-14s",
+        "title": "FEM Emphasize and Section Markers",
+        "status": "open",
+        "priority": 3,
+        "blocked_by": [],
+        "age_days": 293,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-29t",
+        "title": "Web: Inline edit mode for multi-line replacements",
+        "status": "in_progress",
+        "priority": 3,
+        "blocked_by": [],
+        "age_days": 267,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-381",
+        "title": "TUI Edit Annotation Range",
+        "status": "open",
+        "priority": 3,
+        "blocked_by": [],
+        "age_days": 293,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-67b",
+        "title": "TUI Mouse Support",
+        "status": "open",
+        "priority": 3,
+        "blocked_by": [],
+        "age_days": 293,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-9g7",
+        "title": "Complete .fabbro directory structure",
+        "status": "open",
+        "priority": 3,
+        "blocked_by": [],
+        "age_days": 293,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-a0u",
+        "title": "FEM Parse Error Reporting",
+        "status": "open",
+        "priority": 3,
+        "blocked_by": [],
+        "age_days": 293,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-ayq",
+        "title": "Init Command Enhancements",
+        "status": "open",
+        "priority": 3,
+        "blocked_by": [
+          "fabbro-9g7",
+          "fabbro-bhz",
+          "fabbro-e4s",
+          "fabbro-ylf"
+        ],
+        "age_days": 293,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-bhz",
+        "title": "Add --quiet flag to init command",
+        "status": "open",
+        "priority": 3,
+        "blocked_by": [],
+        "age_days": 293,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-e24",
+        "title": "FEM Nested Braces and Multi-line Text",
+        "status": "open",
+        "priority": 3,
+        "blocked_by": [],
+        "age_days": 293,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-e4s",
+        "title": "Add --agents flag for agent scaffolding",
+        "status": "open",
+        "priority": 3,
+        "blocked_by": [],
+        "age_days": 293,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-ejx",
+        "title": "Epic: Pluggable annotation parser architecture",
+        "status": "open",
+        "priority": 3,
+        "blocked_by": [
+          "fabbro-gt1",
+          "fabbro-kvs",
+          "fabbro-nts"
+        ],
+        "age_days": 308,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-gt1",
+        "title": "Build markdown-comment annotation test corpus (20-50 cases)",
+        "status": "open",
+        "priority": 3,
+        "blocked_by": [],
+        "age_days": 308,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-kvs",
+        "title": "Create annotation format evaluation harness",
+        "status": "open",
+        "priority": 3,
+        "blocked_by": [
+          "fabbro-gt1"
+        ],
+        "age_days": 308,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-n41",
+        "title": "Normalize line endings in FEM parser",
+        "status": "open",
+        "priority": 3,
+        "blocked_by": [],
+        "age_days": 295,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-nts",
+        "title": "Add token count analysis for FEM vs markdown-comment formats",
+        "status": "open",
+        "priority": 3,
+        "blocked_by": [
+          "fabbro-kvs"
+        ],
+        "age_days": 308,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-rdz",
+        "title": "Optimize highlight computation for wrapped lines",
+        "status": "open",
+        "priority": 3,
+        "blocked_by": [],
+        "age_days": 303,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-vnl",
+        "title": "FEM Block Delete Syntax",
+        "status": "open",
+        "priority": 3,
+        "blocked_by": [],
+        "age_days": 293,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-ylf",
+        "title": "Add subdirectory detection to init",
+        "status": "open",
+        "priority": 3,
+        "blocked_by": [],
+        "age_days": 293,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-zr0",
+        "title": "FEM Escape Sequences",
+        "status": "open",
+        "priority": 3,
+        "blocked_by": [],
+        "age_days": 293,
+        "reason": null,
+        "confirmed_at": null
+      }
+    ],
+    "blocked": [
+      {
+        "id": "fabbro-ayq",
+        "title": "Init Command Enhancements",
+        "status": "open",
+        "priority": 3,
+        "blocked_by": [
+          "fabbro-9g7",
+          "fabbro-bhz",
+          "fabbro-e4s",
+          "fabbro-ylf"
+        ],
+        "age_days": 293,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-ejx",
+        "title": "Epic: Pluggable annotation parser architecture",
+        "status": "open",
+        "priority": 3,
+        "blocked_by": [
+          "fabbro-gt1",
+          "fabbro-kvs",
+          "fabbro-nts"
+        ],
+        "age_days": 308,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-kvs",
+        "title": "Create annotation format evaluation harness",
+        "status": "open",
+        "priority": 3,
+        "blocked_by": [
+          "fabbro-gt1"
+        ],
+        "age_days": 308,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-nts",
+        "title": "Add token count analysis for FEM vs markdown-comment formats",
+        "status": "open",
+        "priority": 3,
+        "blocked_by": [
+          "fabbro-kvs"
+        ],
+        "age_days": 308,
+        "reason": null,
+        "confirmed_at": null
+      }
+    ],
+    "next": [
+      {
+        "id": "fabbro-85b2",
+        "title": "release: publish prebuilt binaries for the five targets on GitHub Releases",
+        "status": "open",
+        "priority": 1,
+        "blocked_by": [],
+        "age_days": 2,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-fyy6",
+        "title": "Correct fabbro prime q-key guidance",
+        "status": "open",
+        "priority": 1,
+        "blocked_by": [],
+        "age_days": 106,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-q803",
+        "title": "Prevent edited frontmatter session IDs from orphaning sessions",
+        "status": "open",
+        "priority": 1,
+        "blocked_by": [],
+        "age_days": 106,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-32p",
+        "title": "Implement structured JSON error output for agent-facing CLI commands",
+        "status": "open",
+        "priority": 2,
+        "blocked_by": [],
+        "age_days": 216,
+        "reason": null,
+        "confirmed_at": null
+      },
+      {
+        "id": "fabbro-3e7",
+        "title": "Explore session-to-file sync using git",
+        "status": "open",
+        "priority": 2,
+        "blocked_by": [],
+        "age_days": 297,
+        "reason": null,
+        "confirmed_at": null
+      }
+    ],
+    "parked": [],
+    "needs_retriage": [],
+    "recent": [
+      {
+        "sha": "cc194ba2e1dca87e4afe2a07fae8e78221ee60ce",
+        "committed_at": "2026-11-16T11:38:52Z",
+        "subject": "docs: apply issue-review fixes to README/release tickets",
+        "outcome": null
+      },
+      {
+        "sha": "1ec5005f56f9ed8433475f9918e6c65d780a0dea",
+        "committed_at": "2026-11-16T00:28:42Z",
+        "subject": "docs: file README front-door and release tickets",
+        "outcome": null
+      },
+      {
+        "sha": "874fed7a91516e7bc5ea24b6e2ebf75b0d98070b",
+        "committed_at": "2026-09-29T16:21:01Z",
+        "subject": "beads: issue-review remediation for fabbro-dqtc (files, base_commit, Must gate)",
+        "outcome": null
+      },
+      {
+        "sha": "30e129d81bbe146f1b27108209a05153054c76e5",
+        "committed_at": "2026-09-29T16:17:24Z",
+        "subject": "beads: file license-mismatch bug (fabbro-dqtc: README MIT vs LICENSE GPL-3.0)",
+        "outcome": null
+      },
+      {
+        "sha": "7cfcc5cc41bf42bc109c0ae54ae0146cb14440ac",
+        "committed_at": "2026-09-29T14:10:55Z",
+        "subject": "docs(bd): integration blocks forbid dolt push/pull — embedded + no-db:true, issues.jsonl in git is the sync mechanism",
+        "outcome": null
+      }
+    ],
+    "health": {
+      "status": "amber",
+      "basis": "signals",
+      "signals": [
+        {
+          "kind": "orphan_commits",
+          "reason": "2 commits in the 14-day window link no tracker id or open work-item path: 1ec5005f56f9ed8433475f9918e6c65d780a0dea (docs: file README front-door and release tickets); cc194ba2e1dca87e4afe2a07fae8e78221ee60ce (docs: apply issue-review fixes to README/release tickets)"
+        }
+      ],
+      "owner": null,
+      "reason": "orphan_commits: 2 commits in the 14-day window link no tracker id or open work-item path: 1ec5005f56f9ed8433475f9918e6c65d780a0dea (docs: file README front-door and release tickets); cc194ba2e1dca87e4afe2a07fae8e78221ee60ce (docs: apply issue-review fixes to README/release tickets)"
+    },
+    "truncation": {
+      "applied": true,
+      "omitted_counts": {
+        "next": 18,
+        "recent": 195
+      }
+    },
+    "head_sha": "cc194ba2e1dca87e4afe2a07fae8e78221ee60ce",
+    "source_hash": "d15889a0faae6f54021cc084cf8072e856d529ea2d1935dc6a48d2fe5a142b00",
+    "warnings": [
+      {
+        "source": "beads",
+        "code": "beads_parse_error",
+        "detail": "1 malformed line(s) skipped in .beads/issues.jsonl"
+      },
+      {
+        "source": "openspec",
+        "code": "openspec_missing",
+        "detail": "openspec/ directory is missing or unreadable"
+      },
+      {
+        "source": "whisper",
+        "code": "whisper_missing",
+        "detail": "no whisper notes found for branch `main`"
+      }
+    ]
+  },
+  "warnings": [],
+  "hints": [],
+  "meta": {
+    "duration_ms": 0,
+    "tx": null,
+    "request_id": null
+  }
+}
